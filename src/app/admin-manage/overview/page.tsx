@@ -18,7 +18,16 @@ export default function AdminOverviewPage() {
   }, []);
 
   if (isLoading) {
-    return <div className="py-20 text-center text-xs text-bakery-600 font-medium">Loading Dashboard Analytics...</div>;
+    return (
+      <div className="space-y-6 animate-pulse p-4">
+        <div className="h-8 bg-bakery-200/60 rounded-xl w-64"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-28 bg-white rounded-3xl border border-bakery-200 p-5"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!data || !data.stats) {

@@ -11,13 +11,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // If on login page, render children without admin sidebar
-  if (pathname === '/admin-manage') {
-    return <>{children}</>;
-  }
-
-  // Poll for new orders count every 15s
+  // Poll for new orders count every 15s (Hooks must always run before any conditional returns)
   useEffect(() => {
+    if (pathname === '/admin-manage') return;
+
     const fetchNewOrders = () => {
       fetch('/api/orders')
         .then(res => res.json())
@@ -33,7 +30,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     fetchNewOrders();
     const interval = setInterval(fetchNewOrders, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
+
+  // If on login page, render children without admin sidebar
+  if (pathname === '/admin-manage') {
+    return <>{children}</>;
+  }
 
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });

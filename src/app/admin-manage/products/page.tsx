@@ -229,7 +229,7 @@ export default function AdminProductsPage() {
         <div className="py-16 text-center bg-white rounded-3xl border border-bakery-200 p-8 space-y-4">
           <ImageIcon className="w-12 h-12 text-bakery-300 mx-auto" />
           <h3 className="font-serif text-lg font-bold text-bakery-chocolate">No Products Found</h3>
-          <p className="text-xs text-bakery-600">Click "Add New Cake" above to start populating your catalog.</p>
+          <p className="text-xs text-bakery-600">Click &quot;Add New Cake&quot; above to start populating your catalog.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
