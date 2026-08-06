@@ -44,6 +44,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                 src="/logo.png"
                 alt="MyHomelyCake Trivandrum Logo"
                 fill
+                sizes="48px"
                 priority
                 className="object-cover p-0.5"
               />

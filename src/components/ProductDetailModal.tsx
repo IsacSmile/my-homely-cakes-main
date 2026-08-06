@@ -45,7 +45,7 @@ export default function ProductDetailModal() {
     galleryPhotos = [selectedModalProduct.imageUrl];
   }
   if (galleryPhotos.length === 0) {
-    galleryPhotos = [selectedModalProduct.imageUrl || 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80'];
+    galleryPhotos = [selectedModalProduct.imageUrl || '/cake-placeholder.svg'];
   }
 
   // Parse weight variants
@@ -69,7 +69,7 @@ export default function ProductDetailModal() {
     selectedWeight
   );
 
-  const activePhotoUrl = galleryPhotos[activeImageIndex] || galleryPhotos[0];
+  const activePhotoUrl = galleryPhotos[activeImageIndex] || galleryPhotos[0] || '/cake-placeholder.svg';
 
   const handleInstantOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +167,7 @@ export default function ProductDetailModal() {
             {/* Left Multi-Photo Image Gallery (3-4 photos) */}
             <div className="w-full md:w-1/2 flex flex-col bg-bakery-100 relative">
               {/* Main Photo View */}
-              <div className="relative aspect-4/3 md:aspect-auto md:flex-1 w-full bg-bakery-200 overflow-hidden">
+              <div className="relative h-64 md:h-auto md:flex-1 w-full bg-bakery-200 overflow-hidden">
                 <Image
                   src={activePhotoUrl}
                   alt={selectedModalProduct.name}
@@ -215,7 +215,7 @@ export default function ProductDetailModal() {
                           isSelected ? 'border-amber-600 ring-2 ring-amber-600/30 scale-105' : 'border-bakery-200 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
+                        <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill sizes="56px" className="object-cover" />
                       </button>
                     );
                   })}

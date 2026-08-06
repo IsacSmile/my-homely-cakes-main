@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Zap, Award } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
@@ -27,6 +27,9 @@ export interface ProductCardProps {
 export default function ProductCard({ product, discountPercent = 0 }: ProductCardProps) {
   const { addToCart, toggleWishlist, isInWishlist, openProductModal } = useCart();
   const isWishlisted = isInWishlist(product.id);
+  const [imgSrc, setImgSrc] = useState<string>(
+    product.imageUrl || '/cake-placeholder.svg'
+  );
 
   // Track product click analytics silently
   const handleCardClick = () => {
@@ -42,20 +45,18 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
     ? Math.round(product.basePrice * (1 - discountPercent / 100))
     : product.basePrice;
 
-  // Primary photo fallback guarantee
-  const mainPhoto = product.imageUrl || 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80';
-
   return (
     <div className="group bg-white rounded-3xl overflow-hidden border border-bakery-200/70 shadow-soft hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between transform hover:-translate-y-1">
       
-      {/* Product Image Container */}
-      <div className="relative aspect-4/3 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
+      {/* Product Image Container with explicit height h-48 sm:h-52 */}
+      <div className="relative h-48 sm:h-52 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
         <Image
-          src={mainPhoto}
+          src={imgSrc}
           alt={product.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={() => setImgSrc('/cake-placeholder.svg')}
           loading="lazy"
         />
 

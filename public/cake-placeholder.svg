@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF4EB"/>
+      <stop offset="100%" stop-color="#EAD1B6"/>
+    </linearGradient>
+    <linearGradient id="cakeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#8E552D"/>
+    </linearGradient>
+    <linearGradient id="creamGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="100%" stop-color="#F5E8D8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad)"/>
+  
+  <!-- Decorative Plate -->
+  <ellipse cx="400" cy="450" rx="260" ry="40" fill="#2C1A14" opacity="0.15"/>
+  <ellipse cx="400" cy="445" rx="240" ry="35" fill="#FFFDF9" stroke="#EAD1B6" stroke-width="4"/>
+
+  <!-- Cake Base Tier -->
+  <rect x="230" y="280" width="340" height="150" rx="20" fill="url(#cakeGrad)"/>
+  
+  <!-- Frosting Dripping -->
+  <path d="M230,295 C250,330 270,300 290,325 C310,350 330,300 350,330 C370,360 390,310 410,335 C430,360 450,300 470,330 C490,360 510,310 530,325 C550,340 570,295 570,295 L570,280 L230,280 Z" fill="url(#creamGrad)"/>
+
+  <!-- Cake Top Tier -->
+  <rect x="280" y="180" width="240" height="110" rx="15" fill="url(#cakeGrad)"/>
+  <path d="M280,195 C295,220 310,200 325,225 C340,250 355,200 370,225 C385,250 400,200 415,225 C430,250 445,200 460,225 C475,250 490,200 505,220 C520,230 520,195 520,195 L520,180 L280,180 Z" fill="url(#creamGrad)"/>
+
+  <!-- Cherries on top -->
+  <circle cx="340" cy="165" r="14" fill="#D9534F"/>
+  <path d="M340,151 Q350,135 360,130" stroke="#5F3921" stroke-width="3" fill="none"/>
+
+  <circle cx="400" cy="155" r="16" fill="#D9534F"/>
+  <path d="M400,139 Q415,120 425,115" stroke="#5F3921" stroke-width="3" fill="none"/>
+
+  <circle cx="460" cy="165" r="14" fill="#D9534F"/>
+  <path d="M460,151 Q470,135 480,130" stroke="#5F3921" stroke-width="3" fill="none"/>
+
+  <!-- Text -->
+  <text x="400" y="530" font-family="'Georgia', serif" font-size="28" font-weight="bold" fill="#2C1A14" text-anchor="middle">MyHomelyCake Trivandrum</text>
+  <text x="400" y="560" font-family="sans-serif" font-size="16" fill="#8E552D" text-anchor="middle">Freshly Baked Home Cake</text>
+</svg>
