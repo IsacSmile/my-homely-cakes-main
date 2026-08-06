@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { offers } from '@/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

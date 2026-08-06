@@ -1,10 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import CartDrawer from '@/components/CartDrawer';
-import ProductDetailModal from '@/components/ProductDetailModal';
 import MainLayoutClientWrapper from '@/components/MainLayoutClientWrapper';
 
 export const metadata: Metadata = {
@@ -55,6 +51,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}

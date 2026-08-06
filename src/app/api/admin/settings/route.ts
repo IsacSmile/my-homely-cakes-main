@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { getAdminFromCookies, setAdminCookie, signAdminToken } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const admin = getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
