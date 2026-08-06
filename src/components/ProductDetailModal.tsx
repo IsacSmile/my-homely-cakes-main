@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, ShoppingBag, Zap, CheckCircle2, Phone, MapPin, Scale, Sparkles, MessageCircle } from 'lucide-react';
+import { X, ShoppingBag, Zap, CheckCircle2, Phone, MapPin, Scale, Sparkles, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { calculateWeightPrice, formatINR } from '@/lib/pricing';
 
@@ -10,6 +10,7 @@ export default function ProductDetailModal() {
   const { selectedModalProduct, closeProductModal, addToCart } = useCart();
   
   const [selectedWeight, setSelectedWeight] = useState<number>(500);
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [customerName, setCustomerName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
@@ -17,18 +18,37 @@ export default function ProductDetailModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
 
-  // Set default weight when product opens
+  // Set default weight and active photo when product opens
   useEffect(() => {
     if (selectedModalProduct) {
       const base = selectedModalProduct.baseWeightG || 500;
       setSelectedWeight(base);
+      setActiveImageIndex(0);
       setOrderSuccess(null);
     }
   }, [selectedModalProduct]);
 
   if (!selectedModalProduct) return null;
 
-  // Parse variant weights
+  // Extract gallery photos (1 to 4 images)
+  let galleryPhotos: string[] = [selectedModalProduct.imageUrl];
+  try {
+    if (selectedModalProduct.images) {
+      const parsed = typeof selectedModalProduct.images === 'string'
+        ? JSON.parse(selectedModalProduct.images)
+        : selectedModalProduct.images;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        galleryPhotos = parsed.filter((url: string) => typeof url === 'string' && url.trim().length > 0);
+      }
+    }
+  } catch (e) {
+    galleryPhotos = [selectedModalProduct.imageUrl];
+  }
+  if (galleryPhotos.length === 0) {
+    galleryPhotos = [selectedModalProduct.imageUrl || 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80'];
+  }
+
+  // Parse weight variants
   let variantsList: number[] = [selectedModalProduct.baseWeightG || 500];
   try {
     if (selectedModalProduct.variants) {
@@ -48,6 +68,8 @@ export default function ProductDetailModal() {
     selectedModalProduct.baseWeightG || 500,
     selectedWeight
   );
+
+  const activePhotoUrl = galleryPhotos[activeImageIndex] || galleryPhotos[0];
 
   const handleInstantOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,13 +111,13 @@ export default function ProductDetailModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white w-full max-w-4xl max-h-[92vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative">
         
         {/* Close Button */}
         <button
           onClick={closeProductModal}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 text-bakery-chocolate hover:bg-white shadow-md transition-colors"
+          className="absolute top-3 right-3 z-20 p-2 rounded-full bg-white/90 text-bakery-chocolate hover:bg-white shadow-md transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -142,24 +164,69 @@ export default function ProductDetailModal() {
           </div>
         ) : (
           <>
-            {/* Left Image View */}
-            <div className="w-full md:w-1/2 relative min-h-[260px] md:min-h-full bg-bakery-100">
-              <Image
-                src={selectedModalProduct.imageUrl}
-                alt={selectedModalProduct.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-              />
-              <div className="absolute top-4 left-4 bg-amber-500/90 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                {selectedModalProduct.category}
+            {/* Left Multi-Photo Image Gallery (3-4 photos) */}
+            <div className="w-full md:w-1/2 flex flex-col bg-bakery-100 relative">
+              {/* Main Photo View */}
+              <div className="relative aspect-4/3 md:aspect-auto md:flex-1 w-full bg-bakery-200 overflow-hidden">
+                <Image
+                  src={activePhotoUrl}
+                  alt={selectedModalProduct.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover transition-all duration-300"
+                  priority
+                />
+                
+                <div className="absolute top-3 left-3 bg-amber-500/90 text-white text-[11px] font-semibold px-3 py-1 rounded-full shadow-xs">
+                  {selectedModalProduct.category}
+                </div>
+
+                {/* Left/Right Carousel Controls */}
+                {galleryPhotos.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryPhotos.length - 1 : prev - 1))}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev === galleryPhotos.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
+
+              {/* Gallery Thumbnails Strip (3-4 photos) */}
+              {galleryPhotos.length > 1 && (
+                <div className="p-3 bg-white border-t border-bakery-200 flex items-center justify-center gap-2 overflow-x-auto">
+                  {galleryPhotos.map((photo, idx) => {
+                    const isSelected = activeImageIndex === idx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                          isSelected ? 'border-amber-600 ring-2 ring-amber-600/30 scale-105' : 'border-bakery-200 opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Right Details & Order Form */}
-            <div className="w-full md:w-1/2 p-6 overflow-y-auto max-h-[80vh] md:max-h-[85vh] flex flex-col justify-between space-y-5">
+            <div className="w-full md:w-1/2 p-5 sm:p-6 overflow-y-auto max-h-[85vh] flex flex-col justify-between space-y-4">
               <div>
-                <h2 className="font-serif text-2xl font-bold text-bakery-chocolate">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-bakery-chocolate leading-tight">
                   {selectedModalProduct.name}
                 </h2>
                 <p className="text-xs text-bakery-800/80 mt-2 leading-relaxed">
@@ -167,7 +234,7 @@ export default function ProductDetailModal() {
                 </p>
 
                 {/* Weight Selector */}
-                <div className="mt-5 space-y-2">
+                <div className="mt-4 space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-bakery-800 flex items-center gap-1.5">
                     <Scale className="w-4 h-4 text-amber-600" />
                     Select Cake Weight / Size:
@@ -183,7 +250,7 @@ export default function ProductDetailModal() {
                           onClick={() => setSelectedWeight(w)}
                           className={`py-2 px-1 text-xs font-semibold rounded-xl border transition-all ${
                             isSelected
-                              ? 'bg-amber-600 text-white border-amber-600 shadow-soft'
+                              ? 'bg-amber-600 text-white border-amber-600 shadow-soft font-bold'
                               : 'bg-bakery-50 text-bakery-chocolate border-bakery-200 hover:bg-bakery-100'
                           }`}
                         >
@@ -195,20 +262,20 @@ export default function ProductDetailModal() {
                 </div>
 
                 {/* Price Display */}
-                <div className="mt-5 p-3.5 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
+                <div className="mt-4 p-3 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-bakery-600 font-medium block">Total Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:</span>
-                    <span className="font-serif text-2xl font-extrabold text-amber-800">
+                    <span className="text-[10px] text-bakery-600 font-medium block">Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:</span>
+                    <span className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800">
                       {formatINR(currentPrice)}
                     </span>
                   </div>
-                  <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">
                     Free Trivandrum Delivery Consult
                   </span>
                 </div>
 
                 {/* Direct 1-Step Order Form */}
-                <form onSubmit={handleInstantOrder} className="mt-5 space-y-3 pt-3 border-t border-bakery-100">
+                <form onSubmit={handleInstantOrder} className="mt-4 space-y-2.5 pt-3 border-t border-bakery-100">
                   <span className="text-xs font-bold text-bakery-chocolate flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Quick Order (No Login Required)
                   </span>
@@ -264,7 +331,7 @@ export default function ProductDetailModal() {
                       }}
                       className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 rounded-2xl text-xs transition-colors flex items-center justify-center gap-1.5"
                     >
-                      <ShoppingBag className="w-4 h-4 text-amber-700" />
+                      <ShoppingBag className="w-4 h-4 text-amber-700 shrink-0" />
                       <span>Add to Cart</span>
                     </button>
 
@@ -273,7 +340,7 @@ export default function ProductDetailModal() {
                       disabled={isSubmitting}
                       className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                     >
-                      <Zap className="w-4 h-4 text-amber-200" />
+                      <Zap className="w-4 h-4 text-amber-200 shrink-0" />
                       <span>{isSubmitting ? 'Placing Order...' : 'Order Now'}</span>
                     </button>
                   </div>

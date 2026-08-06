@@ -73,7 +73,7 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
       
       {/* Page Header & Search */}
       <div className="space-y-4 text-center max-w-3xl mx-auto">
@@ -115,7 +115,7 @@ export default function ShopPage() {
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                 isSelected
-                  ? 'bg-bakery-chocolate text-white shadow-soft scale-105'
+                  ? 'bg-bakery-chocolate text-white shadow-soft scale-105 font-bold'
                   : 'bg-white text-bakery-chocolate hover:bg-bakery-100 border border-bakery-200'
               }`}
             >
@@ -125,7 +125,7 @@ export default function ShopPage() {
         })}
       </div>
 
-      {/* Product Grid (Minimum 20 initial items) */}
+      {/* Responsive Product Grid: 1 col mobile, 2 col tablet, 4 col desktop */}
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
           <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto" />
@@ -148,7 +148,8 @@ export default function ShopPage() {
         </div>
       ) : (
         <div className="space-y-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Responsive Breakpoints: 1 col on mobile, 2 col on tablet (sm:), 4 col on desktop (lg: & xl:) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {productsList.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

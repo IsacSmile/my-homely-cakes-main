@@ -10,16 +10,23 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   try {
     const body = await request.json();
-    const { name, description, imageUrl, category, baseWeightG, basePrice, variants, isAvailable } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable } = body;
 
     const prod = db.select().from(products).where(eq(products.id, params.id)).get();
     if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+
+    const galleryImages = Array.isArray(images) && images.length > 0
+      ? images
+      : (imageUrl ? [imageUrl] : (prod.images ? JSON.parse(prod.images) : [prod.imageUrl]));
+
+    const mainImageUrl = imageUrl || galleryImages[0] || prod.imageUrl;
 
     db.update(products)
       .set({
         name: name ? name.trim() : prod.name,
         description: description ? description.trim() : prod.description,
-        imageUrl: imageUrl ? imageUrl.trim() : prod.imageUrl,
+        imageUrl: mainImageUrl,
+        images: JSON.stringify(galleryImages),
         category: category ? category.trim() : prod.category,
         baseWeightG: baseWeightG ? parseInt(baseWeightG, 10) : prod.baseWeightG,
         basePrice: basePrice ? parseInt(basePrice, 10) : prod.basePrice,

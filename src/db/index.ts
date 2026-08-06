@@ -26,6 +26,7 @@ const initDb = () => {
       slug TEXT NOT NULL UNIQUE,
       description TEXT NOT NULL,
       image_url TEXT NOT NULL,
+      images TEXT NOT NULL DEFAULT '[]',
       category TEXT NOT NULL,
       base_weight_g INTEGER NOT NULL DEFAULT 500,
       base_price INTEGER NOT NULL,
@@ -35,6 +36,21 @@ const initDb = () => {
       created_at TEXT NOT NULL
     );
 
+    -- Ensure column exists if table was created previously
+    PRAGMA table_info(products);
+  `);
+
+  try {
+    const tableInfo = sqlite.pragma('table_info(products)') as any[];
+    const hasImagesCol = tableInfo.some(col => col.name === 'images');
+    if (!hasImagesCol) {
+      sqlite.exec(`ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
+    }
+  } catch (e) {
+    console.error('Migration notice:', e);
+  }
+
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       order_number TEXT NOT NULL UNIQUE,

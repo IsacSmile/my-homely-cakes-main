@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { products } from '@/db/schema';
-import { eq, desc, like, or } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
 
 export async function GET(request: Request) {
@@ -54,11 +54,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, description, imageUrl, category, baseWeightG, basePrice, variants, isAvailable } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable } = body;
 
-    if (!name || !description || !imageUrl || !category || !basePrice) {
-      return NextResponse.json({ error: 'Missing required product fields' }, { status: 400 });
+    if (!name || !description || (!imageUrl && (!images || images.length === 0)) || !category || !basePrice) {
+      return NextResponse.json({ error: 'Missing required product fields (Name, Description, Image, Category, Base Price)' }, { status: 400 });
     }
+
+    const galleryImages = Array.isArray(images) && images.length > 0 ? images : [imageUrl];
+    const mainImageUrl = imageUrl || galleryImages[0];
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
     const id = 'cake_' + Date.now();
@@ -68,7 +71,8 @@ export async function POST(request: Request) {
       name: name.trim(),
       slug,
       description: description.trim(),
-      imageUrl: imageUrl.trim(),
+      imageUrl: mainImageUrl.trim(),
+      images: JSON.stringify(galleryImages),
       category: category.trim(),
       baseWeightG: parseInt(baseWeightG || '500', 10),
       basePrice: parseInt(basePrice, 10),

@@ -5,7 +5,8 @@ export const products = sqliteTable('products', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   description: text('description').notNull(),
-  imageUrl: text('image_url').notNull(),
+  imageUrl: text('image_url').notNull(), // Primary main image
+  images: text('images').notNull().default('[]'), // JSON array string of 1-4 images
   category: text('category').notNull(),
   baseWeightG: integer('base_weight_g').notNull().default(500),
   basePrice: integer('base_price').notNull(),
