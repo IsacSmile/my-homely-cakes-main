@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Plus, Edit2, Trash2, Cake, Check, X, Loader2, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, Check, AlertCircle, ShoppingBag } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 
 export default function AdminProductsPage() {
@@ -95,8 +95,8 @@ export default function AdminProductsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  const handleDelete = async (id: string, prodName: string) => {
+    if (!confirm(`Are you sure you want to delete "${prodName}"? This action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -183,30 +183,35 @@ export default function AdminProductsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8 max-w-7xl mx-auto px-2 sm:px-4">
+      
+      {/* Header Area with Clear Hierarchy */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-bakery-200/80 shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-bakery-chocolate">
-            Products & Categories Catalog ({productsList.length})
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>Storefront Catalog Manager</span>
+          </div>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-bakery-chocolate">
+            Products & Categories ({productsList.length})
           </h1>
-          <p className="text-xs text-bakery-600">
-            Add new cakes, manage admin categories, set weight variants, and toggle stock availability.
+          <p className="text-xs text-bakery-800/70 mt-1">
+            Manage bakery menu items, multi-photo galleries, category pills, and stock availability.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsCategoryModalOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold text-xs px-4 py-3 rounded-full border border-bakery-200 transition-colors"
+            className="inline-flex items-center gap-2 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-semibold text-xs px-4 py-3 rounded-full border border-bakery-200 transition-all shadow-xs"
           >
             <Tag className="w-4 h-4 text-amber-700" />
-            <span>Manage Categories ({categoriesList.length})</span>
+            <span>Categories ({categoriesList.length})</span>
           </button>
 
           <button
             onClick={openAddModal}
-            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-5 py-3 rounded-full shadow-soft transition-colors"
+            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-5 py-3 rounded-full shadow-soft transition-all active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Cake</span>
@@ -214,127 +219,72 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Catalog Grid */}
+      {/* Redesigned Responsive Grid (No Collisions, Clear Photo Container) */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-bakery-600">Loading cake catalog...</div>
+        <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-bakery-200/60 p-8">
+          <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-medium text-bakery-600">Loading catalog items...</p>
+        </div>
+      ) : productsList.length === 0 ? (
+        <div className="py-16 text-center bg-white rounded-3xl border border-bakery-200 p-8 space-y-4">
+          <ImageIcon className="w-12 h-12 text-bakery-300 mx-auto" />
+          <h3 className="font-serif text-lg font-bold text-bakery-chocolate">No Products Found</h3>
+          <p className="text-xs text-bakery-600">Click "Add New Cake" above to start populating your catalog.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {productsList.map((product) => {
-            let photoCount = 1;
-            try {
-              if (product.images) {
-                const parsed = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-                if (Array.isArray(parsed)) photoCount = parsed.length;
-              }
-            } catch (e) {}
-
-            return (
-              <div
-                key={product.id}
-                className="bg-white rounded-3xl overflow-hidden border border-bakery-200 shadow-soft flex flex-col justify-between"
-              >
-                <div className="relative aspect-4/3 w-full bg-bakery-100">
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                  <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-bakery-chocolate text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    {product.category}
-                  </span>
-
-                  <span className="absolute bottom-3 left-3 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs">
-                    📷 {photoCount} Photos
-                  </span>
-
-                  <span className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                    product.isAvailable !== false ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                  }`}>
-                    {product.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
-                  </span>
-                </div>
-
-                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-serif font-bold text-sm text-bakery-chocolate line-clamp-1">{product.name}</h3>
-                    <p className="text-xs text-bakery-800 line-clamp-2 mt-1">{product.description}</p>
-                  </div>
-
-                  <div className="pt-2 border-t border-bakery-100 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] text-bakery-400 block font-medium">Base Price ({product.baseWeightG}g)</span>
-                      <span className="font-serif font-extrabold text-amber-800 text-base">{formatINR(product.basePrice)}</span>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] text-bakery-400 block font-medium">Total Orders</span>
-                      <span className="font-bold text-bakery-chocolate">{product.orderCount || 0} orders</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => openEditModal(product)}
-                      className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold text-xs py-2 rounded-xl flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Edit Cake</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                      title="Delete product"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {productsList.map((product) => (
+            <AdminProductCard
+              key={product.id}
+              product={product}
+              onEdit={() => openEditModal(product)}
+              onDelete={() => handleDelete(product.id, product.name)}
+            />
+          ))}
         </div>
       )}
 
       {/* Category Manager Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl relative">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl relative animate-scaleIn">
             <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
-              <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
-                Admin Categories Manager
-              </h3>
-              <button onClick={() => setIsCategoryModalOpen(false)} className="p-1 text-bakery-400 hover:text-bakery-900">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
+                  Manage Categories
+                </h3>
+                <p className="text-[11px] text-bakery-600">Add or view shop category filter pills</p>
+              </div>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="p-1.5 rounded-full hover:bg-bakery-100 text-bakery-400 hover:text-bakery-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddCategory} className="space-y-3">
-              <label className="text-xs font-bold text-bakery-800 block">Add New Category Pill *</label>
+              <label className="text-xs font-bold text-bakery-chocolate block">Add New Category Pill *</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   required
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="e.g. Vegan & Eggless Cakes"
-                  className="flex-1 bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  placeholder="e.g. Eggless & Vegan Cakes"
+                  className="flex-1 bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-soft"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
                 >
                   Add
                 </button>
               </div>
             </form>
 
-            <div className="space-y-2 pt-2 border-t border-bakery-100">
-              <span className="text-xs font-bold text-bakery-chocolate block">Active Categories:</span>
+            <div className="space-y-2 pt-3 border-t border-bakery-100">
+              <span className="text-xs font-bold text-bakery-chocolate block">Active Categories ({categoriesList.length}):</span>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                 {categoriesList.map((cat: any) => (
-                  <span key={cat.id} className="text-xs bg-bakery-100 border border-bakery-200 text-bakery-chocolate px-3 py-1.5 rounded-full font-semibold">
+                  <span key={cat.id} className="text-xs bg-bakery-50 border border-bakery-200/80 text-bakery-chocolate px-3 py-1.5 rounded-full font-semibold">
                     {cat.name}
                   </span>
                 ))}
@@ -347,66 +297,68 @@ export default function AdminProductsPage() {
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-4 shadow-2xl relative">
+          <div className="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-5 shadow-2xl relative animate-scaleIn">
             <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
-              <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
-                {editingProduct ? 'Edit Cake Details' : 'Add New Cake to Store'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-bakery-400 hover:text-bakery-900">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
+                  {editingProduct ? 'Edit Cake Details' : 'Add New Cake to Store'}
+                </h3>
+                <p className="text-[11px] text-bakery-600">Configure cake gallery, variants, and stock status</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-full hover:bg-bakery-100 text-bakery-400 hover:text-bakery-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-bakery-800 block mb-1">Cake Name *</label>
+                <label className="text-xs font-bold text-bakery-chocolate block mb-1">Cake Name *</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Tender Coconut Dream Cake"
-                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                 />
               </div>
 
-              {/* Photo Gallery URLs (1 to 4 photos) */}
-              <div className="space-y-2 bg-bakery-50 p-3.5 rounded-2xl border border-bakery-200">
+              {/* Photo Gallery URLs */}
+              <div className="space-y-2 bg-bakery-50 p-4 rounded-2xl border border-bakery-200/80">
                 <label className="text-xs font-bold text-amber-900 block">
-                  Product Image Gallery (Mandatory 1 image, up to 4 photos) *
+                  Product Image Gallery (Mandatory Main Photo, Up to 4 Photos) *
                 </label>
                 
                 <div>
-                  <span className="text-[10px] font-bold text-bakery-600">Main Photo (Image 1) *</span>
+                  <span className="text-[10px] font-bold text-bakery-700">Main Photo URL *</span>
                   <input
                     type="url"
                     required
                     value={image1}
                     onChange={(e) => setImage1(e.target.value)}
                     placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
+                    className="w-full bg-white border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
                   />
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-medium text-bakery-600">Photo 2 (Optional)</span>
-                  <input
-                    type="url"
-                    value={image2}
-                    onChange={(e) => setImage2(e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[10px] font-medium text-bakery-600">Photo 2 (Optional)</span>
+                    <input
+                      type="url"
+                      value={image2}
+                      onChange={(e) => setImage2(e.target.value)}
+                      placeholder="Photo 2 URL..."
+                      className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
+                    />
+                  </div>
                   <div>
                     <span className="text-[10px] font-medium text-bakery-600">Photo 3 (Optional)</span>
                     <input
                       type="url"
                       value={image3}
                       onChange={(e) => setImage3(e.target.value)}
-                      placeholder="Image 3 URL..."
+                      placeholder="Photo 3 URL..."
                       className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
                     />
                   </div>
@@ -416,7 +368,7 @@ export default function AdminProductsPage() {
                       type="url"
                       value={image4}
                       onChange={(e) => setImage4(e.target.value)}
-                      placeholder="Image 4 URL..."
+                      placeholder="Photo 4 URL..."
                       className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
                     />
                   </div>
@@ -425,11 +377,11 @@ export default function AdminProductsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-bakery-800 block mb-1">Category *</label>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Category *</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                   >
                     {categoriesList.map((cat: any) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -438,69 +390,69 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-bakery-800 block mb-1">Base Price (₹) *</label>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Base Price (₹) *</label>
                   <input
                     type="number"
                     required
                     value={basePrice}
                     onChange={(e) => setBasePrice(e.target.value)}
                     placeholder="650"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-bakery-800 block mb-1">Base Weight (grams) *</label>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Base Weight (grams) *</label>
                   <input
                     type="number"
                     required
                     value={baseWeightG}
                     onChange={(e) => setBaseWeightG(e.target.value)}
                     placeholder="500"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-bakery-800 block mb-1">Weight Variants (g comma-separated)</label>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Weight Variants (g list)</label>
                   <input
                     type="text"
                     value={variantsStr}
                     onChange={(e) => setVariantsStr(e.target.value)}
                     placeholder="500, 1000, 1500, 2000"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-bakery-800 block mb-1">Cake Description *</label>
+                <label className="text-xs font-bold text-bakery-chocolate block mb-1">Cake Description *</label>
                 <textarea
                   required
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Fresh layers of soft sponge infused with..."
-                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="availCheck"
                   checked={isAvailable}
                   onChange={(e) => setIsAvailable(e.target.checked)}
-                  className="rounded text-amber-600"
+                  className="rounded text-amber-600 h-4 w-4"
                 />
                 <label htmlFor="availCheck" className="text-xs font-semibold text-bakery-chocolate">
-                  In Stock & Available for Order
+                  In Stock & Available for Direct Customer Orders
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-bakery-100 flex justify-end gap-3">
+              <div className="pt-4 border-t border-bakery-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -520,6 +472,118 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Individual Redesigned Admin Product Card Component
+function AdminProductCard({
+  product,
+  onEdit,
+  onDelete,
+}: {
+  product: any;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [imgSrc, setImgSrc] = useState<string>(product.imageUrl || '/cake-placeholder.svg');
+
+  let photoCount = 1;
+  try {
+    if (product.images) {
+      const parsed = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+      if (Array.isArray(parsed) && parsed.length > 0) photoCount = parsed.length;
+    }
+  } catch (e) {}
+
+  return (
+    <div className="group bg-white rounded-3xl overflow-hidden border border-bakery-200/80 shadow-soft hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between">
+      
+      {/* 1. Actual Product Photo Container (No Overlap) */}
+      <div className="relative h-48 w-full bg-bakery-100 overflow-hidden">
+        <Image
+          src={imgSrc}
+          alt={product.name}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={() => setImgSrc('/cake-placeholder.svg')}
+        />
+
+        {/* Stock Status Badge Overlay */}
+        <span
+          className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-xs ${
+            product.isAvailable !== false
+              ? 'bg-emerald-600 text-white'
+              : 'bg-rose-600 text-white'
+          }`}
+        >
+          {product.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+        </span>
+
+        {/* Photo Counter Pill Overlay */}
+        <span className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+          📷 {photoCount} {photoCount === 1 ? 'Photo' : 'Photos'}
+        </span>
+      </div>
+
+      {/* 2. Structured Details Area (Category Badge positioned above Title cleanly) */}
+      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+        <div>
+          {/* Category Tag (No overlap!) */}
+          <span className="inline-block bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200/60 mb-1.5">
+            {product.category}
+          </span>
+
+          {/* Product Name */}
+          <h3 className="font-serif text-base font-bold text-bakery-chocolate line-clamp-1">
+            {product.name}
+          </h3>
+
+          {/* Truncated Short Description */}
+          <p className="text-xs text-bakery-800/70 line-clamp-2 leading-relaxed mt-1">
+            {product.description}
+          </p>
+        </div>
+
+        {/* Pricing & Orders Metrics */}
+        <div className="pt-3 border-t border-bakery-100 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-bakery-600 font-medium block">
+              Base ({product.baseWeightG}g)
+            </span>
+            <span className="font-serif text-lg font-extrabold text-amber-800">
+              {formatINR(product.basePrice)}
+            </span>
+          </div>
+
+          <div className="text-right">
+            <span className="text-[10px] text-bakery-600 font-medium block">Total Orders</span>
+            <span className="text-xs font-bold text-bakery-chocolate">
+              {product.orderCount || 0} orders
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons: Edit Cake (Primary) & Delete (Icon-only muted rose) */}
+        <div className="pt-2 flex items-center gap-2">
+          <button
+            onClick={onEdit}
+            className="flex-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-semibold text-xs py-2.5 rounded-2xl border border-bakery-200/80 flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+            <span>Edit Cake</span>
+          </button>
+
+          <button
+            onClick={onDelete}
+            className="p-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-2xl border border-rose-200/60 transition-colors"
+            title="Delete Product"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

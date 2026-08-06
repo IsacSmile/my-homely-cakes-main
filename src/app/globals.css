@@ -10,9 +10,13 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: var(--font-heading), Georgia, serif;
 }
 
 /* Custom Scrollbars */

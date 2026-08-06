@@ -1,7 +1,20 @@
 import type { Metadata } from 'next';
+import { Playfair_Display, Outfit } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import MainLayoutClientWrapper from '@/components/MainLayoutClientWrapper';
+
+const headingFont = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-heading',
+});
+
+const bodyFont = Outfit({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-body',
+});
 
 export const metadata: Metadata = {
   title: 'MyHomelyCake Trivandrum | Fresh Home Bakery Cakes Order Online',
@@ -49,20 +62,14 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap"
-          rel="stylesheet"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
         />
       </head>
-      <body className="min-h-screen flex flex-col justify-between antialiased">
+      <body className="min-h-screen flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate">
         <CartProvider>
           <MainLayoutClientWrapper>
             {children}
