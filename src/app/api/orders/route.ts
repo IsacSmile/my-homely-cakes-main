@@ -8,7 +8,7 @@ import { getAdminFromCookies } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const admin = getAdminFromCookies();
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {

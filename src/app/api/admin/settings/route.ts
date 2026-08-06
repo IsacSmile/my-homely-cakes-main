@@ -8,7 +8,7 @@ import { getAdminFromCookies, setAdminCookie, signAdminToken } from '@/lib/auth'
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const admin = getAdminFromCookies();
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const allSettings = db.select().from(settings).all();
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const adminSession = getAdminFromCookies();
+  const adminSession = await getAdminFromCookies();
   if (!adminSession) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     // Refresh JWT cookie if email changed
     const newToken = signAdminToken({ id: admin.id, email: updatedEmail });
-    setAdminCookie(newToken);
+    await setAdminCookie(newToken);
 
     return NextResponse.json({ success: true, email: updatedEmail });
   } catch (error) {

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const token = signAdminToken({ id: admin.id, email: admin.email });
-    setAdminCookie(token);
+    await setAdminCookie(token);
 
     return NextResponse.json({ success: true, user: { email: admin.email } });
   } catch (error) {

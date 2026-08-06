@@ -4,13 +4,14 @@ import { offers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const admin = getAdminFromCookies();
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const resolvedParams = await params;
     const { heading, discountPercent, isActive, startDate, endDate } = await request.json();
-    const off = db.select().from(offers).where(eq(offers.id, params.id)).get();
+    const off = db.select().from(offers).where(eq(offers.id, resolvedParams.id)).get();
     if (!off) return NextResponse.json({ error: 'Offer not found' }, { status: 404 });
 
     db.update(offers)
@@ -21,7 +22,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         startDate: startDate !== undefined ? startDate : off.startDate,
         endDate: endDate !== undefined ? endDate : off.endDate,
       })
-      .where(eq(offers.id, params.id))
+      .where(eq(offers.id, resolvedParams.id))
       .run();
 
     return NextResponse.json({ success: true });
@@ -30,12 +31,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const admin = getAdminFromCookies();
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    db.delete(offers).where(eq(offers.id, params.id)).run();
+    const resolvedParams = await params;
+    db.delete(offers).where(eq(offers.id, resolvedParams.id)).run();
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete offer' }, { status: 500 });

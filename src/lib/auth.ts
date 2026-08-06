@@ -21,15 +21,15 @@ export function verifyAdminToken(token: string): AdminPayload | null {
   }
 }
 
-export function getAdminFromCookies(): AdminPayload | null {
-  const cookieStore = cookies();
+export async function getAdminFromCookies(): Promise<AdminPayload | null> {
+  const cookieStore = await cookies();
   const token = cookieStore.get(TOKEN_NAME)?.value;
   if (!token) return null;
   return verifyAdminToken(token);
 }
 
-export function setAdminCookie(token: string) {
-  const cookieStore = cookies();
+export async function setAdminCookie(token: string) {
+  const cookieStore = await cookies();
   cookieStore.set(TOKEN_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -39,7 +39,7 @@ export function setAdminCookie(token: string) {
   });
 }
 
-export function clearAdminCookie() {
-  const cookieStore = cookies();
+export async function clearAdminCookie() {
+  const cookieStore = await cookies();
   cookieStore.delete(TOKEN_NAME);
 }

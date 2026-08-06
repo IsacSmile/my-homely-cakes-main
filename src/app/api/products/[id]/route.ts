@@ -4,15 +4,16 @@ import { products } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const admin = getAdminFromCookies();
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const resolvedParams = await params;
     const body = await request.json();
     const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable } = body;
 
-    const prod = db.select().from(products).where(eq(products.id, params.id)).get();
+    const prod = db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
     if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
 
     const galleryImages = Array.isArray(images) && images.length > 0
@@ -33,7 +34,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         variants: variants ? (typeof variants === 'string' ? variants : JSON.stringify(variants)) : prod.variants,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : prod.isAvailable,
       })
-      .where(eq(products.id, params.id))
+      .where(eq(products.id, resolvedParams.id))
       .run();
 
     return NextResponse.json({ success: true });
@@ -42,12 +43,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const admin = getAdminFromCookies();
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    db.delete(products).where(eq(products.id, params.id)).run();
+    const resolvedParams = await params;
+    db.delete(products).where(eq(products.id, resolvedParams.id)).run();
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });

@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracing: false,
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -23,7 +22,7 @@ const nextConfig = {
   },
   webpack: (config, { dev }) => {
     if (dev) {
-      // Disable persistent file caching in dev mode to prevent OneDrive file locking chunk corruption (missing ./948.js)
+      // Disable persistent file caching in dev mode to prevent OneDrive file locking chunk corruption
       config.cache = false;
     }
     return config;
