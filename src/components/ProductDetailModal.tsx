@@ -1,0 +1,288 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { X, ShoppingBag, Zap, CheckCircle2, Phone, MapPin, Scale, Sparkles, MessageCircle } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
+import { calculateWeightPrice, formatINR } from '@/lib/pricing';
+
+export default function ProductDetailModal() {
+  const { selectedModalProduct, closeProductModal, addToCart } = useCart();
+  
+  const [selectedWeight, setSelectedWeight] = useState<number>(500);
+  const [customerName, setCustomerName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
+
+  // Set default weight when product opens
+  useEffect(() => {
+    if (selectedModalProduct) {
+      const base = selectedModalProduct.baseWeightG || 500;
+      setSelectedWeight(base);
+      setOrderSuccess(null);
+    }
+  }, [selectedModalProduct]);
+
+  if (!selectedModalProduct) return null;
+
+  // Parse variant weights
+  let variantsList: number[] = [selectedModalProduct.baseWeightG || 500];
+  try {
+    if (selectedModalProduct.variants) {
+      const parsed = typeof selectedModalProduct.variants === 'string'
+        ? JSON.parse(selectedModalProduct.variants)
+        : selectedModalProduct.variants;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        variantsList = parsed.sort((a: number, b: number) => a - b);
+      }
+    }
+  } catch (e) {
+    variantsList = [selectedModalProduct.baseWeightG || 500, 1000, 1500, 2000];
+  }
+
+  const currentPrice = calculateWeightPrice(
+    selectedModalProduct.basePrice,
+    selectedModalProduct.baseWeightG || 500,
+    selectedWeight
+  );
+
+  const handleInstantOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName || !mobile) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName,
+          mobile,
+          address,
+          notes,
+          items: [
+            {
+              productId: selectedModalProduct.id,
+              name: selectedModalProduct.name,
+              weightG: selectedWeight,
+              calculatedPrice: currentPrice,
+              qty: 1,
+            }
+          ]
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setOrderSuccess(data);
+      } else {
+        alert(data.error || 'Failed to place order. Please try again.');
+      }
+    } catch (err) {
+      alert('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative">
+        
+        {/* Close Button */}
+        <button
+          onClick={closeProductModal}
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 text-bakery-chocolate hover:bg-white shadow-md transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {orderSuccess ? (
+          /* Success Screen */
+          <div className="p-8 w-full flex flex-col items-center justify-center text-center space-y-6 bg-bakery-50">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="font-serif text-2xl font-bold text-bakery-chocolate mb-1">
+                Order Placed Successfully! 🎉
+              </h2>
+              <p className="text-sm text-bakery-800">
+                Order Reference: <strong className="text-amber-800 font-mono">{orderSuccess.orderNumber}</strong>
+              </p>
+            </div>
+            
+            <div className="bg-white p-4 rounded-2xl border border-bakery-200 text-xs text-bakery-800 w-full max-w-md space-y-2">
+              <p className="font-semibold text-bakery-chocolate">What happens next?</p>
+              <p>1. Our head baker will call your mobile number <span className="font-bold">{mobile}</span> shortly to confirm delivery time.</p>
+              <p>2. Payment can be made via UPI or Cash upon delivery/pickup.</p>
+            </div>
+
+            {orderSuccess.whatsappUrl && (
+              <a
+                href={orderSuccess.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-full text-sm shadow-md transition-all"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Tap to Send WhatsApp Order Alert</span>
+              </a>
+            )}
+
+            <button
+              onClick={closeProductModal}
+              className="text-xs text-bakery-600 underline hover:text-bakery-900"
+            >
+              Close and continue browsing
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Left Image View */}
+            <div className="w-full md:w-1/2 relative min-h-[260px] md:min-h-full bg-bakery-100">
+              <Image
+                src={selectedModalProduct.imageUrl}
+                alt={selectedModalProduct.name}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+              <div className="absolute top-4 left-4 bg-amber-500/90 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                {selectedModalProduct.category}
+              </div>
+            </div>
+
+            {/* Right Details & Order Form */}
+            <div className="w-full md:w-1/2 p-6 overflow-y-auto max-h-[80vh] md:max-h-[85vh] flex flex-col justify-between space-y-5">
+              <div>
+                <h2 className="font-serif text-2xl font-bold text-bakery-chocolate">
+                  {selectedModalProduct.name}
+                </h2>
+                <p className="text-xs text-bakery-800/80 mt-2 leading-relaxed">
+                  {selectedModalProduct.description}
+                </p>
+
+                {/* Weight Selector */}
+                <div className="mt-5 space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-bakery-800 flex items-center gap-1.5">
+                    <Scale className="w-4 h-4 text-amber-600" />
+                    Select Cake Weight / Size:
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {variantsList.map((w: number) => {
+                      const label = w >= 1000 ? `${w / 1000} kg` : `${w} g`;
+                      const isSelected = selectedWeight === w;
+                      return (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setSelectedWeight(w)}
+                          className={`py-2 px-1 text-xs font-semibold rounded-xl border transition-all ${
+                            isSelected
+                              ? 'bg-amber-600 text-white border-amber-600 shadow-soft'
+                              : 'bg-bakery-50 text-bakery-chocolate border-bakery-200 hover:bg-bakery-100'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Price Display */}
+                <div className="mt-5 p-3.5 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-bakery-600 font-medium block">Total Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:</span>
+                    <span className="font-serif text-2xl font-extrabold text-amber-800">
+                      {formatINR(currentPrice)}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    Free Trivandrum Delivery Consult
+                  </span>
+                </div>
+
+                {/* Direct 1-Step Order Form */}
+                <form onSubmit={handleInstantOrder} className="mt-5 space-y-3 pt-3 border-t border-bakery-100">
+                  <span className="text-xs font-bold text-bakery-chocolate flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Quick Order (No Login Required)
+                  </span>
+
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Your Full Name *"
+                      required
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="tel"
+                      placeholder="Mobile Phone Number (Trivandrum) *"
+                      required
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
+                      className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Delivery Area in Trivandrum (e.g. Kowdiar, Kazhakkoottam)"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Special Cake Message (e.g., Happy Birthday Rahul!)"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        addToCart(selectedModalProduct, selectedWeight, 1);
+                        closeProductModal();
+                      }}
+                      className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 rounded-2xl text-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag className="w-4 h-4 text-amber-700" />
+                      <span>Add to Cart</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                    >
+                      <Zap className="w-4 h-4 text-amber-200" />
+                      <span>{isSubmitting ? 'Placing Order...' : 'Order Now'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
