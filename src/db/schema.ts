@@ -1,16 +1,24 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
+export const categories = sqliteTable('categories', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  slug: text('slug').notNull().unique(),
+  displayOrder: integer('display_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export const products = sqliteTable('products', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   description: text('description').notNull(),
-  imageUrl: text('image_url').notNull(), // Primary main image
-  images: text('images').notNull().default('[]'), // JSON array string of 1-4 images
+  imageUrl: text('image_url').notNull(),
+  images: text('images').notNull().default('[]'),
   category: text('category').notNull(),
   baseWeightG: integer('base_weight_g').notNull().default(500),
   basePrice: integer('base_price').notNull(),
-  variants: text('variants').notNull().default('[500, 1000, 2000]'), // JSON array string
+  variants: text('variants').notNull().default('[500, 1000, 2000]'),
   isAvailable: integer('is_available', { mode: 'boolean' }).notNull().default(true),
   orderCount: integer('order_count').notNull().default(0),
   createdAt: text('created_at').notNull(),
@@ -23,11 +31,11 @@ export const orders = sqliteTable('orders', {
   mobile: text('mobile').notNull(),
   address: text('address'),
   notes: text('notes'),
-  items: text('items').notNull(), // JSON string array of items
+  items: text('items').notNull(),
   subtotal: integer('subtotal').notNull(),
   discountAmount: integer('discount_amount').notNull().default(0),
   totalAmount: integer('total_amount').notNull(),
-  status: text('status').notNull().default('new'), // new, contacted, confirmed, completed, cancelled
+  status: text('status').notNull().default('new'),
   createdAt: text('created_at').notNull(),
 });
 
@@ -72,6 +80,7 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull(),
 });
 
+export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Order = typeof orders.$inferSelect;

@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, offers, adminUsers, settings, orders, clickLogs, searchLogs, emailSignups } from './schema';
+import { products, offers, adminUsers, settings, orders, clickLogs, searchLogs, emailSignups, categories } from './schema';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
@@ -34,6 +34,23 @@ async function seed() {
       db.insert(settings).values(s).run();
     }
   }
+
+  // 2b. Categories Setup
+  const initialCategories = [
+    { id: 'cat_1', name: 'Kerala Specialities', slug: 'kerala-specialities', displayOrder: 1, createdAt: new Date().toISOString() },
+    { id: 'cat_2', name: 'Chocolate & Truffle', slug: 'chocolate-truffle', displayOrder: 2, createdAt: new Date().toISOString() },
+    { id: 'cat_3', name: 'Signature Cakes', slug: 'signature-cakes', displayOrder: 3, createdAt: new Date().toISOString() },
+    { id: 'cat_4', name: 'Fresh Fruit & Berry', slug: 'fresh-fruit-berry', displayOrder: 4, createdAt: new Date().toISOString() },
+    { id: 'cat_5', name: 'Premium Cheesecakes', slug: 'premium-cheesecakes', displayOrder: 5, createdAt: new Date().toISOString() },
+    { id: 'cat_6', name: 'Custom Occasion Cakes', slug: 'custom-occasion-cakes', displayOrder: 6, createdAt: new Date().toISOString() },
+  ];
+  for (const c of initialCategories) {
+    const exists = db.select().from(categories).where(eq(categories.id, c.id)).get();
+    if (!exists) {
+      db.insert(categories).values(c).run();
+    }
+  }
+  console.log('✅ Seeded default categories.');
 
   // 3. Products Setup (22 realistic Trivandrum specialty cakes with 3-4 photos each)
   const initialProducts = [

@@ -20,6 +20,14 @@ export const db = drizzleSqlite(sqlite, { schema });
 // Auto-initialize tables if they don't exist
 const initDb = () => {
   sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -35,9 +43,6 @@ const initDb = () => {
       order_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
-
-    -- Ensure column exists if table was created previously
-    PRAGMA table_info(products);
   `);
 
   try {

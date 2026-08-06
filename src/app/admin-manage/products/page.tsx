@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Plus, Edit2, Trash2, Cake, Check, X, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Cake, Check, X, Loader2, Tag } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 
 export default function AdminProductsPage() {
   const [productsList, setProductsList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
   // Form states
@@ -25,18 +27,24 @@ export default function AdminProductsPage() {
   const [isAvailable, setIsAvailable] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchProducts = () => {
-    fetch('/api/products?limit=100')
-      .then(res => res.json())
-      .then(data => {
-        if (data.products) setProductsList(data.products);
+  // Category modal state
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const fetchData = () => {
+    Promise.all([
+      fetch('/api/products?limit=100').then(res => res.json()),
+      fetch('/api/categories').then(res => res.json())
+    ])
+      .then(([prodData, catData]) => {
+        if (prodData.products) setProductsList(prodData.products);
+        if (catData.categories) setCategoriesList(catData.categories);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
   const openAddModal = () => {
@@ -47,7 +55,7 @@ export default function AdminProductsPage() {
     setImage2('');
     setImage3('');
     setImage4('');
-    setCategory('Signature Cakes');
+    setCategory(categoriesList[0]?.name || 'Signature Cakes');
     setBaseWeightG('500');
     setBasePrice('650');
     setVariantsStr('500, 1000, 1500, 2000');
@@ -99,6 +107,30 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCategoryName }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCategoriesList(prev => [...prev, data.category]);
+        setCategory(data.category.name);
+        setNewCategoryName('');
+        setIsCategoryModalOpen(false);
+      } else {
+        alert(data.error || 'Failed to add category');
+      }
+    } catch (e) {
+      alert('Error adding category');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !description || !image1 || !basePrice) return;
@@ -138,7 +170,7 @@ export default function AdminProductsPage() {
 
       if (res.ok) {
         setIsModalOpen(false);
-        fetchProducts();
+        fetchData();
       } else {
         const err = await res.json();
         alert(err.error || 'Operation failed');
@@ -156,23 +188,33 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-bold text-bakery-chocolate">
-            Products Catalog ({productsList.length})
+            Products & Categories Catalog ({productsList.length})
           </h1>
           <p className="text-xs text-bakery-600">
-            Add new cakes, upload up to 4 gallery photos per product, set weight variants, and toggle stock availability.
+            Add new cakes, manage admin categories, set weight variants, and toggle stock availability.
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-5 py-3 rounded-full shadow-soft transition-colors self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Cake</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="inline-flex items-center gap-1.5 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold text-xs px-4 py-3 rounded-full border border-bakery-200 transition-colors"
+          >
+            <Tag className="w-4 h-4 text-amber-700" />
+            <span>Manage Categories ({categoriesList.length})</span>
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-5 py-3 rounded-full shadow-soft transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Cake</span>
+          </button>
+        </div>
       </div>
 
-      {/* Catalog Table Grid */}
+      {/* Catalog Grid */}
       {isLoading ? (
         <div className="py-20 text-center text-xs text-bakery-600">Loading cake catalog...</div>
       ) : (
@@ -255,7 +297,54 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Add / Edit Product Modal with 1 to 4 Photo Gallery Uploads */}
+      {/* Category Manager Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
+              <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
+                Admin Categories Manager
+              </h3>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="p-1 text-bakery-400 hover:text-bakery-900">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCategory} className="space-y-3">
+              <label className="text-xs font-bold text-bakery-800 block">Add New Category Pill *</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  required
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g. Vegan & Eggless Cakes"
+                  className="flex-1 bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                />
+                <button
+                  type="submit"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-soft"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+
+            <div className="space-y-2 pt-2 border-t border-bakery-100">
+              <span className="text-xs font-bold text-bakery-chocolate block">Active Categories:</span>
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+                {categoriesList.map((cat: any) => (
+                  <span key={cat.id} className="text-xs bg-bakery-100 border border-bakery-200 text-bakery-chocolate px-3 py-1.5 rounded-full font-semibold">
+                    {cat.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-4 shadow-2xl relative">
@@ -342,12 +431,9 @@ export default function AdminProductsPage() {
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
                   >
-                    <option value="Signature Cakes">Signature Cakes</option>
-                    <option value="Kerala Specialities">Kerala Specialities</option>
-                    <option value="Chocolate & Truffle">Chocolate & Truffle</option>
-                    <option value="Fresh Fruit & Berry">Fresh Fruit & Berry</option>
-                    <option value="Premium Cheesecakes">Premium Cheesecakes</option>
-                    <option value="Custom Occasion Cakes">Custom Occasion Cakes</option>
+                    {categoriesList.map((cat: any) => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
 
