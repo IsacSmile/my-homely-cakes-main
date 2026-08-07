@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { products } from '@/db/schema';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const featured = searchParams.get('featured') === 'true';
 
-    let allProducts = db.select().from(products).all();
+    let allProducts = (await db.select().from(products).all()) || [];
 
     if (category && category !== 'All') {
       allProducts = allProducts.filter((p: any) => p.category.toLowerCase() === category.toLowerCase());
@@ -83,7 +84,10 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    db.insert(products).values(newProduct).run();
+    await db.insert(products).values(newProduct).run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({ success: true, product: newProduct });
   } catch (error) {

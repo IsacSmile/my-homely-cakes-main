@@ -42,7 +42,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, url: blob.url });
     }
 
-    // 2. Otherwise (Local Development Fallback): save to /public/uploads/ directory
+    // 2. Production Vercel Fallback without Blob Token: Return Base64 Data URL
+    if (process.env.VERCEL) {
+      const base64Data = fileBuffer.toString('base64');
+      const dataUrl = `data:${file.type};base64,${base64Data}`;
+      return NextResponse.json({ success: true, url: dataUrl });
+    }
+
+    // 3. Local Development Fallback: save to /public/uploads/ directory
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -54,8 +61,8 @@ export async function POST(request: Request) {
     const publicUrl = `/uploads/${filename}`;
     return NextResponse.json({ success: true, url: publicUrl });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('File upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to upload image' }, { status: 500 });
   }
 }

@@ -28,6 +28,7 @@ export default function ProductModalLazy({
 
   const [photos, setPhotos] = useState<string[]>(['', '', '', '']);
   const [uploadingSlots, setUploadingSlots] = useState<boolean[]>([false, false, false, false]);
+  const [uploadErrors, setUploadErrors] = useState<string[]>(['', '', '', '']);
   const [showUrlPaste, setShowUrlPaste] = useState<boolean[]>([false, false, false, false]);
 
   const [weightVariants, setWeightVariants] = useState<WeightVariant[]>([
@@ -65,6 +66,7 @@ export default function ProductModalLazy({
 
       setPhotos(loadedPhotos);
       setUploadingSlots([false, false, false, false]);
+      setUploadErrors(['', '', '', '']);
       setShowUrlPaste([false, false, false, false]);
       setCategory(editingProduct.category || categoriesList[0]?.name || 'Signature Cakes');
       setWeightVariants(parseProductVariants(editingProduct));
@@ -79,6 +81,7 @@ export default function ProductModalLazy({
         ''
       ]);
       setUploadingSlots([false, false, false, false]);
+      setUploadErrors(['', '', '', '']);
       setShowUrlPaste([false, false, false, false]);
       setCategory(categoriesList[0]?.name || 'Signature Cakes');
       setWeightVariants([
@@ -94,14 +97,29 @@ export default function ProductModalLazy({
   if (!isOpen) return null;
 
   const handleFileUpload = async (slotIndex: number, file: File) => {
+    // Clear previous error for this slot
+    setUploadErrors(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = '';
+      return copy;
+    });
+
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      alert('Invalid file format. Please select a JPG, PNG, or WebP image.');
+      setUploadErrors(prev => {
+        const copy = [...prev];
+        copy[slotIndex] = 'Invalid format (JPG, PNG, WebP only)';
+        return copy;
+      });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB limit. Please choose a smaller image.');
+      setUploadErrors(prev => {
+        const copy = [...prev];
+        copy[slotIndex] = 'File exceeds 5MB limit';
+        return copy;
+      });
       return;
     }
 
@@ -128,10 +146,18 @@ export default function ProductModalLazy({
           return copy;
         });
       } else {
-        alert(data.error || 'Failed to upload image');
+        setUploadErrors(prev => {
+          const copy = [...prev];
+          copy[slotIndex] = data.error || 'Failed to upload image';
+          return copy;
+        });
       }
-    } catch (e) {
-      alert('Error uploading image file');
+    } catch (e: any) {
+      setUploadErrors(prev => {
+        const copy = [...prev];
+        copy[slotIndex] = e?.message || 'Error uploading image file';
+        return copy;
+      });
     } finally {
       setUploadingSlots(prev => {
         const copy = [...prev];
@@ -337,6 +363,7 @@ export default function ProductModalLazy({
                   slotIndex={slotIdx}
                   imageUrl={photos[slotIdx]}
                   isUploading={uploadingSlots[slotIdx]}
+                  uploadError={uploadErrors[slotIdx]}
                   showUrlOption={showUrlPaste[slotIdx]}
                   isMandatory={slotIdx === 0}
                   onFileSelect={(file) => handleFileUpload(slotIdx, file)}
@@ -496,6 +523,7 @@ function ImageUploadSlot({
   slotIndex,
   imageUrl,
   isUploading,
+  uploadError,
   showUrlOption,
   isMandatory,
   onFileSelect,
@@ -506,6 +534,7 @@ function ImageUploadSlot({
   slotIndex: number;
   imageUrl: string;
   isUploading: boolean;
+  uploadError?: string;
   showUrlOption: boolean;
   isMandatory: boolean;
   onFileSelect: (file: File) => void;
@@ -587,7 +616,9 @@ function ImageUploadSlot({
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className="h-32 rounded-xl bg-bakery-50 hover:bg-amber-50/80 border-2 border-dashed border-bakery-300/80 hover:border-amber-500 transition-all cursor-pointer flex flex-col items-center justify-center text-center p-2 space-y-1.5 group"
+          className={`h-32 rounded-xl bg-bakery-50 hover:bg-amber-50/80 border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center p-2 space-y-1.5 group ${
+            uploadError ? 'border-rose-400 bg-rose-50/40' : 'border-bakery-300/80 hover:border-amber-500'
+          }`}
         >
           <div className="w-8 h-8 rounded-full bg-white text-amber-700 flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
             <Upload className="w-4 h-4" />
@@ -599,6 +630,12 @@ function ImageUploadSlot({
             <span className="text-[9px] text-bakery-500 block">Drag & drop or browse (max 5MB)</span>
           </div>
         </div>
+      )}
+
+      {uploadError && (
+        <p className="text-[10px] font-semibold text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-200">
+          ⚠️ {uploadError}
+        </p>
       )}
 
       <div className="pt-1">

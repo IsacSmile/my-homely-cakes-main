@@ -5,6 +5,7 @@ import { eq, desc } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const allOrders = db.select().from(orders).orderBy(desc(orders.createdAt)).all();
+    const allOrders = (await db.select().from(orders).orderBy(desc(orders.createdAt)).all()) || [];
     return NextResponse.json({ orders: allOrders });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     let itemsSummaryText = '';
 
     for (const item of items) {
-      const prod = db.select().from(products).where(eq(products.id, item.productId)).get();
+      const prod = await db.select().from(products).where(eq(products.id, item.productId)).get();
       const name = prod ? prod.name : item.name || 'Delicious Cake';
       const qty = Math.max(1, item.qty || 1);
       const weightG = item.weightG || (prod ? prod.baseWeightG : 500);
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
 
       // Update product order count
       if (prod) {
-        db.update(products)
+        await db.update(products)
           .set({ orderCount: prod.orderCount + qty })
           .where(eq(products.id, prod.id))
           .run();
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
     }
 
     // Check active offers for discount
-    const activeOffers = db.select().from(offers).where(eq(offers.isActive, true)).all();
+    const activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true)).all()) || [];
     let maxDiscountPercent = 0;
     for (const off of activeOffers) {
       if (off.discountPercent > maxDiscountPercent) {
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
 
     const now = new Date().toISOString();
 
-    db.insert(orders).values({
+    await db.insert(orders).values({
       id: orderId,
       orderNumber,
       customerName: customerName.trim(),
@@ -151,6 +152,9 @@ export async function POST(request: Request) {
       status: 'new',
       createdAt: now,
     }).run();
+
+    revalidatePath('/admin-manage/orders');
+    revalidatePath('/admin-manage/overview');
 
     // Async Notification via Email & Admin Alerts (detached execution to prevent customer waiting)
     setTimeout(async () => {

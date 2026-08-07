@@ -45,7 +45,7 @@ const DEFAULT_SLIDES = [
 
 export default async function HomePage() {
   // Fetch active products server-side
-  const allProducts = db.select().from(products).all();
+  const allProducts = (await db.select().from(products).all()) || [];
 
   // 1. Most Ordered This Week (ranked list of top products by orderCount)
   const mostOrderedThisWeek = [...allProducts]
@@ -53,17 +53,18 @@ export default async function HomePage() {
     .slice(0, 6);
 
   // 2. Active Occasion Offers
-  const activeOffers = db.select().from(offers).where(eq(offers.isActive, true)).all();
+  const activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true)).all()) || [];
   const topDiscount = activeOffers.length > 0
     ? Math.max(...activeOffers.map((o: any) => o.discountPercent))
     : 0;
 
   // 3. Monthly Orders Counter
-  const totalOrdersCount = db.select().from(orders).all().length;
+  const allOrdersList = (await db.select().from(orders).all()) || [];
+  const totalOrdersCount = allOrdersList.length;
   const displayMonthlyCount = Math.max(500, 500 + totalOrdersCount * 8);
 
   // 4. Server-side fetch Hero Settings
-  const allSettings = db.select().from(settings).all();
+  const allSettings = (await db.select().from(settings).all()) || [];
   const settingsMap = allSettings.reduce((acc: Record<string, string>, item: any) => {
     acc[item.key] = item.value;
     return acc;
