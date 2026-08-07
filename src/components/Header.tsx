@@ -16,7 +16,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
   // Track scroll position to trigger floating pill header transformation
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 60) {
+      if (window.scrollY > 50) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
@@ -53,11 +53,11 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
         </a>
       </div>
 
-      {/* TRANSFORMING HEADER BAR (Full-width -> Floating Pill Shape) */}
+      {/* TRANSFORMING HEADER BAR (Transparent at 0px -> Floating Pill Shape on Scroll) */}
       <div className={`pointer-events-auto transition-all duration-300 ease-in-out ${
         isScrolled
           ? 'mt-2.5 mx-3 sm:mx-6 md:mx-auto max-w-5xl bg-white/95 backdrop-blur-md rounded-full border border-bakery-200/80 shadow-soft-lg px-4 sm:px-6 py-2'
-          : 'w-full bg-white/90 backdrop-blur-sm border-b border-bakery-200/50 shadow-xs px-4 sm:px-8 py-3'
+          : 'w-full bg-transparent border-b border-transparent shadow-none px-4 sm:px-8 py-3.5'
       }`}>
         <div className="flex items-center justify-between">
           
@@ -92,7 +92,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                   key={link.href}
                   href={link.href}
                   className={`text-xs sm:text-sm font-semibold transition-colors hover:text-amber-700 relative py-1 ${
-                    isActive ? 'text-amber-800 font-bold' : 'text-bakery-chocolate/80'
+                    isActive ? 'text-amber-800 font-bold' : 'text-bakery-chocolate/85'
                   }`}
                 >
                   {link.name}
@@ -110,7 +110,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             {/* Search Trigger */}
             <button
               onClick={onOpenSearch}
-              className="p-2 rounded-full text-bakery-chocolate/80 hover:text-amber-800 hover:bg-bakery-100/80 transition-colors"
+              className="p-2 rounded-full text-bakery-chocolate/80 hover:text-amber-800 hover:bg-bakery-100/60 transition-colors"
               aria-label="Search Cakes"
               title="Search Cakes"
             >
@@ -120,7 +120,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             {/* Wishlist Icon */}
             <Link
               href="/wishlist"
-              className="p-2 rounded-full text-bakery-chocolate/80 hover:text-amber-800 hover:bg-bakery-100/80 transition-colors relative"
+              className="p-2 rounded-full text-bakery-chocolate/80 hover:text-amber-800 hover:bg-bakery-100/60 transition-colors relative"
               aria-label="Wishlist"
               title="Wishlist"
             >
@@ -148,7 +148,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-bakery-chocolate hover:bg-bakery-100 transition-colors"
+              className="md:hidden p-2 rounded-xl text-bakery-chocolate hover:bg-bakery-100/60 transition-colors"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
