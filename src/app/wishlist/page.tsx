@@ -31,15 +31,39 @@ export default function WishlistPage() {
   }, [wishlist]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 px-3.5 py-1.5 rounded-full border border-rose-200">
-          <Heart className="w-4 h-4 text-rose-600 fill-rose-600" />
-          <span>Your Saved Cakes ({wishlist.length})</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+      
+      {/* Header Section matching reference image */}
+      <div className="space-y-3">
+        {/* Breadcrumb: [ HOME / WISHLIST ] */}
+        <div className="text-xs font-bold tracking-widest text-bakery-500 uppercase flex items-center gap-1.5">
+          <span className="text-bakery-400 font-normal">[</span>
+          <Link href="/" className="hover:text-amber-800 transition-colors">HOME</Link>
+          <span className="text-bakery-300">/</span>
+          <span className="text-bakery-chocolate font-extrabold">WISHLIST</span>
+          <span className="text-bakery-400 font-normal">]</span>
         </div>
-        <h1 className="font-serif text-3xl font-bold text-bakery-chocolate">
-          Saved Wishlist
+
+        {/* Main Heading */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-bakery-chocolate tracking-tight uppercase">
+          MY CAKE WISHLIST
         </h1>
+
+        {/* Subtitle / Description */}
+        <p className="text-sm sm:text-base text-bakery-600/90 max-w-2xl leading-relaxed">
+          Review your saved artisanal cakes and sweet treats. Easily order them or request custom details for your special occasions.
+        </p>
+
+        {/* Items Count Indicator: SHOWING 1-N OF N SAVED CAKES */}
+        <div className="pt-3">
+          <span className="text-[11px] sm:text-xs font-extrabold tracking-widest text-amber-800 uppercase">
+            {isLoading
+              ? 'LOADING SAVED CAKES...'
+              : wishlistProducts.length > 0
+              ? `SHOWING 1–${wishlistProducts.length} OF ${wishlistProducts.length} SAVED CAKE${wishlistProducts.length > 1 ? 'S' : ''}`
+              : '0 SAVED CAKES IN WISHLIST'}
+          </span>
+        </div>
       </div>
 
       {isLoading ? (
