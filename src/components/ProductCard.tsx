@@ -115,25 +115,25 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
           </p>
         </div>
 
-        {/* Price & Weight info with Montserrat font-price */}
+        {/* Price & Weight info — Montserrat Medium Weight */}
         <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between">
           <div>
             <span className="text-[9px] sm:text-[10px] text-bakery-600 block font-medium">
               Starts at ({lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`})
             </span>
             <div className="flex items-baseline gap-1">
-              <span className="font-price text-base sm:text-xl font-extrabold text-amber-800 tracking-tight">
+              <span className="font-price text-base sm:text-xl font-medium text-amber-800 tracking-tight">
                 {formatINR(finalBasePrice)}
               </span>
               {discountPercent > 0 && (
-                <span className="font-price text-[10px] sm:text-xs text-bakery-400 line-through">
+                <span className="font-price text-[10px] sm:text-xs text-bakery-400 font-medium line-through">
                   {formatINR(lowestVariant.price)}
                 </span>
               )}
             </div>
           </div>
 
-          <span className="text-[9px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+          <span className="text-[9px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-price">
             {lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`}
           </span>
         </div>
