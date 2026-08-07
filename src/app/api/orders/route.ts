@@ -152,29 +152,35 @@ export async function POST(request: Request) {
       createdAt: now,
     }).run();
 
-    // Notification via Email
-    const adminEmailSetting = db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
-    const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@myhomelycakes.com';
+    // Async Notification via Email & Admin Alerts (detached execution to prevent customer waiting)
+    setTimeout(async () => {
+      try {
+        const adminEmailSetting = db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
+        const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@myhomelycakes.com';
 
-    const deliveryDisplay = deliveryDate && deliveryTime
-      ? `${deliveryDate} at ${deliveryTime}`
-      : 'ASAP (30 mins)';
+        const deliveryDisplay = deliveryDate && deliveryTime
+          ? `${deliveryDate} at ${deliveryTime}`
+          : 'ASAP (30 mins)';
 
-    sendAdminOrderEmail({
-      orderNumber,
-      customerName,
-      mobile,
-      address,
-      notes: [
-        deliveryCity ? `City: ${deliveryCity}` : '',
-        `Delivery: ${deliveryDisplay}`,
-        cakeMessage ? `Cake Message: "${cakeMessage}"` : '',
-        notes ? `Notes: ${notes}` : '',
-      ].filter(Boolean).join('\n'),
-      itemsSummary: itemsSummaryText,
-      totalAmount,
-      adminEmail,
-    }).catch(err => console.error('Error sending order email:', err));
+        await sendAdminOrderEmail({
+          orderNumber,
+          customerName,
+          mobile,
+          address,
+          notes: [
+            deliveryCity ? `City: ${deliveryCity}` : '',
+            `Delivery: ${deliveryDisplay}`,
+            cakeMessage ? `Cake Message: "${cakeMessage}"` : '',
+            notes ? `Notes: ${notes}` : '',
+          ].filter(Boolean).join('\n'),
+          itemsSummary: itemsSummaryText,
+          totalAmount,
+          adminEmail,
+        });
+      } catch (err) {
+        console.error('Background order notification error:', err);
+      }
+    }, 0);
 
     return NextResponse.json({
       success: true,

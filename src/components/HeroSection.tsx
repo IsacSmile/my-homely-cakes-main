@@ -33,8 +33,8 @@ const FALLBACK_SLIDES: HeroSlide[] = [
   },
 ];
 
-export default function HeroSection() {
-  const [heroData, setHeroData] = useState<any>({
+export default function HeroSection({ initialHeroData }: { initialHeroData?: any }) {
+  const [heroData, setHeroData] = useState<any>(initialHeroData || {
     badge: "Trivandrum's Most Loved Home Bakery",
     heading: "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
     subheading: "Handcrafted with 100% natural butter, organic cream, and zero preservatives. Browse our menu, pick your weight, and place your order in 1 tap — no login or payment gateway needed!",
@@ -49,15 +49,17 @@ export default function HeroSection() {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetch('/api/hero')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.heading) {
-          setHeroData(data);
-        }
-      })
-      .catch(() => {});
-  }, []);
+    if (!initialHeroData) {
+      fetch('/api/hero')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.heading) {
+            setHeroData(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialHeroData]);
 
   const slides: HeroSlide[] = (heroData.slides && heroData.slides.length > 0)
     ? heroData.slides

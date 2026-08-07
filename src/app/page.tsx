@@ -1,19 +1,50 @@
 import React from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Cake, Sparkles, Award, PhoneCall, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { db } from '@/db';
-import { products, offers, orders } from '@/db/schema';
+import { products, offers, orders, settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import ProductCard from '@/components/ProductCard';
-import OccasionOffersBanner from '@/components/OccasionOffersBanner';
-import MeetTheTeamSection from '@/components/MeetTheTeamSection';
 import HeroSection from '@/components/HeroSection';
-import TestimonialsSection from '@/components/TestimonialsSection';
+import BelowTheFoldLazy from '@/components/BelowTheFoldLazy';
+
+// Dynamic below-the-fold components
+const OccasionOffersBanner = dynamic(() => import('@/components/OccasionOffersBanner'));
+const MeetTheTeamSection = dynamic(() => import('@/components/MeetTheTeamSection'));
+const TestimonialsSection = dynamic(() => import('@/components/TestimonialsSection'));
 
 export const revalidate = 60; // Revalidate dynamic content every 60 seconds
 
+const DEFAULT_SLIDES = [
+  {
+    id: 'hs_1',
+    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER',
+    cardTitle: 'Belgian Chocolate Truffle',
+    cardPrice: '₹750',
+    linkUrl: '/shop',
+  },
+  {
+    id: 'hs_2',
+    imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'TRIVANDRUM FAVORITE',
+    cardTitle: 'Tender Coconut Dream Cake',
+    cardPrice: '₹650',
+    linkUrl: '/shop',
+  },
+  {
+    id: 'hs_3',
+    imageUrl: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'SEASONAL SPECIAL',
+    cardTitle: 'Fresh Alphonso Mango Cake',
+    cardPrice: '₹700',
+    linkUrl: '/shop',
+  },
+];
+
 export default async function HomePage() {
-  // Fetch active products
+  // Fetch active products server-side
   const allProducts = db.select().from(products).all();
 
   // 1. Most Ordered This Week (ranked list of top products by orderCount)
@@ -27,21 +58,49 @@ export default async function HomePage() {
     ? Math.max(...activeOffers.map(o => o.discountPercent))
     : 0;
 
-  // 3. Monthly Orders Counter (Dynamic count from DB + base counter)
+  // 3. Monthly Orders Counter
   const totalOrdersCount = db.select().from(orders).all().length;
   const displayMonthlyCount = Math.max(500, 500 + totalOrdersCount * 8);
+
+  // 4. Server-side fetch Hero Settings
+  const allSettings = db.select().from(settings).all();
+  const settingsMap = allSettings.reduce((acc, item) => {
+    acc[item.key] = item.value;
+    return acc;
+  }, {} as Record<string, string>);
+
+  let slides = DEFAULT_SLIDES;
+  if (settingsMap.hero_slides) {
+    try {
+      const parsed = JSON.parse(settingsMap.hero_slides);
+      if (Array.isArray(parsed) && parsed.length > 0) slides = parsed;
+    } catch {}
+  }
+
+  const initialHeroData = {
+    badge: settingsMap.hero_badge || "Trivandrum's Most Loved Home Bakery",
+    heading: settingsMap.hero_heading || "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
+    subheading: settingsMap.hero_subheading || "Handcrafted with 100% natural butter, organic cream, and zero preservatives. Browse our menu, pick your weight, and place your order in 1 tap — no login or payment gateway needed!",
+    ctaPrimaryText: settingsMap.hero_cta_primary_text || "Explore Cake Menu",
+    ctaPrimaryLink: settingsMap.hero_cta_primary_link || "/shop",
+    ctaSecondaryText: settingsMap.hero_cta_secondary_text || "Call Baker Direct",
+    ctaSecondaryPhone: settingsMap.hero_cta_secondary_phone || "+91 98765 43210",
+    slides,
+  };
 
   return (
     <div className="space-y-16 pb-20">
       
       {/* DYNAMIC & AUTO-FADING HERO SECTION */}
-      <HeroSection />
+      <HeroSection initialHeroData={initialHeroData} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
-        {/* OCCASION OFFERS BANNER */}
+        {/* OCCASION OFFERS BANNER (LAZY LOADED BELOW THE FOLD) */}
         {activeOffers.length > 0 && (
-          <OccasionOffersBanner offers={activeOffers} />
+          <BelowTheFoldLazy minHeight="120px">
+            <OccasionOffersBanner offers={activeOffers} />
+          </BelowTheFoldLazy>
         )}
 
         {/* MONTHLY ORDERS COUNTER HIGHLIGHT */}
@@ -162,11 +221,16 @@ export default async function HomePage() {
 
       </div>
 
-      {/* MEET THE TEAM SHOWCASE CAROUSEL */}
-      <MeetTheTeamSection />
+      {/* MEET THE TEAM SHOWCASE CAROUSEL (LAZY LOADED) */}
+      <BelowTheFoldLazy minHeight="300px">
+        <MeetTheTeamSection />
+      </BelowTheFoldLazy>
 
-      {/* EDITORIAL CUSTOMER TESTIMONIALS CAROUSEL */}
-      <TestimonialsSection />
+      {/* EDITORIAL CUSTOMER TESTIMONIALS CAROUSEL (LAZY LOADED) */}
+      <BelowTheFoldLazy minHeight="300px">
+        <TestimonialsSection />
+      </BelowTheFoldLazy>
     </div>
   );
 }
+

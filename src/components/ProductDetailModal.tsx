@@ -79,7 +79,9 @@ export default function ProductDetailModal() {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
 
   // Delivery state
-  const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string; name: string }[]>([
+    { id: 'city_trivandrum', name: 'Trivandrum' }
+  ]);
   const [selectedCity, setSelectedCity] = useState<string>('Trivandrum');
   const [deliveryDate, setDeliveryDate] = useState<string>('');
   const [deliveryTime, setDeliveryTime] = useState<string>('');
@@ -123,7 +125,7 @@ export default function ProductDetailModal() {
     setDeliveryTime(formatTimeHHMM(defaultDelivery));
   }, [selectedModalProduct]);
 
-  // Load cities from API
+  // Load additional cities in background without blocking mount
   useEffect(() => {
     if (!selectedModalProduct) return;
     fetch('/api/cities')
@@ -131,13 +133,9 @@ export default function ProductDetailModal() {
       .then(data => {
         if (data.cities && data.cities.length > 0) {
           setCities(data.cities);
-          setSelectedCity(data.cities[0].name);
         }
       })
-      .catch(() => {
-        setCities([{ id: 'city_trivandrum', name: 'Trivandrum' }]);
-        setSelectedCity('Trivandrum');
-      });
+      .catch(() => {});
   }, [selectedModalProduct]);
 
   // Close on Escape key
@@ -371,7 +369,7 @@ export default function ProductDetailModal() {
                       onClick={() => setActiveImageIndex(idx)}
                       className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${activeImageIndex === idx ? 'border-amber-600 scale-105' : 'border-bakery-200 opacity-60 hover:opacity-100'}`}
                     >
-                      <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill sizes="48px" className="object-cover" />
+                      <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill sizes="48px" className="object-cover" loading="lazy" />
                     </button>
                   ))}
                 </div>
