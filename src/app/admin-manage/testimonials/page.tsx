@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquareQuote, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Star, CheckCircle2, X } from 'lucide-react';
 import { Testimonial } from '@/components/TestimonialsSection';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminTestimonialsPage() {
   const [eyebrow, setEyebrow] = useState('');
   const [heading, setHeading] = useState('');
@@ -37,10 +35,14 @@ export default function AdminTestimonialsPage() {
           setEyebrow(data.eyebrow || 'Customer Stories');
           setHeading(data.heading || 'What Our Customers Say');
           setSubheading(data.subheading || '');
-          setTestimonialsList(data.testimonials || []);
+          if (Array.isArray(data.testimonials)) {
+            setTestimonialsList(data.testimonials);
+          } else {
+            setTestimonialsList([]);
+          }
         }
       })
-      .catch(() => {})
+      .catch(() => setTestimonialsList([]))
       .finally(() => setIsLoading(false));
   };
 

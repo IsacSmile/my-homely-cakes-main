@@ -89,18 +89,18 @@ const SEED_TESTIMONIALS = [
 
 export async function GET() {
   try {
-    let list = db.select().from(testimonials).orderBy(asc(testimonials.sortOrder)).all();
+    let list = (await db.select().from(testimonials).orderBy(asc(testimonials.sortOrder)).all()) || [];
 
     // Auto-seed initial reviews if table is empty
     if (list.length === 0) {
       for (const item of SEED_TESTIMONIALS) {
-        db.insert(testimonials).values(item).run();
+        await db.insert(testimonials).values(item).run();
       }
-      list = db.select().from(testimonials).orderBy(asc(testimonials.sortOrder)).all();
+      list = (await db.select().from(testimonials).orderBy(asc(testimonials.sortOrder)).all()) || [];
     }
 
     // Fetch header settings
-    const allSettings = db.select().from(settings).all();
+    const allSettings = (await db.select().from(settings).all()) || [];
     const map = allSettings.reduce((acc: Record<string, string>, curr: any) => {
       acc[curr.key] = curr.value;
       return acc;
@@ -138,12 +138,12 @@ export async function POST(request: Request) {
       ];
 
       for (const [key, value] of pairs) {
-        const existing = db.select().from(settings).where(eq(settings.key, key)).get();
+        const existing = await db.select().from(settings).where(eq(settings.key, key)).get();
         if (existing) {
-          db.update(settings).set({ value }).where(eq(settings.key, key)).run();
+          await db.update(settings).set({ value }).where(eq(settings.key, key)).run();
         } else {
           const id = 'set_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-          db.insert(settings).values({ id, key, value }).run();
+          await db.insert(settings).values({ id, key, value }).run();
         }
       }
 
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, location, cake name, and review quote are required.' }, { status: 400 });
     }
 
-    const currentList = db.select().from(testimonials).all();
+    const currentList = (await db.select().from(testimonials).all()) || [];
     const nextOrder = currentList.length + 1;
 
     // Generate Initials
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    db.insert(testimonials).values(newRecord).run();
+    await db.insert(testimonials).values(newRecord).run();
 
     return NextResponse.json({ success: true, testimonial: newRecord });
   } catch (error) {

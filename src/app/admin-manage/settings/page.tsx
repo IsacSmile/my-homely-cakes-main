@@ -5,8 +5,6 @@ import Image from 'next/image';
 import { Settings, Lock, Mail, CheckCircle2, ShieldAlert, Sparkles, Upload, Link as LinkIcon, RefreshCw, Loader2, Plus, Trash2, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { HeroSlide } from '@/app/api/hero/route';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminSettingsPage() {
   const [email, setEmail] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');

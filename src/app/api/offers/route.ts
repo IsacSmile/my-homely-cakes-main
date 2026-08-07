@@ -3,12 +3,13 @@ import { db } from '@/db';
 import { offers } from '@/db/schema';
 import { desc } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const allOffers = db.select().from(offers).orderBy(desc(offers.createdAt)).all();
+    const allOffers = (await db.select().from(offers).orderBy(desc(offers.createdAt)).all()) || [];
     return NextResponse.json({ offers: allOffers });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch offers' }, { status: 500 });
@@ -37,7 +38,10 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    db.insert(offers).values(newOffer).run();
+    await db.insert(offers).values(newOffer).run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({ success: true, offer: newOffer });
   } catch (error) {

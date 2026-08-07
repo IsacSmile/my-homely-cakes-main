@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Pencil, Trash2, CheckCircle2, XCircle, Loader2, AlertCircle, ToggleLeft, ToggleRight, ArrowUp, ArrowDown } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 interface City {
   id: string;
   name: string;
@@ -34,12 +32,13 @@ export default function AdminCitiesPage() {
     fetch('/api/cities?all=1')
       .then(r => r.json())
       .then(data => {
-        // We'll load all cities for admin — the API returns active only for public,
-        // so we need to work around this. Let's extend the API OR use a fallback.
-        // For now, we refresh the full list by fetching then also calling the db all cities.
-        if (data.cities) setCities(data.cities);
+        if (Array.isArray(data?.cities)) {
+          setCities(data.cities);
+        } else {
+          setCities([]);
+        }
       })
-      .catch(() => {})
+      .catch(() => setCities([]))
       .finally(() => setIsLoading(false));
   };
 

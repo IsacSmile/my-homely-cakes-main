@@ -47,14 +47,14 @@ const DEFAULT_TEAM = [
 
 export async function GET() {
   try {
-    let members = db.select().from(teamMembers).orderBy(asc(teamMembers.sortOrder)).all();
+    let members = (await db.select().from(teamMembers).orderBy(asc(teamMembers.sortOrder)).all()) || [];
 
     // Auto-seed default team members if empty
     if (members.length === 0) {
       for (const item of DEFAULT_TEAM) {
-        db.insert(teamMembers).values(item).run();
+        await db.insert(teamMembers).values(item).run();
       }
-      members = db.select().from(teamMembers).orderBy(asc(teamMembers.sortOrder)).all();
+      members = (await db.select().from(teamMembers).orderBy(asc(teamMembers.sortOrder)).all()) || [];
     }
 
     return NextResponse.json({ members });
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, occupation, and photo URL are required.' }, { status: 400 });
     }
 
-    const currentMembers = db.select().from(teamMembers).all();
+    const currentMembers = (await db.select().from(teamMembers).all()) || [];
     const memberId = 'tm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString();
 
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       createdAt: now,
     };
 
-    db.insert(teamMembers).values(newMember).run();
+    await db.insert(teamMembers).values(newMember).run();
 
     return NextResponse.json({ success: true, member: newMember });
   } catch (error: any) {

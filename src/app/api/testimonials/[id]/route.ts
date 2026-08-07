@@ -17,13 +17,13 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const existing = db.select().from(testimonials).where(eq(testimonials.id, id)).get();
+    const existing = await db.select().from(testimonials).where(eq(testimonials.id, id)).get();
     if (!existing) return NextResponse.json({ error: 'Review not found' }, { status: 404 });
 
     // Handle Reorder action
     if (body.action === 'reorder') {
       const { direction } = body;
-      const allTestimonials = db.select().from(testimonials).all().sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+      const allTestimonials = ((await db.select().from(testimonials).all()) || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder);
       const index = allTestimonials.findIndex((t: any) => t.id === id);
 
       if (index !== -1) {
@@ -33,8 +33,8 @@ export async function PUT(
 
         if (swapIndex !== -1) {
           const target = allTestimonials[swapIndex];
-          db.update(testimonials).set({ sortOrder: target.sortOrder }).where(eq(testimonials.id, existing.id)).run();
-          db.update(testimonials).set({ sortOrder: existing.sortOrder }).where(eq(testimonials.id, target.id)).run();
+          await db.update(testimonials).set({ sortOrder: target.sortOrder }).where(eq(testimonials.id, existing.id)).run();
+          await db.update(testimonials).set({ sortOrder: existing.sortOrder }).where(eq(testimonials.id, target.id)).run();
         }
       }
 
@@ -49,7 +49,7 @@ export async function PUT(
       ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
       : (name || existing.name).substring(0, 2).toUpperCase();
 
-    db.update(testimonials)
+    await db.update(testimonials)
       .set({
         name: name ? name.trim() : existing.name,
         location: location ? location.trim() : existing.location,
@@ -78,10 +78,10 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const existing = db.select().from(testimonials).where(eq(testimonials.id, id)).get();
+    const existing = await db.select().from(testimonials).where(eq(testimonials.id, id)).get();
     if (!existing) return NextResponse.json({ error: 'Review not found' }, { status: 404 });
 
-    db.delete(testimonials).where(eq(testimonials.id, id)).run();
+    await db.delete(testimonials).where(eq(testimonials.id, id)).run();
 
     return NextResponse.json({ success: true });
   } catch (error) {

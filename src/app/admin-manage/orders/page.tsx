@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -18,9 +16,13 @@ export default function AdminOrdersPage() {
     fetch('/api/orders')
       .then(res => res.json())
       .then(data => {
-        if (data.orders) setOrders(data.orders);
+        if (Array.isArray(data?.orders)) {
+          setOrders(data.orders);
+        } else {
+          setOrders([]);
+        }
       })
-      .catch(() => {})
+      .catch(() => setOrders([]))
       .finally(() => setIsLoading(false));
   };
 

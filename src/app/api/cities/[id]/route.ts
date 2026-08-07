@@ -19,7 +19,7 @@ export async function PATCH(
     const body = await request.json();
     const { name, isActive, sortOrder } = body;
 
-    const existing = db.select().from(cities).where(eq(cities.id, id)).get();
+    const existing = await db.select().from(cities).where(eq(cities.id, id)).get();
     if (!existing) return NextResponse.json({ error: 'City not found' }, { status: 404 });
 
     const updated: Partial<typeof existing> = {};
@@ -27,8 +27,8 @@ export async function PATCH(
     if (isActive !== undefined) updated.isActive = Boolean(isActive);
     if (sortOrder !== undefined) updated.sortOrder = Number(sortOrder);
 
-    db.update(cities).set(updated).where(eq(cities.id, id)).run();
-    const refreshed = db.select().from(cities).where(eq(cities.id, id)).get();
+    await db.update(cities).set(updated).where(eq(cities.id, id)).run();
+    const refreshed = await db.select().from(cities).where(eq(cities.id, id)).get();
 
     return NextResponse.json({ success: true, city: refreshed });
   } catch (error: any) {
@@ -51,19 +51,19 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = db.select().from(cities).where(eq(cities.id, id)).get();
+    const existing = await db.select().from(cities).where(eq(cities.id, id)).get();
     if (!existing) return NextResponse.json({ error: 'City not found' }, { status: 404 });
 
     // Check if any orders reference this city
-    const ordersWithCity = db
+    const ordersWithCity = (await db
       .select()
       .from(orders)
       .where(eq(orders.deliveryCity, existing.name))
-      .all();
+      .all()) || [];
 
     if (ordersWithCity.length > 0) {
       // Disable instead of hard delete to preserve order history
-      db.update(cities).set({ isActive: false }).where(eq(cities.id, id)).run();
+      await db.update(cities).set({ isActive: false }).where(eq(cities.id, id)).run();
       return NextResponse.json({
         success: true,
         disabled: true,
@@ -71,7 +71,7 @@ export async function DELETE(
       });
     }
 
-    db.delete(cities).where(eq(cities.id, id)).run();
+    await db.delete(cities).where(eq(cities.id, id)).run();
     return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error('City DELETE error:', error);

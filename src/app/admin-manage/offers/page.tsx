@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, Plus, Edit2, Trash2, X, Calendar, Sparkles } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminOffersPage() {
   const [offersList, setOffersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,9 +21,13 @@ export default function AdminOffersPage() {
     fetch('/api/offers')
       .then(res => res.json())
       .then(data => {
-        if (data.offers) setOffersList(data.offers);
+        if (Array.isArray(data?.offers)) {
+          setOffersList(data.offers);
+        } else {
+          setOffersList([]);
+        }
       })
-      .catch(() => {})
+      .catch(() => setOffersList([]))
       .finally(() => setIsLoading(false));
   };
 

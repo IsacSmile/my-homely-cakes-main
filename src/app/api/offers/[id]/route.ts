@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { offers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await getAdminFromCookies();
@@ -11,10 +12,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const resolvedParams = await params;
     const { heading, discountPercent, isActive, startDate, endDate } = await request.json();
-    const off = db.select().from(offers).where(eq(offers.id, resolvedParams.id)).get();
+    const off = await db.select().from(offers).where(eq(offers.id, resolvedParams.id)).get();
     if (!off) return NextResponse.json({ error: 'Offer not found' }, { status: 404 });
 
-    db.update(offers)
+    await db.update(offers)
       .set({
         heading: heading ? heading.trim() : off.heading,
         discountPercent: discountPercent !== undefined ? parseInt(discountPercent, 10) : off.discountPercent,
@@ -24,6 +25,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       })
       .where(eq(offers.id, resolvedParams.id))
       .run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -37,7 +41,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   try {
     const resolvedParams = await params;
-    db.delete(offers).where(eq(offers.id, resolvedParams.id)).run();
+    await db.delete(offers).where(eq(offers.id, resolvedParams.id)).run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete offer' }, { status: 500 });

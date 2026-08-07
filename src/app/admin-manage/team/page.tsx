@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Users, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, RefreshCw, Loader2, X, Sparkles, CheckCircle2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminTeamPage() {
   const [teamList, setTeamList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,9 +25,13 @@ export default function AdminTeamPage() {
     fetch('/api/team')
       .then(res => res.json())
       .then(data => {
-        if (data.members) setTeamList(data.members);
+        if (Array.isArray(data?.members)) {
+          setTeamList(data.members);
+        } else {
+          setTeamList([]);
+        }
       })
-      .catch(() => {})
+      .catch(() => setTeamList([]))
       .finally(() => setIsLoading(false));
   };
 

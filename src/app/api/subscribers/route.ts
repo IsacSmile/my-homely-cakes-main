@@ -11,7 +11,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const subscribers = db.select().from(emailSignups).orderBy(desc(emailSignups.createdAt)).all();
+    const subscribers = (await db.select().from(emailSignups).orderBy(desc(emailSignups.createdAt)).all()) || [];
     return NextResponse.json({ subscribers });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch subscribers' }, { status: 500 });

@@ -19,11 +19,11 @@ export async function GET(request: Request) {
       isAdmin = !!admin;
     }
 
-    const allCities = db
+    const allCities = (await db
       .select()
       .from(cities)
       .orderBy(asc(cities.sortOrder), asc(cities.name))
-      .all();
+      .all()) || [];
 
     // Return all cities to authenticated admin, only active to public
     const filteredCities = (isAdmin && showAll) ? allCities : allCities.filter((c: any) => c.isActive);
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const id = 'city_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString();
 
-    db.insert(cities).values({
+    await db.insert(cities).values({
       id,
       name: name.trim(),
       isActive: Boolean(isActive),
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       createdAt: now,
     }).run();
 
-    const created = db.select().from(cities).where(eq(cities.id, id)).get();
+    const created = await db.select().from(cities).where(eq(cities.id, id)).get();
     return NextResponse.json({ success: true, city: created });
   } catch (error: any) {
     if (error?.message?.includes('UNIQUE')) {

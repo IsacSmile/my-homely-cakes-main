@@ -5,8 +5,6 @@ import { ShoppingCart, Cake, Search, MousePointer, Mail, TrendingUp, Bell, Calen
 import Link from 'next/link';
 import { formatINR } from '@/lib/pricing';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminOverviewPage() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,9 +22,10 @@ export default function AdminOverviewPage() {
       <div className="space-y-6 animate-pulse p-4">
         <div className="h-8 bg-bakery-200/60 rounded-xl w-64"></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-28 bg-white rounded-3xl border border-bakery-200 p-5"></div>
-          ))}
+          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
+          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
+          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
+          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
         </div>
       </div>
     );
@@ -36,7 +35,11 @@ export default function AdminOverviewPage() {
     return <div className="py-20 text-center text-xs text-rose-600">Failed to load analytics data.</div>;
   }
 
-  const { stats, topProducts, topSearches, topClicks, recentOrders } = data;
+  const stats = data.stats || {};
+  const topProducts = Array.isArray(data.topProducts) ? data.topProducts : [];
+  const topSearches = Array.isArray(data.topSearches) ? data.topSearches : [];
+  const topClicks = Array.isArray(data.topClicks) ? data.topClicks : [];
+  const recentOrders = Array.isArray(data.recentOrders) ? data.recentOrders : [];
 
   return (
     <div className="space-y-8">

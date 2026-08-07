@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Download, CheckCircle2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminSubscribersPage() {
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -13,9 +11,13 @@ export default function AdminSubscribersPage() {
     fetch('/api/subscribers')
       .then(res => res.json())
       .then(data => {
-        if (data.subscribers) setSubscribers(data.subscribers);
+        if (Array.isArray(data?.subscribers)) {
+          setSubscribers(data.subscribers);
+        } else {
+          setSubscribers([]);
+        }
       })
-      .catch(() => {})
+      .catch(() => setSubscribers([]))
       .finally(() => setIsLoading(false));
   }, []);
 
