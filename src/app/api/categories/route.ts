@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { categories } from '@/db/schema';
+import { categories, products } from '@/db/schema';
 import { asc, eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
 
@@ -9,7 +9,19 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const allCategories = db.select().from(categories).orderBy(asc(categories.displayOrder)).all();
-    return NextResponse.json({ categories: allCategories });
+    const allProducts = db.select().from(products).all();
+
+    const categoriesWithCount = allCategories.map(cat => {
+      const count = allProducts.filter(
+        p => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+      ).length;
+      return {
+        ...cat,
+        productCount: count,
+      };
+    });
+
+    return NextResponse.json({ categories: categoriesWithCount });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
   }
@@ -27,14 +39,18 @@ export async function POST(request: Request) {
 
     const cleanName = name.trim();
     const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const id = 'cat_' + Date.now();
 
-    const existing = db.select().from(categories).where(eq(categories.slug, slug)).get();
-    if (existing) {
-      return NextResponse.json({ error: 'Category already exists' }, { status: 400 });
+    // Case-insensitive duplicate check
+    const allCats = db.select().from(categories).all();
+    const isDuplicate = allCats.some(
+      c => c.name.toLowerCase() === cleanName.toLowerCase() || c.slug === slug
+    );
+
+    if (isDuplicate) {
+      return NextResponse.json({ error: `Category "${cleanName}" already exists.` }, { status: 400 });
     }
 
-    const allCats = db.select().from(categories).all();
+    const id = 'cat_' + Date.now();
     const displayOrder = allCats.length + 1;
 
     const newCat = {
@@ -47,8 +63,12 @@ export async function POST(request: Request) {
 
     db.insert(categories).values(newCat).run();
 
-    return NextResponse.json({ success: true, category: newCat });
+    return NextResponse.json({
+      success: true,
+      category: { ...newCat, productCount: 0 },
+    });
   } catch (error) {
+    console.error('Error creating category:', error);
     return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
   }
 }

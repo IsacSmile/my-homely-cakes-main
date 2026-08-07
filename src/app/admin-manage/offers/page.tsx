@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, Plus, Edit2, Trash2, X, Calendar, Sparkles } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminOffersPage() {
   const [offersList, setOffersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

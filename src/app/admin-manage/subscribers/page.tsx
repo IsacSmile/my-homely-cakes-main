@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Download, CheckCircle2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminSubscribersPage() {
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

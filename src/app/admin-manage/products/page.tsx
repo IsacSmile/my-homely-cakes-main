@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, Check, AlertCircle, Scale, Upload, Link as LinkIcon, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, Scale, Upload, Link as LinkIcon, RefreshCw, Loader2, ArrowUp, ArrowDown, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { formatINR, parseProductVariants, WeightVariant } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
@@ -35,8 +35,11 @@ export default function AdminProductsPage() {
     { weightG: 2000, price: 2250, isDefault: false },
   ]);
 
-  // Category modal state
+  // Category manager states
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState('');
+  const [catFeedbackMsg, setCatFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchData = () => {
     Promise.all([
@@ -124,7 +127,6 @@ export default function AdminProductsPage() {
       return;
     }
 
-    // Set uploading indicator for this slot
     setUploadingSlots(prev => {
       const copy = [...prev];
       copy[slotIndex] = true;
@@ -197,7 +199,7 @@ export default function AdminProductsPage() {
     });
   };
 
-  const handleDelete = async (id: string, prodName: string) => {
+  const handleDeleteProduct = async (id: string, prodName: string) => {
     if (!confirm(`Are you sure you want to delete "${prodName}"? This action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
@@ -209,8 +211,10 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Category Management Handlers
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCatFeedbackMsg(null);
     if (!newCategoryName.trim()) return;
 
     try {
@@ -222,20 +226,81 @@ export default function AdminProductsPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setCategoriesList(prev => [...prev, data.category]);
-        setCategory(data.category.name);
         setNewCategoryName('');
-        setIsCategoryModalOpen(false);
+        setCatFeedbackMsg({ type: 'success', text: `Category "${data.category.name}" created successfully!` });
       } else {
-        alert(data.error || 'Failed to add category');
+        setCatFeedbackMsg({ type: 'error', text: data.error || 'Failed to add category' });
       }
     } catch (e) {
-      alert('Error adding category');
+      setCatFeedbackMsg({ type: 'error', text: 'Error creating category' });
+    }
+  };
+
+  const handleEditCategory = async (catId: string) => {
+    setCatFeedbackMsg(null);
+    if (!editingCatName.trim()) return;
+
+    try {
+      const res = await fetch(`/api/categories/${catId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingCatName }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEditingCatId(null);
+        setEditingCatName('');
+        setCatFeedbackMsg({ type: 'success', text: `Category updated to "${data.category.name}". ${data.updatedProductsCount || 0} product(s) updated.` });
+        fetchData();
+      } else {
+        setCatFeedbackMsg({ type: 'error', text: data.error || 'Failed to update category' });
+      }
+    } catch (e) {
+      setCatFeedbackMsg({ type: 'error', text: 'Error updating category' });
+    }
+  };
+
+  const handleReorderCategory = async (catId: string, direction: 'up' | 'down') => {
+    try {
+      const res = await fetch(`/api/categories/${catId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', displayOrder: direction }),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (e) {
+      console.error('Failed to reorder category', e);
+    }
+  };
+
+  const handleDeleteCategory = async (cat: any) => {
+    setCatFeedbackMsg(null);
+    const msg = cat.productCount > 0
+      ? `"${cat.name}" has ${cat.productCount} product(s). Deleting will reassign affected products to "Uncategorized". Proceed?`
+      : `Are you sure you want to delete category "${cat.name}"?`;
+
+    if (!confirm(msg)) return;
+
+    try {
+      const res = await fetch(`/api/categories/${cat.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCatFeedbackMsg({ type: 'success', text: `Category deleted. ${data.reassignedProductsCount || 0} product(s) reassigned to "${data.fallbackCategory}".` });
+        fetchData();
+      } else {
+        setCatFeedbackMsg({ type: 'error', text: data.error || 'Failed to delete category' });
+      }
+    } catch (e) {
+      setCatFeedbackMsg({ type: 'error', text: 'Error deleting category' });
     }
   };
 
   const isAnyUploading = uploadingSlots.some(Boolean);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isAnyUploading) {
       alert('Please wait for all image uploads to finish.');
@@ -330,23 +395,26 @@ export default function AdminProductsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>Storefront Catalog Manager</span>
+            <span>Storefront Catalog & Category Manager</span>
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-bakery-chocolate">
-            Products & Photo Gallery ({productsList.length})
+            Products & Categories ({productsList.length})
           </h1>
           <p className="text-xs text-bakery-800/70 mt-1">
-            Upload product photos directly, manage custom weight prices, and toggle stock availability.
+            Manage bakery menu items, custom weight prices, live category pills, and stock availability.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsCategoryModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-semibold text-xs px-4 py-3 rounded-full border border-bakery-200 transition-all shadow-xs"
+            onClick={() => {
+              setCatFeedbackMsg(null);
+              setIsCategoryModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-bold text-xs px-4 py-3 rounded-full border border-bakery-200 transition-all shadow-xs"
           >
             <Tag className="w-4 h-4 text-amber-700" />
-            <span>Categories ({categoriesList.length})</span>
+            <span>Category Manager ({categoriesList.length})</span>
           </button>
 
           <button
@@ -378,30 +446,44 @@ export default function AdminProductsPage() {
               key={product.id}
               product={product}
               onEdit={() => openEditModal(product)}
-              onDelete={() => handleDelete(product.id, product.name)}
+              onDelete={() => handleDeleteProduct(product.id, product.name)}
             />
           ))}
         </div>
       )}
 
-      {/* Category Manager Modal */}
+      {/* FULL CATEGORY MANAGER MODAL (Add / Edit / Delete / Reorder with Live Product Counts) */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl relative animate-scaleIn">
+          <div className="bg-white w-full max-w-xl max-h-[90vh] rounded-3xl p-6 overflow-y-auto space-y-5 shadow-2xl relative animate-scaleIn">
+            
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
               <div>
-                <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
-                  Manage Categories
+                <h3 className="font-serif text-xl font-bold text-bakery-chocolate flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-amber-600" />
+                  Category Manager ({categoriesList.length})
                 </h3>
-                <p className="text-[11px] text-bakery-600">Add or view shop category filter pills</p>
+                <p className="text-[11px] text-bakery-600">Add, rename, reorder, or delete shop filter categories</p>
               </div>
               <button onClick={() => setIsCategoryModalOpen(false)} className="p-1.5 rounded-full hover:bg-bakery-100 text-bakery-400 hover:text-bakery-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddCategory} className="space-y-3">
-              <label className="text-xs font-bold text-bakery-chocolate block">Add New Category Pill *</label>
+            {/* Action Feedback Alerts */}
+            {catFeedbackMsg && (
+              <div className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2 ${
+                catFeedbackMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+              }`}>
+                {catFeedbackMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />}
+                <span>{catFeedbackMsg.text}</span>
+              </div>
+            )}
+
+            {/* Add New Category Form */}
+            <form onSubmit={handleAddCategory} className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+              <label className="text-xs font-bold text-amber-900 block">Add New Category *</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -409,32 +491,124 @@ export default function AdminProductsPage() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="e.g. Eggless & Vegan Cakes"
-                  className="flex-1 bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  className="flex-1 bg-white border border-amber-300 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-700"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors shrink-0"
                 >
-                  Add
+                  + Add Category
                 </button>
               </div>
             </form>
 
-            <div className="space-y-2 pt-3 border-t border-bakery-100">
-              <span className="text-xs font-bold text-bakery-chocolate block">Active Categories ({categoriesList.length}):</span>
-              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
-                {categoriesList.map((cat: any) => (
-                  <span key={cat.id} className="text-xs bg-bakery-50 border border-bakery-200/80 text-bakery-chocolate px-3 py-1.5 rounded-full font-semibold">
-                    {cat.name}
-                  </span>
-                ))}
+            {/* Live Categories List with Reorder, Edit, Delete & Product Counts */}
+            <div className="space-y-2.5 pt-2">
+              <span className="text-xs font-bold text-bakery-chocolate block">Active Categories & Live Product Count:</span>
+              
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {categoriesList.map((cat: any, idx: number) => {
+                  const isEditingThis = editingCatId === cat.id;
+
+                  return (
+                    <div key={cat.id} className="bg-bakery-50 p-3 rounded-2xl border border-bakery-200 flex items-center justify-between gap-3 shadow-xs">
+                      
+                      {/* Left: Reorder Up/Down buttons + Category Name or Edit Input */}
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {/* Reorder Buttons */}
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleReorderCategory(cat.id, 'up')}
+                            className="p-1 text-bakery-500 hover:text-amber-800 disabled:opacity-30 transition-colors"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === categoriesList.length - 1}
+                            onClick={() => handleReorderCategory(cat.id, 'down')}
+                            className="p-1 text-bakery-500 hover:text-amber-800 disabled:opacity-30 transition-colors"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Inline Name Editor or Display */}
+                        {isEditingThis ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="text"
+                              required
+                              value={editingCatName}
+                              onChange={(e) => setEditingCatName(e.target.value)}
+                              className="flex-1 bg-white border border-amber-600 rounded-lg px-2.5 py-1 text-xs font-bold text-bakery-chocolate focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditCategory(cat.id)}
+                              className="bg-emerald-600 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-xs"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCatId(null)}
+                              className="text-xs text-bakery-500 hover:text-bakery-900"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-bakery-chocolate block truncate">
+                              {cat.name}
+                            </span>
+                            <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full font-semibold inline-block mt-0.5">
+                              {cat.productCount || 0} {cat.productCount === 1 ? 'Product' : 'Products'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Actions: Edit & Delete */}
+                      {!isEditingThis && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCatId(cat.id);
+                              setEditingCatName(cat.name);
+                            }}
+                            className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors"
+                            title="Edit Category Name"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat)}
+                            className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors"
+                            title="Delete Category"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add / Edit Product Modal with Primary Image File Uploads */}
+      {/* Add / Edit Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white w-full max-w-3xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-6 shadow-2xl relative animate-scaleIn">
@@ -452,7 +626,7 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmitProduct} className="space-y-6">
               
               {/* Product Basic Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -473,7 +647,7 @@ export default function AdminProductsPage() {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 font-medium"
                   >
                     {categoriesList.map((cat: any) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -665,7 +839,7 @@ export default function AdminProductsPage() {
   );
 }
 
-// Single Image Upload Slot Component (Primary File Upload Control + Collapsible URL Fallback)
+// Single Image Upload Slot Component
 function ImageUploadSlot({
   slotIndex,
   imageUrl,
@@ -708,7 +882,6 @@ function ImageUploadSlot({
         {isMandatory && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">Required</span>}
       </div>
 
-      {/* Hidden File Input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -721,14 +894,12 @@ function ImageUploadSlot({
         className="hidden"
       />
 
-      {/* Primary Upload / Preview Area */}
       {isUploading ? (
         <div className="h-32 rounded-xl bg-amber-50 border-2 border-dashed border-amber-300 flex flex-col items-center justify-center space-y-2 p-2">
           <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
           <span className="text-[10px] font-bold text-amber-800">Uploading File...</span>
         </div>
       ) : imageUrl && !imgErr ? (
-        /* Image Preview Box */
         <div className="relative h-32 w-full rounded-xl overflow-hidden bg-bakery-100 group border border-bakery-200">
           <Image
             src={imageUrl}
@@ -760,7 +931,6 @@ function ImageUploadSlot({
           </div>
         </div>
       ) : (
-        /* Dropzone / Upload Trigger Button */
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
@@ -779,7 +949,6 @@ function ImageUploadSlot({
         </div>
       )}
 
-      {/* Collapsible Secondary URL Fallback Option */}
       <div className="pt-1">
         <button
           type="button"
@@ -898,19 +1067,19 @@ function AdminProductCard({
                     : 'bg-bakery-50 text-bakery-chocolate border-bakery-200/70'
                 }`}
               >
-                {v.weightG >= 1000 ? `${v.weightG / 1000}kg` : `${v.weightG}g`}: {formatINR(v.price)}
+                {v.weightG >= 1000 ? `${v.weightG / 1000}kg` : `${v.weightG}g`}: <strong className="font-serif tracking-tight font-extrabold">{formatINR(v.price)}</strong>
               </span>
             ))}
           </div>
         </div>
 
-        {/* Pricing & Orders Metrics */}
+        {/* Pricing & Orders Metrics with Premium Price Typography */}
         <div className="pt-2 border-t border-bakery-100 flex items-center justify-between">
           <div>
             <span className="text-[10px] text-bakery-600 font-medium block">
               Default ({defaultVar.weightG >= 1000 ? `${defaultVar.weightG / 1000}kg` : `${defaultVar.weightG}g`})
             </span>
-            <span className="font-serif text-lg font-extrabold text-amber-800">
+            <span className="font-serif text-lg font-extrabold text-amber-800 tracking-tight">
               {formatINR(defaultVar.price)}
             </span>
           </div>
