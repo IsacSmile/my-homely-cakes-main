@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, Trash2, Plus, Minus, ShoppingBag, CheckCircle2, MessageCircle, Phone, Sparkles } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, CheckCircle2, Sparkles } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatINR } from '@/lib/pricing';
 
@@ -102,24 +102,12 @@ export default function CartDrawer() {
                   <p>No prepayment needed. Pay via GPay, PhonePe, or Cash upon delivery.</p>
                 </div>
 
-                {orderSuccess.whatsappUrl && (
-                  <a
-                    href={orderSuccess.whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 px-4 rounded-2xl text-xs transition-all shadow-sm"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Send Order Alert via WhatsApp</span>
-                  </a>
-                )}
-
                 <button
                   onClick={() => {
                     setIsCartOpen(false);
                     setOrderSuccess(null);
                   }}
-                  className="text-xs text-amber-800 font-semibold underline block mx-auto"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-3 px-6 rounded-full shadow-soft transition-all"
                 >
                   Continue Shopping
                 </button>

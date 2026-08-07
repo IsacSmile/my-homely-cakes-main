@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Lock, Phone, Mail, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Settings, Lock, Mail, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const [email, setEmail] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
   
   const [currentPassword, setCurrentPassword] = useState('');
@@ -24,7 +23,6 @@ export default function AdminSettingsPage() {
         if (data) {
           setEmail(data.email || '');
           setNewEmail(data.email || '');
-          setWhatsapp(data.whatsapp || '919876543210');
           setNotificationEmail(data.notificationEmail || 'orders@myhomelycakes.com');
         }
       })
@@ -52,7 +50,6 @@ export default function AdminSettingsPage() {
           currentPassword,
           newEmail,
           newPassword,
-          whatsapp,
           notificationEmail,
         }),
       });
@@ -84,7 +81,7 @@ export default function AdminSettingsPage() {
           Admin Account & Notification Settings
         </h1>
         <p className="text-xs text-bakery-600">
-          Update login credentials and configure shop WhatsApp/email notification alerts.
+          Update login credentials and configure shop notification email alerts.
         </p>
       </div>
 
@@ -107,24 +104,9 @@ export default function AdminSettingsPage() {
         {/* Section 1: Notifications Settings */}
         <div className="space-y-4">
           <h3 className="font-serif text-lg font-bold text-bakery-chocolate flex items-center gap-2 border-b border-bakery-100 pb-2">
-            <Phone className="w-4 h-4 text-amber-700" />
-            <span>Store Contact & Order Alerts</span>
+            <Mail className="w-4 h-4 text-amber-700" />
+            <span>Store Email Alerts</span>
           </h3>
-
-          <div>
-            <label className="text-xs font-bold text-bakery-800 block mb-1">
-              Shop WhatsApp Mobile Number (for WhatsApp order notifications)
-            </label>
-            <input
-              type="text"
-              required
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="919876543210"
-              className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-            />
-            <span className="text-[10px] text-bakery-400 block mt-1">Include country code without + (e.g. 919876543210)</span>
-          </div>
 
           <div>
             <label className="text-xs font-bold text-bakery-800 block mb-1">

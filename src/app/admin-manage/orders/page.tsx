@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Phone, MessageCircle, Clock, CheckCircle2, AlertCircle, Filter, Loader2 } from 'lucide-react';
+import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2 } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
-import { generateCustomerWhatsAppUrl } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,8 +112,6 @@ export default function AdminOrdersPage() {
               itemsList = [];
             }
 
-            const whatsappLink = generateCustomerWhatsAppUrl(order.mobile, order.orderNumber, order.customerName);
-
             return (
               <div
                 key={order.id}
@@ -151,16 +148,6 @@ export default function AdminOrdersPage() {
                     >
                       <Phone className="w-3.5 h-3.5" />
                       <span>Call {order.mobile}</span>
-                    </a>
-
-                    <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold px-3 py-2 rounded-full"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>WhatsApp</span>
                     </a>
 
                     {/* Status Update Dropdown */}

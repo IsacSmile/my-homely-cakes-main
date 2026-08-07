@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, ShoppingBag, Zap, CheckCircle2, Phone, MapPin, Scale, Sparkles, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ShoppingBag, Zap, CheckCircle2, Scale, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { parseProductVariants, getDefaultVariant, getVariantPrice, formatINR, WeightVariant } from '@/lib/pricing';
 
@@ -30,7 +30,7 @@ export default function ProductDetailModal() {
 
   if (!selectedModalProduct) return null;
 
-  // Extract gallery photos (1 to 4 images)
+  // Extract gallery photos
   let galleryPhotos: string[] = [selectedModalProduct.imageUrl];
   try {
     if (selectedModalProduct.images) {
@@ -119,29 +119,17 @@ export default function ProductDetailModal() {
               </p>
             </div>
             
-            <div className="bg-white p-4 rounded-2xl border border-bakery-200 text-xs text-bakery-800 w-full max-w-md space-y-2">
-              <p className="font-semibold text-bakery-chocolate">What happens next?</p>
-              <p>1. Our head baker will call your mobile number <span className="font-bold">{mobile}</span> shortly to confirm delivery time.</p>
+            <div className="bg-white p-5 rounded-2xl border border-bakery-200 text-xs text-bakery-800 w-full max-w-md space-y-2 text-left">
+              <p className="font-bold text-bakery-chocolate text-sm mb-2 text-center">What happens next?</p>
+              <p>1. Our head baker will phone call your mobile number <span className="font-bold">{mobile}</span> directly to confirm delivery time & details.</p>
               <p>2. Payment can be made via UPI or Cash upon delivery/pickup.</p>
             </div>
 
-            {orderSuccess.whatsappUrl && (
-              <a
-                href={orderSuccess.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-full text-sm shadow-md transition-all"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Tap to Send WhatsApp Order Alert</span>
-              </a>
-            )}
-
             <button
               onClick={closeProductModal}
-              className="text-xs text-bakery-600 underline hover:text-bakery-900"
+              className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-3 rounded-full shadow-soft transition-all"
             >
-              Close and continue browsing
+              Continue Browsing
             </button>
           </div>
         ) : (

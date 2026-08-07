@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { orders, products, offers, settings } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { sendAdminOrderEmail, generateWhatsAppOrderUrl } from '@/lib/notifications';
+import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
 
@@ -107,11 +107,8 @@ export async function POST(request: Request) {
       createdAt: now,
     }).run();
 
-    // Notification handling
-    const adminWhatsappSetting = db.select().from(settings).where(eq(settings.key, 'admin_whatsapp')).get();
+    // Notification handling via Email / Phone call log
     const adminEmailSetting = db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
-
-    const adminWhatsApp = adminWhatsappSetting?.value || process.env.ADMIN_WHATSAPP_NUMBER || '919876543210';
     const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@myhomelycakes.com';
 
     sendAdminOrderEmail({
@@ -125,20 +122,11 @@ export async function POST(request: Request) {
       adminEmail,
     }).catch(err => console.error('Error sending order email:', err));
 
-    const whatsappUrl = generateWhatsAppOrderUrl(adminWhatsApp, {
-      orderNumber,
-      customerName,
-      mobile,
-      itemsSummary: itemsSummaryText,
-      totalAmount,
-    });
-
     return NextResponse.json({
       success: true,
       orderId,
       orderNumber,
       totalAmount,
-      whatsappUrl,
     });
   } catch (error) {
     console.error('Order creation error:', error);
