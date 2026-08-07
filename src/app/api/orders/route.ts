@@ -4,6 +4,7 @@ import { orders, products, offers, settings } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { sendAdminOrderEmail, generateWhatsAppOrderUrl } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
+import { parseProductVariants } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +44,20 @@ export async function POST(request: Request) {
       const name = prod ? prod.name : item.name || 'Delicious Cake';
       const qty = item.qty || 1;
       const weightG = item.weightG || (prod ? prod.baseWeightG : 500);
-      const calculatedPrice = item.calculatedPrice || (prod ? prod.basePrice : 500);
+
+      // Look up exact admin-set variant price
+      let calculatedPrice = item.calculatedPrice;
+      if (prod) {
+        const variantsList = parseProductVariants(prod);
+        const exactVar = variantsList.find(v => v.weightG === weightG);
+        calculatedPrice = exactVar ? exactVar.price : (item.calculatedPrice || prod.basePrice);
+      } else {
+        calculatedPrice = item.calculatedPrice || 500;
+      }
+
       const lineTotal = calculatedPrice * qty;
-      
       subtotal += lineTotal;
+
       formattedItems.push({
         productId: item.productId,
         name,
@@ -103,7 +114,6 @@ export async function POST(request: Request) {
     const adminWhatsApp = adminWhatsappSetting?.value || process.env.ADMIN_WHATSAPP_NUMBER || '919876543210';
     const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@myhomelycakes.com';
 
-    // Async trigger email (doesn't block order placement)
     sendAdminOrderEmail({
       orderNumber,
       customerName,

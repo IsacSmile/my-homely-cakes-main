@@ -5,6 +5,8 @@ import { ShoppingCart, Phone, MessageCircle, Clock, CheckCircle2, AlertCircle, F
 import { formatINR } from '@/lib/pricing';
 import { generateCustomerWhatsAppUrl } from '@/lib/notifications';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('All');

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { X, ShoppingBag, Zap, CheckCircle2, Phone, MapPin, Scale, Sparkles, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { calculateWeightPrice, formatINR } from '@/lib/pricing';
+import { parseProductVariants, getDefaultVariant, getVariantPrice, formatINR, WeightVariant } from '@/lib/pricing';
 
 export default function ProductDetailModal() {
   const { selectedModalProduct, closeProductModal, addToCart } = useCart();
@@ -21,8 +21,8 @@ export default function ProductDetailModal() {
   // Set default weight and active photo when product opens
   useEffect(() => {
     if (selectedModalProduct) {
-      const base = selectedModalProduct.baseWeightG || 500;
-      setSelectedWeight(base);
+      const defVariant = getDefaultVariant(selectedModalProduct);
+      setSelectedWeight(defVariant.weightG);
       setActiveImageIndex(0);
       setOrderSuccess(null);
     }
@@ -48,27 +48,9 @@ export default function ProductDetailModal() {
     galleryPhotos = [selectedModalProduct.imageUrl || '/cake-placeholder.svg'];
   }
 
-  // Parse weight variants
-  let variantsList: number[] = [selectedModalProduct.baseWeightG || 500];
-  try {
-    if (selectedModalProduct.variants) {
-      const parsed = typeof selectedModalProduct.variants === 'string'
-        ? JSON.parse(selectedModalProduct.variants)
-        : selectedModalProduct.variants;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        variantsList = parsed.sort((a: number, b: number) => a - b);
-      }
-    }
-  } catch (e) {
-    variantsList = [selectedModalProduct.baseWeightG || 500, 1000, 1500, 2000];
-  }
-
-  const currentPrice = calculateWeightPrice(
-    selectedModalProduct.basePrice,
-    selectedModalProduct.baseWeightG || 500,
-    selectedWeight
-  );
-
+  // Parse structured weight-price variants
+  const variantsList: WeightVariant[] = parseProductVariants(selectedModalProduct);
+  const currentPrice = getVariantPrice(selectedModalProduct, selectedWeight);
   const activePhotoUrl = galleryPhotos[activeImageIndex] || galleryPhotos[0] || '/cake-placeholder.svg';
 
   const handleInstantOrder = async (e: React.FormEvent) => {
@@ -164,7 +146,7 @@ export default function ProductDetailModal() {
           </div>
         ) : (
           <>
-            {/* Left Multi-Photo Image Gallery (3-4 photos) */}
+            {/* Left Multi-Photo Image Gallery */}
             <div className="w-full md:w-1/2 flex flex-col bg-bakery-100 relative">
               {/* Main Photo View */}
               <div className="relative h-64 md:h-auto md:flex-1 w-full bg-bakery-200 overflow-hidden">
@@ -202,7 +184,7 @@ export default function ProductDetailModal() {
                 )}
               </div>
 
-              {/* Gallery Thumbnails Strip (3-4 photos) */}
+              {/* Gallery Thumbnails Strip */}
               {galleryPhotos.length > 1 && (
                 <div className="p-3 bg-white border-t border-bakery-200 flex items-center justify-center gap-2 overflow-x-auto">
                   {galleryPhotos.map((photo, idx) => {
@@ -233,28 +215,31 @@ export default function ProductDetailModal() {
                   {selectedModalProduct.description}
                 </p>
 
-                {/* Weight Selector */}
+                {/* Weight Variant Selector showing exact admin prices */}
                 <div className="mt-4 space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-bakery-800 flex items-center gap-1.5">
                     <Scale className="w-4 h-4 text-amber-600" />
-                    Select Cake Weight / Size:
+                    Select Cake Weight / Portion:
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {variantsList.map((w: number) => {
-                      const label = w >= 1000 ? `${w / 1000} kg` : `${w} g`;
-                      const isSelected = selectedWeight === w;
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {variantsList.map((v: WeightVariant) => {
+                      const label = v.weightG >= 1000 ? `${v.weightG / 1000} kg` : `${v.weightG} g`;
+                      const isSelected = selectedWeight === v.weightG;
                       return (
                         <button
-                          key={w}
+                          key={v.weightG}
                           type="button"
-                          onClick={() => setSelectedWeight(w)}
-                          className={`py-2 px-1 text-xs font-semibold rounded-xl border transition-all ${
+                          onClick={() => setSelectedWeight(v.weightG)}
+                          className={`py-2.5 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center ${
                             isSelected
-                              ? 'bg-amber-600 text-white border-amber-600 shadow-soft font-bold'
-                              : 'bg-bakery-50 text-bakery-chocolate border-bakery-200 hover:bg-bakery-100'
+                              ? 'bg-amber-600 text-white border-amber-600 shadow-soft font-bold scale-102'
+                              : 'bg-bakery-50 text-bakery-chocolate border-bakery-200/80 hover:bg-bakery-100'
                           }`}
                         >
-                          {label}
+                          <span className="text-xs font-bold">{label}</span>
+                          <span className={`text-[11px] ${isSelected ? 'text-amber-100' : 'text-amber-800 font-semibold'}`}>
+                            {formatINR(v.price)}
+                          </span>
                         </button>
                       );
                     })}
@@ -262,14 +247,16 @@ export default function ProductDetailModal() {
                 </div>
 
                 {/* Price Display */}
-                <div className="mt-4 p-3 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
+                <div className="mt-4 p-3.5 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-bakery-600 font-medium block">Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:</span>
+                    <span className="text-[10px] text-bakery-600 font-medium block">
+                      Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:
+                    </span>
                     <span className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800">
                       {formatINR(currentPrice)}
                     </span>
                   </div>
-                  <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">
+                  <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                     Free Trivandrum Delivery Consult
                   </span>
                 </div>

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Zap, Award } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { formatINR } from '@/lib/pricing';
+import { formatINR, getLowestVariant } from '@/lib/pricing';
 
 export interface ProductCardProps {
   product: {
@@ -31,6 +31,11 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
     product.imageUrl || '/cake-placeholder.svg'
   );
 
+  const lowestVariant = getLowestVariant(product);
+  const finalBasePrice = discountPercent > 0
+    ? Math.round(lowestVariant.price * (1 - discountPercent / 100))
+    : lowestVariant.price;
+
   // Track product click analytics silently
   const handleCardClick = () => {
     fetch('/api/analytics/track', {
@@ -41,14 +46,10 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
     openProductModal(product);
   };
 
-  const finalBasePrice = discountPercent > 0
-    ? Math.round(product.basePrice * (1 - discountPercent / 100))
-    : product.basePrice;
-
   return (
     <div className="group bg-white rounded-3xl overflow-hidden border border-bakery-200/70 shadow-soft hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between transform hover:-translate-y-1">
       
-      {/* Product Image Container with explicit height h-48 sm:h-52 */}
+      {/* Product Image Container */}
       <div className="relative h-48 sm:h-52 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
         <Image
           src={imgSrc}
@@ -118,7 +119,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
         <div className="pt-2 border-t border-bakery-100 flex items-center justify-between">
           <div>
             <span className="text-[11px] text-bakery-600 block font-medium">
-              Starts at ({product.baseWeightG}g)
+              Starts at ({lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`})
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="font-serif text-lg sm:text-xl font-extrabold text-bakery-chocolate">
@@ -126,14 +127,14 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
               </span>
               {discountPercent > 0 && (
                 <span className="text-xs text-bakery-400 line-through">
-                  {formatINR(product.basePrice)}
+                  {formatINR(lowestVariant.price)}
                 </span>
               )}
             </div>
           </div>
 
           <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/60">
-            {product.baseWeightG >= 1000 ? `${product.baseWeightG / 1000}kg` : `${product.baseWeightG}g`} base
+            {lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`} base
           </span>
         </div>
 
@@ -141,7 +142,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button
             type="button"
-            onClick={() => addToCart(product, product.baseWeightG, 1)}
+            onClick={() => addToCart(product, lowestVariant.weightG, 1)}
             className="flex items-center justify-center gap-1.5 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate border border-bakery-200 font-semibold text-xs py-2.5 px-2 rounded-2xl transition-colors active:scale-95"
           >
             <ShoppingBag className="w-3.5 h-3.5 text-amber-700 shrink-0" />

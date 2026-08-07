@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, Check, AlertCircle, ShoppingBag } from 'lucide-react';
-import { formatINR } from '@/lib/pricing';
+import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, Check, AlertCircle, Scale, DollarSign, Star } from 'lucide-react';
+import { formatINR, parseProductVariants, WeightVariant } from '@/lib/pricing';
+
+export const dynamic = 'force-dynamic';
 
 export default function AdminProductsPage() {
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -21,11 +23,16 @@ export default function AdminProductsPage() {
   const [image3, setImage3] = useState('');
   const [image4, setImage4] = useState('');
   const [category, setCategory] = useState('Signature Cakes');
-  const [baseWeightG, setBaseWeightG] = useState('500');
-  const [basePrice, setBasePrice] = useState('650');
-  const [variantsStr, setVariantsStr] = useState('500, 1000, 1500, 2000');
   const [isAvailable, setIsAvailable] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Repeatable Weight & Price Variants list state
+  const [weightVariants, setWeightVariants] = useState<WeightVariant[]>([
+    { weightG: 500, price: 650, isDefault: true },
+    { weightG: 1000, price: 1200, isDefault: false },
+    { weightG: 1500, price: 1750, isDefault: false },
+    { weightG: 2000, price: 2250, isDefault: false },
+  ]);
 
   // Category modal state
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -56,9 +63,12 @@ export default function AdminProductsPage() {
     setImage3('');
     setImage4('');
     setCategory(categoriesList[0]?.name || 'Signature Cakes');
-    setBaseWeightG('500');
-    setBasePrice('650');
-    setVariantsStr('500, 1000, 1500, 2000');
+    setWeightVariants([
+      { weightG: 500, price: 650, isDefault: true },
+      { weightG: 1000, price: 1200, isDefault: false },
+      { weightG: 1500, price: 1750, isDefault: false },
+      { weightG: 2000, price: 2250, isDefault: false },
+    ]);
     setIsAvailable(true);
     setIsModalOpen(true);
   };
@@ -82,17 +92,50 @@ export default function AdminProductsPage() {
     setImage4(photos[3] || '');
 
     setCategory(p.category);
-    setBaseWeightG(p.baseWeightG.toString());
-    setBasePrice(p.basePrice.toString());
     
-    let vars = '500, 1000, 1500, 2000';
-    try {
-      const parsed = typeof p.variants === 'string' ? JSON.parse(p.variants) : p.variants;
-      if (Array.isArray(parsed)) vars = parsed.join(', ');
-    } catch (e) {}
-    setVariantsStr(vars);
+    // Parse weight variants
+    const parsedVariants = parseProductVariants(p);
+    setWeightVariants(parsedVariants);
+
     setIsAvailable(p.isAvailable !== false);
     setIsModalOpen(true);
+  };
+
+  // Helper functions for Repeatable Weight Variants
+  const handleAddVariantRow = () => {
+    const nextWeight = (weightVariants[weightVariants.length - 1]?.weightG || 500) + 500;
+    const nextPrice = (weightVariants[weightVariants.length - 1]?.price || 500) + 500;
+    setWeightVariants(prev => [
+      ...prev,
+      { weightG: nextWeight, price: nextPrice, isDefault: false }
+    ]);
+  };
+
+  const handleRemoveVariantRow = (index: number) => {
+    if (weightVariants.length <= 1) {
+      alert('At least one weight-price pair is required per product.');
+      return;
+    }
+    const updated = weightVariants.filter((_, i) => i !== index);
+    // Ensure one row remains default
+    if (!updated.some(v => v.isDefault)) {
+      updated[0].isDefault = true;
+    }
+    setWeightVariants(updated);
+  };
+
+  const handleUpdateVariant = (index: number, field: keyof WeightVariant, value: any) => {
+    setWeightVariants(prev => {
+      const copy = [...prev];
+      if (field === 'isDefault') {
+        copy.forEach((v, i) => {
+          v.isDefault = i === index;
+        });
+      } else {
+        (copy[index] as any)[field] = value;
+      }
+      return copy;
+    });
   };
 
   const handleDelete = async (id: string, prodName: string) => {
@@ -133,7 +176,36 @@ export default function AdminProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !description || !image1 || !basePrice) return;
+    if (!name || !description || !image1) return;
+
+    // Validate weight variants
+    if (weightVariants.length === 0) {
+      alert('At least one weight-price pair is required.');
+      return;
+    }
+
+    const weightSet = new Set<number>();
+    for (const v of weightVariants) {
+      if (!v.weightG || v.weightG <= 0) {
+        alert('All weight values must be positive numbers (in grams).');
+        return;
+      }
+      if (!v.price || v.price <= 0) {
+        alert('All price values must be positive numbers (in ₹).');
+        return;
+      }
+      if (weightSet.has(v.weightG)) {
+        alert(`Duplicate weight option found (${v.weightG}g). Weights must be unique per product.`);
+        return;
+      }
+      weightSet.add(v.weightG);
+    }
+
+    // Ensure 1 item is marked default
+    let finalVariants = [...weightVariants];
+    if (!finalVariants.some(v => v.isDefault)) {
+      finalVariants[0].isDefault = true;
+    }
 
     setIsSaving(true);
 
@@ -141,10 +213,7 @@ export default function AdminProductsPage() {
       .map(img => img.trim())
       .filter(img => img.length > 0);
 
-    const variantsArray = variantsStr
-      .split(',')
-      .map(v => parseInt(v.trim(), 10))
-      .filter(v => !isNaN(v) && v > 0);
+    const defaultVar = finalVariants.find(v => v.isDefault) || finalVariants[0];
 
     const payload = {
       name,
@@ -152,9 +221,9 @@ export default function AdminProductsPage() {
       imageUrl: galleryImages[0],
       images: galleryImages,
       category,
-      baseWeightG: parseInt(baseWeightG, 10),
-      basePrice: parseInt(basePrice, 10),
-      variants: variantsArray,
+      baseWeightG: defaultVar.weightG,
+      basePrice: defaultVar.price,
+      variants: finalVariants,
       isAvailable,
     };
 
@@ -185,7 +254,7 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-2 sm:px-4">
       
-      {/* Header Area with Clear Hierarchy */}
+      {/* Header Area */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-bakery-200/80 shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 mb-2">
@@ -193,10 +262,10 @@ export default function AdminProductsPage() {
             <span>Storefront Catalog Manager</span>
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-bakery-chocolate">
-            Products & Categories ({productsList.length})
+            Products & Weight Variants ({productsList.length})
           </h1>
           <p className="text-xs text-bakery-800/70 mt-1">
-            Manage bakery menu items, multi-photo galleries, category pills, and stock availability.
+            Manage bakery menu items, multi-weight custom prices, categories, and stock availability.
           </p>
         </div>
 
@@ -219,7 +288,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Redesigned Responsive Grid (No Collisions, Clear Photo Container) */}
+      {/* Product Cards Grid */}
       {isLoading ? (
         <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-bakery-200/60 p-8">
           <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -294,33 +363,134 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Add / Edit Product Modal */}
+      {/* Add / Edit Product Modal with Repeatable Weight-Price Variants */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-5 shadow-2xl relative animate-scaleIn">
+          <div className="bg-white w-full max-w-2xl max-h-[92vh] rounded-3xl p-6 overflow-y-auto space-y-5 shadow-2xl relative animate-scaleIn">
             <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
               <div>
                 <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
-                  {editingProduct ? 'Edit Cake Details' : 'Add New Cake to Store'}
+                  {editingProduct ? 'Edit Cake & Weight Prices' : 'Add New Cake to Store'}
                 </h3>
-                <p className="text-[11px] text-bakery-600">Configure cake gallery, variants, and stock status</p>
+                <p className="text-[11px] text-bakery-600">Configure custom prices for each weight option</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-full hover:bg-bakery-100 text-bakery-400 hover:text-bakery-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-bakery-chocolate block mb-1">Cake Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Tender Coconut Dream Cake"
-                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
+              {/* Product Basic Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Cake Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Tender Coconut Dream Cake"
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Category *</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                  >
+                    {categoriesList.map((cat: any) => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Repeatable Weight & Price Pairs UI */}
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <Scale className="w-4 h-4 text-amber-700" />
+                      Weight & Price Variants (Admin Custom Prices) *
+                    </label>
+                    <p className="text-[10px] text-amber-800">
+                      Specify exact weight (g) and price (₹) pairs. Radio button selects the default pre-selected option.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddVariantRow}
+                    className="inline-flex items-center gap-1 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-xs transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Weight</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  {weightVariants.map((v, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-amber-200/60 shadow-xs">
+                      
+                      {/* Default Option Radio */}
+                      <label className="flex items-center gap-1 text-[11px] font-semibold text-bakery-chocolate cursor-pointer shrink-0 pr-1">
+                        <input
+                          type="radio"
+                          name="defaultVariant"
+                          checked={v.isDefault === true}
+                          onChange={() => handleUpdateVariant(idx, 'isDefault', true)}
+                          className="text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
+                        />
+                        <span className={v.isDefault ? 'text-amber-800 font-bold' : 'text-bakery-600'}>
+                          {v.isDefault ? '⭐ Default' : 'Set Default'}
+                        </span>
+                      </label>
+
+                      {/* Weight Input (Grams) */}
+                      <div className="flex-1 flex items-center bg-bakery-50 rounded-lg border border-bakery-200 px-2 py-1">
+                        <input
+                          type="number"
+                          required
+                          min={50}
+                          step={50}
+                          value={v.weightG}
+                          onChange={(e) => handleUpdateVariant(idx, 'weightG', parseInt(e.target.value, 10) || 0)}
+                          placeholder="e.g. 900"
+                          className="w-full bg-transparent text-xs font-bold text-bakery-chocolate focus:outline-none"
+                        />
+                        <span className="text-[10px] font-semibold text-bakery-500 ml-1">g</span>
+                      </div>
+
+                      {/* Price Input (₹) */}
+                      <div className="flex-1 flex items-center bg-bakery-50 rounded-lg border border-bakery-200 px-2 py-1">
+                        <span className="text-[10px] font-bold text-amber-800 mr-1">₹</span>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          value={v.price}
+                          onChange={(e) => handleUpdateVariant(idx, 'price', parseInt(e.target.value, 10) || 0)}
+                          placeholder="e.g. 550"
+                          className="w-full bg-transparent text-xs font-bold text-bakery-chocolate focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Delete Row Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariantRow(idx)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="Remove weight variant"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Photo Gallery URLs */}
@@ -372,58 +542,6 @@ export default function AdminProductsPage() {
                       className="w-full bg-white border border-bakery-200 rounded-xl px-3 py-1.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 mt-0.5"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Category *</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                  >
-                    {categoriesList.map((cat: any) => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Base Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={basePrice}
-                    onChange={(e) => setBasePrice(e.target.value)}
-                    placeholder="650"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Base Weight (grams) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={baseWeightG}
-                    onChange={(e) => setBaseWeightG(e.target.value)}
-                    placeholder="500"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-bakery-chocolate block mb-1">Weight Variants (g list)</label>
-                  <input
-                    type="text"
-                    value={variantsStr}
-                    onChange={(e) => setVariantsStr(e.target.value)}
-                    placeholder="500, 1000, 1500, 2000"
-                    className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                  />
                 </div>
               </div>
 
@@ -488,6 +606,9 @@ function AdminProductCard({
 }) {
   const [imgSrc, setImgSrc] = useState<string>(product.imageUrl || '/cake-placeholder.svg');
 
+  const variantsList: WeightVariant[] = parseProductVariants(product);
+  const defaultVar = variantsList.find(v => v.isDefault) || variantsList[0];
+
   let photoCount = 1;
   try {
     if (product.images) {
@@ -499,7 +620,7 @@ function AdminProductCard({
   return (
     <div className="group bg-white rounded-3xl overflow-hidden border border-bakery-200/80 shadow-soft hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between">
       
-      {/* 1. Actual Product Photo Container (No Overlap) */}
+      {/* 1. Product Photo Container */}
       <div className="relative h-48 w-full bg-bakery-100 overflow-hidden">
         <Image
           src={imgSrc}
@@ -527,10 +648,10 @@ function AdminProductCard({
         </span>
       </div>
 
-      {/* 2. Structured Details Area (Category Badge positioned above Title cleanly) */}
+      {/* 2. Structured Details Area */}
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div>
-          {/* Category Tag (No overlap!) */}
+          {/* Category Tag */}
           <span className="inline-block bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200/60 mb-1.5">
             {product.category}
           </span>
@@ -546,14 +667,36 @@ function AdminProductCard({
           </p>
         </div>
 
+        {/* Weight Variants Pricing Breakdown */}
+        <div className="space-y-2 pt-2 border-t border-bakery-100">
+          <span className="text-[10px] font-bold text-bakery-600 uppercase tracking-wider block">
+            Weight Prices ({variantsList.length} Options)
+          </span>
+
+          <div className="flex flex-wrap gap-1.5">
+            {variantsList.map((v, i) => (
+              <span
+                key={i}
+                className={`text-[10px] px-2 py-0.5 rounded-md font-medium border ${
+                  v.isDefault
+                    ? 'bg-amber-600 text-white border-amber-600 font-bold'
+                    : 'bg-bakery-50 text-bakery-chocolate border-bakery-200/70'
+                }`}
+              >
+                {v.weightG >= 1000 ? `${v.weightG / 1000}kg` : `${v.weightG}g`}: {formatINR(v.price)}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Pricing & Orders Metrics */}
-        <div className="pt-3 border-t border-bakery-100 flex items-center justify-between">
+        <div className="pt-2 border-t border-bakery-100 flex items-center justify-between">
           <div>
             <span className="text-[10px] text-bakery-600 font-medium block">
-              Base ({product.baseWeightG}g)
+              Default ({defaultVar.weightG >= 1000 ? `${defaultVar.weightG / 1000}kg` : `${defaultVar.weightG}g`})
             </span>
             <span className="font-serif text-lg font-extrabold text-amber-800">
-              {formatINR(product.basePrice)}
+              {formatINR(defaultVar.price)}
             </span>
           </div>
 
@@ -565,14 +708,14 @@ function AdminProductCard({
           </div>
         </div>
 
-        {/* Action Buttons: Edit Cake (Primary) & Delete (Icon-only muted rose) */}
+        {/* Action Buttons */}
         <div className="pt-2 flex items-center gap-2">
           <button
             onClick={onEdit}
             className="flex-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-semibold text-xs py-2.5 rounded-2xl border border-bakery-200/80 flex items-center justify-center gap-1.5 transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span>Edit Cake</span>
+            <span>Edit Cake & Prices</span>
           </button>
 
           <button

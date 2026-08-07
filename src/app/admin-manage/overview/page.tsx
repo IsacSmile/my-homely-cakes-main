@@ -5,6 +5,8 @@ import { ShoppingCart, Cake, Search, MousePointer, Mail, TrendingUp, Bell, Calen
 import Link from 'next/link';
 import { formatINR } from '@/lib/pricing';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminOverviewPage() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
