@@ -69,14 +69,14 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
+    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable} ${priceFont.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
         />
       </head>
-      <body className="min-h-screen flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate">
+      <body className="min-h-screen flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
         <CartProvider>
           <MainLayoutClientWrapper>
             {children}

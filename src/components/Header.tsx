@@ -12,6 +12,11 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
   const { cartTotalCount, wishlist, setIsCartOpen } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Track scroll position to trigger floating pill header transformation
   useEffect(() => {
@@ -125,7 +130,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
               title="Wishlist"
             >
               <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
-              {wishlist.length > 0 && (
+              {isMounted && wishlist.length > 0 && (
                 <span className="absolute top-0.5 right-0.5 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scaleIn">
                   {wishlist.length}
                 </span>
@@ -141,7 +146,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
               <ShoppingBag className="w-4 h-4 text-amber-200" />
               <span className="hidden sm:inline">Cart</span>
               <span className="bg-white/25 text-white text-xs font-extrabold px-1.5 py-0.5 rounded-full">
-                {cartTotalCount}
+                {isMounted ? cartTotalCount : 0}
               </span>
             </button>
 

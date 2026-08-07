@@ -15,8 +15,10 @@ interface Offer {
 
 export default function OccasionOffersBanner({ offers }: { offers?: Offer[] }) {
   const [activeOffers, setActiveOffers] = useState<Offer[]>(offers || []);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!offers) {
       fetch('/api/offers')
         .then(res => res.json())
@@ -54,7 +56,7 @@ export default function OccasionOffersBanner({ offers }: { offers?: Offer[] }) {
             Get an instant <span className="font-bold text-amber-300 text-base">{currentOffer.discountPercent}% OFF</span> on all fresh cake orders placed this week across Trivandrum!
           </p>
 
-          {currentOffer.endDate && (
+          {isMounted && currentOffer.endDate && (
             <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium pt-1">
               <Clock className="w-3.5 h-3.5" />
               <span>Offer Valid Until: {new Date(currentOffer.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
