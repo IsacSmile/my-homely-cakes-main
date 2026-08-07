@@ -49,7 +49,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
   return (
     <div className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-bakery-200/70 shadow-xs hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between transform hover:-translate-y-0.5">
       
-      {/* Product Image Container — Optimized for Zomato/Swiggy 2-column mobile layout */}
+      {/* Product Image Container */}
       <div className="relative h-36 sm:h-48 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
         <Image
           src={imgSrc}
@@ -101,7 +101,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
         )}
       </div>
 
-      {/* Product Content Details — Mobile 2-column friendly minimal layout */}
+      {/* Product Content Details */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5">
         <div>
           <h3
@@ -115,18 +115,18 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
           </p>
         </div>
 
-        {/* Price & Weight info */}
+        {/* Price & Weight info with Montserrat font-price */}
         <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between">
           <div>
             <span className="text-[9px] sm:text-[10px] text-bakery-600 block font-medium">
               Starts at ({lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`})
             </span>
             <div className="flex items-baseline gap-1">
-              <span className="font-serif text-base sm:text-xl font-extrabold text-amber-800">
+              <span className="font-price text-base sm:text-xl font-extrabold text-amber-800 tracking-tight">
                 {formatINR(finalBasePrice)}
               </span>
               {discountPercent > 0 && (
-                <span className="text-[10px] sm:text-xs text-bakery-400 line-through">
+                <span className="font-price text-[10px] sm:text-xs text-bakery-400 line-through">
                   {formatINR(lowestVariant.price)}
                 </span>
               )}
@@ -138,7 +138,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
           </span>
         </div>
 
-        {/* Zomato/Swiggy-Style Compact Mobile Action Buttons */}
+        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-1.5 pt-0.5">
           <button
             type="button"

@@ -11,6 +11,8 @@ const config: Config = {
       fontFamily: {
         serif: ['var(--font-heading)', 'Georgia', 'serif'],
         sans: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        price: ['var(--font-price)', 'Montserrat', 'sans-serif'],
+        montserrat: ['var(--font-price)', 'Montserrat', 'sans-serif'],
       },
       colors: {
         bakery: {

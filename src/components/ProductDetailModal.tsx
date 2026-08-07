@@ -115,7 +115,7 @@ export default function ProductDetailModal() {
                 Order Placed Successfully! 🎉
               </h2>
               <p className="text-sm text-bakery-800">
-                Order Reference: <strong className="text-amber-800 font-mono">{orderSuccess.orderNumber}</strong>
+                Order Reference: <strong className="font-price font-extrabold text-amber-800 font-mono">{orderSuccess.orderNumber}</strong>
               </p>
             </div>
             
@@ -203,7 +203,7 @@ export default function ProductDetailModal() {
                   {selectedModalProduct.description}
                 </p>
 
-                {/* Weight Variant Selector showing exact admin prices */}
+                {/* Weight Variant Selector showing exact admin prices in Montserrat */}
                 <div className="mt-4 space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-bakery-800 flex items-center gap-1.5">
                     <Scale className="w-4 h-4 text-amber-600" />
@@ -225,7 +225,7 @@ export default function ProductDetailModal() {
                           }`}
                         >
                           <span className="text-xs font-bold">{label}</span>
-                          <span className={`text-[11px] ${isSelected ? 'text-amber-100' : 'text-amber-800 font-semibold'}`}>
+                          <span className={`font-price text-[11px] font-bold ${isSelected ? 'text-amber-100' : 'text-amber-800'}`}>
                             {formatINR(v.price)}
                           </span>
                         </button>
@@ -234,13 +234,13 @@ export default function ProductDetailModal() {
                   </div>
                 </div>
 
-                {/* Price Display */}
+                {/* Price Display in Montserrat font-price */}
                 <div className="mt-4 p-3.5 bg-bakery-softBg rounded-2xl border border-amber-200/60 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-bakery-600 font-medium block">
                       Price for {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}:
                     </span>
-                    <span className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800">
+                    <span className="font-price text-xl sm:text-2xl font-extrabold text-amber-800 tracking-tight">
                       {formatINR(currentPrice)}
                     </span>
                   </div>

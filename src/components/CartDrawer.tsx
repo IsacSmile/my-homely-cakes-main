@@ -92,7 +92,7 @@ export default function CartDrawer() {
                 <div>
                   <h3 className="font-serif text-xl font-bold text-bakery-chocolate">Order Submitted!</h3>
                   <p className="text-xs text-bakery-800 mt-1">
-                    Order Ref: <strong className="text-amber-800 font-mono">{orderSuccess.orderNumber}</strong>
+                    Order Ref: <strong className="font-price font-bold text-amber-800 font-mono">{orderSuccess.orderNumber}</strong>
                   </p>
                 </div>
 
@@ -144,7 +144,7 @@ export default function CartDrawer() {
                         <span className="text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded font-medium">
                           {item.weightG >= 1000 ? `${item.weightG / 1000}kg` : `${item.weightG}g`}
                         </span>
-                        <div className="font-serif text-xs font-bold text-bakery-chocolate mt-1">
+                        <div className="font-price text-xs font-bold text-amber-800 mt-1">
                           {formatINR(item.calculatedPrice * item.qty)}
                         </div>
                       </div>
@@ -177,10 +177,10 @@ export default function CartDrawer() {
                   ))}
                 </div>
 
-                {/* Subtotal preview */}
+                {/* Subtotal preview with Montserrat font-price */}
                 <div className="pt-3 border-t border-bakery-200 flex items-center justify-between text-xs font-semibold text-bakery-chocolate">
                   <span>Cart Subtotal</span>
-                  <span className="font-serif text-base font-extrabold text-amber-800">
+                  <span className="font-price text-base font-extrabold text-amber-800 tracking-tight">
                     {formatINR(cartSubtotal)}
                   </span>
                 </div>

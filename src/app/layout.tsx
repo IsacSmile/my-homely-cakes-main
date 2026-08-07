@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Outfit } from 'next/font/google';
+import { Playfair_Display, Outfit, Montserrat } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import MainLayoutClientWrapper from '@/components/MainLayoutClientWrapper';
@@ -16,9 +16,16 @@ const bodyFont = Outfit({
   variable: '--font-body',
 });
 
+const priceFont = Montserrat({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-price',
+  weight: ['400', '600', '700', '800', '900'],
+});
+
 export const metadata: Metadata = {
   title: 'MyHomelyCake Trivandrum | Fresh Home Bakery Cakes Order Online',
-  description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes. Phone & WhatsApp confirmation.',
+  description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes. Direct phone call confirmation.',
   keywords: ['Cakes Trivandrum', 'Home Bakery Trivandrum', 'Cake Delivery Trivandrum', 'Tender Coconut Cake', 'Birthday Cake Trivandrum', 'MyHomelyCake'],
   authors: [{ name: 'MyHomelyCake Trivandrum' }],
   openGraph: {
@@ -62,7 +69,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
+    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <head>
         <script
           type="application/ld+json"

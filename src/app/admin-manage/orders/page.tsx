@@ -188,7 +188,7 @@ export default function AdminOrdersPage() {
                           <span className="font-medium text-bakery-chocolate">
                             • {it.name} ({it.weightG >= 1000 ? `${it.weightG / 1000}kg` : `${it.weightG}g`}) × {it.qty}
                           </span>
-                          <span className="font-serif font-bold text-amber-800">
+                          <span className="font-price font-bold text-amber-800">
                             {formatINR(it.lineTotal || (it.calculatedPrice * it.qty))}
                           </span>
                         </div>
@@ -197,7 +197,7 @@ export default function AdminOrdersPage() {
                     
                     <div className="flex justify-between items-center pt-2 font-bold text-sm text-bakery-chocolate">
                       <span>Total Amount to Collect:</span>
-                      <span className="font-serif text-lg text-amber-800">{formatINR(order.totalAmount)}</span>
+                      <span className="font-price text-lg font-extrabold text-amber-800 tracking-tight">{formatINR(order.totalAmount)}</span>
                     </div>
                   </div>
 
