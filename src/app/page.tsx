@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import OccasionOffersBanner from '@/components/OccasionOffersBanner';
 import MeetTheTeamSection from '@/components/MeetTheTeamSection';
 import HeroSection from '@/components/HeroSection';
+import TestimonialsSection from '@/components/TestimonialsSection';
 
 export const revalidate = 60; // Revalidate dynamic content every 60 seconds
 
@@ -163,6 +164,9 @@ export default async function HomePage() {
 
       {/* MEET THE TEAM SHOWCASE CAROUSEL */}
       <MeetTheTeamSection />
+
+      {/* EDITORIAL CUSTOMER TESTIMONIALS CAROUSEL */}
+      <TestimonialsSection />
     </div>
   );
 }
