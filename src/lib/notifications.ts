@@ -20,8 +20,10 @@ export async function sendAdminOrderEmail(params: SendEmailParams) {
   }
 
   try {
+    const fromAddress = process.env.RESEND_FROM_EMAIL || 'MyHomelyCake Orders <onboarding@resend.dev>';
+    
     await resend.emails.send({
-      from: 'MyHomelyCake Orders <orders@myhomelycakes.com>',
+      from: fromAddress,
       to: [params.adminEmail],
       subject: `🚨 NEW ORDER RECEIVED: ${params.orderNumber} - ${params.customerName}`,
       html: `

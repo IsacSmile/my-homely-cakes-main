@@ -26,3 +26,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const resolvedParams = await params;
+    db.delete(orders).where(eq(orders.id, resolvedParams.id)).run();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
+  }
+}

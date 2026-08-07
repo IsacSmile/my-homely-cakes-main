@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { orders, products, offers, settings } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
@@ -131,5 +131,26 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Order creation error:', error);
     return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const admin = await getAdminFromCookies();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { orderIds } = await request.json();
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return NextResponse.json({ error: 'No order IDs provided' }, { status: 400 });
+    }
+
+    for (const id of orderIds) {
+      db.delete(orders).where(eq(orders.id, id)).run();
+    }
+
+    return NextResponse.json({ success: true, count: orderIds.length });
+  } catch (error) {
+    console.error('Bulk order delete error:', error);
+    return NextResponse.json({ error: 'Failed to delete orders' }, { status: 500 });
   }
 }

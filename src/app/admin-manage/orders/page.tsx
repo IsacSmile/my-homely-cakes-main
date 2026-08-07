@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2 } from 'lucide-react';
+import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +11,8 @@ export default function AdminOrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const fetchOrders = () => {
     fetch('/api/orders')
@@ -46,51 +48,135 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleDeleteSingleOrder = async (orderId: string, orderNum: string, custName: string) => {
+    if (!confirm(`Delete order ${orderNum} from ${custName}? This action cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setOrders(prev => prev.filter(o => o.id !== orderId));
+        setSelectedIds(prev => prev.filter(id => id !== orderId));
+      } else {
+        alert('Failed to delete order.');
+      }
+    } catch (e) {
+      alert('Error deleting order.');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${selectedIds.length} selected order(s)? This action cannot be undone.`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: selectedIds }),
+      });
+
+      if (res.ok) {
+        setOrders(prev => prev.filter(o => !selectedIds.includes(o.id)));
+        setSelectedIds([]);
+      } else {
+        alert('Failed to delete selected orders.');
+      }
+    } catch (e) {
+      alert('Error performing bulk order deletion.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const filteredOrders = filterStatus === 'All'
     ? orders
     : orders.filter(o => o.status.toLowerCase() === filterStatus.toLowerCase());
+
+  const isAllSelected = filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.includes(o.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredOrders.map(o => o.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
   const statuses = ['All', 'new', 'contacted', 'confirmed', 'completed', 'cancelled'];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      
+      {/* Header & Bulk Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-bakery-200/80 shadow-soft">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-bakery-chocolate">
-            Order Management
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-bakery-chocolate">
+            Order Management ({orders.length})
           </h1>
-          <p className="text-xs text-bakery-600">
-            View customer order requests, tap-to-call mobile links, and manage fulfillment workflow.
+          <p className="text-xs text-bakery-600 mt-0.5">
+            View customer requests, update status, call customers, or remove completed/cancelled orders.
           </p>
         </div>
-        <button
-          onClick={fetchOrders}
-          className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2 rounded-full hover:bg-amber-100 transition-colors self-start sm:self-auto"
-        >
-          🔄 Refresh Orders
-        </button>
+
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-soft transition-all active:scale-95 disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          )}
+
+          <button
+            onClick={fetchOrders}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-full hover:bg-amber-100 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        {statuses.map(st => {
-          const count = st === 'All' ? orders.length : orders.filter(o => o.status === st).length;
-          const isSelected = filterStatus === st;
-          return (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
-                isSelected
-                  ? 'bg-amber-600 text-white shadow-soft'
-                  : 'bg-white text-bakery-chocolate border border-bakery-200 hover:bg-bakery-100'
-              }`}
-            >
-              {st} ({count})
-            </button>
-          );
-        })}
+      {/* Filter Tabs & Bulk Select Checkbox */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {statuses.map(st => {
+            const count = st === 'All' ? orders.length : orders.filter(o => o.status === st).length;
+            const isSelected = filterStatus === st;
+            return (
+              <button
+                key={st}
+                onClick={() => setFilterStatus(st)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  isSelected
+                    ? 'bg-amber-600 text-white shadow-soft'
+                    : 'bg-white text-bakery-chocolate border border-bakery-200 hover:bg-bakery-100'
+                }`}
+              >
+                {st} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredOrders.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="text-xs font-semibold text-bakery- chocolate flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-bakery-200 hover:bg-bakery-50"
+          >
+            {isAllSelected ? <CheckSquare className="w-4 h-4 text-amber-600" /> : <Square className="w-4 h-4 text-bakery-400" />}
+            <span>Select All ({filteredOrders.length})</span>
+          </button>
+        )}
       </div>
 
       {/* Orders List */}
@@ -112,32 +198,45 @@ export default function AdminOrdersPage() {
               itemsList = [];
             }
 
+            const isChecked = selectedIds.includes(order.id);
+
             return (
               <div
                 key={order.id}
                 className={`bg-white rounded-3xl p-5 md:p-6 border shadow-soft transition-all ${
                   order.status === 'new' ? 'border-rose-300 ring-2 ring-rose-500/20' : 'border-bakery-200'
-                }`}
+                } ${isChecked ? 'ring-2 ring-amber-500/40 bg-amber-50/20' : ''}`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bakery-100 pb-4">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-extrabold text-amber-800 text-base">
-                        {order.orderNumber}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        order.status === 'new' ? 'bg-rose-100 text-rose-800 animate-pulse' :
-                        order.status === 'contacted' ? 'bg-amber-100 text-amber-900' :
-                        order.status === 'confirmed' ? 'bg-emerald-100 text-emerald-900' :
-                        order.status === 'completed' ? 'bg-blue-100 text-blue-900' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status}
-                      </span>
+                  <div className="flex items-center gap-3">
+                    {/* Select Checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectOne(order.id)}
+                      className="p-1 text-bakery-400 hover:text-amber-700"
+                    >
+                      {isChecked ? <CheckSquare className="w-5 h-5 text-amber-600" /> : <Square className="w-5 h-5 text-bakery-300" />}
+                    </button>
+
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-extrabold text-amber-800 text-base">
+                          {order.orderNumber}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          order.status === 'new' ? 'bg-rose-100 text-rose-800 animate-pulse' :
+                          order.status === 'contacted' ? 'bg-amber-100 text-amber-900' :
+                          order.status === 'confirmed' ? 'bg-emerald-100 text-emerald-900' :
+                          order.status === 'completed' ? 'bg-blue-100 text-blue-900' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-bakery-400 mt-0.5">
+                        Placed on {new Date(order.createdAt).toLocaleString('en-IN')}
+                      </p>
                     </div>
-                    <p className="text-xs text-bakery-400 mt-1">
-                      Placed on {new Date(order.createdAt).toLocaleString('en-IN')}
-                    </p>
                   </div>
 
                   {/* Actions & Status Selector */}
@@ -165,6 +264,16 @@ export default function AdminOrdersPage() {
                         <option value="cancelled">Mark Cancelled</option>
                       </select>
                     </div>
+
+                    {/* Visually Muted Delete Order Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSingleOrder(order.id, order.orderNumber, order.customerName)}
+                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-full border border-rose-200/60 transition-colors"
+                      title="Delete Order"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
