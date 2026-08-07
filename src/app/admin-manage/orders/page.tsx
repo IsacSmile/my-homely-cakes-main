@@ -282,9 +282,22 @@ export default function AdminOrdersPage() {
                   
                   {/* Customer info */}
                   <div className="md:col-span-4 space-y-1.5 border-r border-bakery-100 pr-4">
-                    <p><strong>Customer Name:</strong> {order.customerName}</p>
+                    <p><strong>Customer:</strong> {order.customerName}</p>
                     <p><strong>Mobile:</strong> <a href={`tel:${order.mobile}`} className="text-blue-700 underline font-semibold">{order.mobile}</a></p>
-                    {order.address && <p><strong>Delivery Location:</strong> {order.address}</p>}
+                    {order.deliveryCity && <p><strong>City:</strong> {order.deliveryCity}</p>}
+                    {(order.deliveryDate || order.deliveryTime) && (
+                      <p><strong>Delivery:</strong>{' '}
+                        <span className="font-semibold text-amber-800">
+                          {order.deliveryDate || ''}{order.deliveryDate && order.deliveryTime ? ' • ' : ''}{order.deliveryTime || ''}
+                        </span>
+                      </p>
+                    )}
+                    {order.address && <p><strong>Address:</strong> {order.address}</p>}
+                    {order.cakeMessage && (
+                      <p className="text-amber-900 font-medium italic">
+                        <strong className="not-italic">🎂 Cake Message:</strong> &ldquo;{order.cakeMessage}&rdquo;
+                      </p>
+                    )}
                     {order.notes && <p className="text-amber-800 font-medium"><strong>Notes:</strong> {order.notes}</p>}
                   </div>
 

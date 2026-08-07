@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { orders, products, offers, settings } from '@/db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
@@ -23,10 +23,51 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customerName, mobile, address, notes, items } = body;
+    const {
+      customerName,
+      mobile,
+      address,
+      notes,
+      items,
+      // New fields
+      deliveryCity,
+      deliveryDate,
+      deliveryTime,
+      cakeMessage,
+    } = body;
 
+    // Validation
     if (!customerName || !mobile || !items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'Customer name, mobile number, and at least 1 item are required.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Customer name, mobile number, and at least 1 item are required.' },
+        { status: 400 }
+      );
+    }
+
+    if (!address || !address.trim()) {
+      return NextResponse.json({ error: 'Delivery address is required.' }, { status: 400 });
+    }
+
+    // Validate phone number (Indian: 10 digits, optionally +91 prefix)
+    const cleanPhone = mobile.replace(/[\s\-\+]/g, '');
+    const phoneDigits = cleanPhone.replace(/^91/, '');
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      return NextResponse.json(
+        { error: 'Please enter a valid 10-digit Indian mobile number.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate delivery date/time: must not be in the past
+    if (deliveryDate && deliveryTime) {
+      const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const deliveryDT = new Date(`${deliveryDate}T${deliveryTime}:00`);
+      if (deliveryDT < nowIST) {
+        return NextResponse.json(
+          { error: 'Delivery date and time cannot be in the past.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Generate unique order number
@@ -42,7 +83,7 @@ export async function POST(request: Request) {
     for (const item of items) {
       const prod = db.select().from(products).where(eq(products.id, item.productId)).get();
       const name = prod ? prod.name : item.name || 'Delicious Cake';
-      const qty = item.qty || 1;
+      const qty = Math.max(1, item.qty || 1);
       const weightG = item.weightG || (prod ? prod.baseWeightG : 500);
 
       // Look up exact admin-set variant price
@@ -98,6 +139,10 @@ export async function POST(request: Request) {
       customerName: customerName.trim(),
       mobile: mobile.trim(),
       address: address ? address.trim() : null,
+      deliveryCity: deliveryCity ? deliveryCity.trim() : 'Trivandrum',
+      deliveryDate: deliveryDate || null,
+      deliveryTime: deliveryTime || null,
+      cakeMessage: cakeMessage ? cakeMessage.trim() : null,
       notes: notes ? notes.trim() : null,
       items: JSON.stringify(formattedItems),
       subtotal,
@@ -107,16 +152,25 @@ export async function POST(request: Request) {
       createdAt: now,
     }).run();
 
-    // Notification handling via Email / Phone call log
+    // Notification via Email
     const adminEmailSetting = db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
     const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@myhomelycakes.com';
+
+    const deliveryDisplay = deliveryDate && deliveryTime
+      ? `${deliveryDate} at ${deliveryTime}`
+      : 'ASAP (30 mins)';
 
     sendAdminOrderEmail({
       orderNumber,
       customerName,
       mobile,
       address,
-      notes,
+      notes: [
+        deliveryCity ? `City: ${deliveryCity}` : '',
+        `Delivery: ${deliveryDisplay}`,
+        cakeMessage ? `Cake Message: "${cakeMessage}"` : '',
+        notes ? `Notes: ${notes}` : '',
+      ].filter(Boolean).join('\n'),
       itemsSummary: itemsSummaryText,
       totalAmount,
       adminEmail,
@@ -127,6 +181,9 @@ export async function POST(request: Request) {
       orderId,
       orderNumber,
       totalAmount,
+      deliveryCity: deliveryCity || 'Trivandrum',
+      deliveryDate,
+      deliveryTime,
     });
   } catch (error) {
     console.error('Order creation error:', error);

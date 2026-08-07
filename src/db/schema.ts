@@ -24,12 +24,24 @@ export const products = sqliteTable('products', {
   createdAt: text('created_at').notNull(),
 });
 
+export const cities = sqliteTable('cities', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export const orders = sqliteTable('orders', {
   id: text('id').primaryKey(),
   orderNumber: text('order_number').notNull().unique(),
   customerName: text('customer_name').notNull(),
   mobile: text('mobile').notNull(),
   address: text('address'),
+  deliveryCity: text('delivery_city'),
+  deliveryDate: text('delivery_date'),
+  deliveryTime: text('delivery_time'),
+  cakeMessage: text('cake_message'),
   notes: text('notes'),
   items: text('items').notNull(),
   subtotal: integer('subtotal').notNull(),
@@ -106,6 +118,8 @@ export const settings = sqliteTable('settings', {
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+export type City = typeof cities.$inferSelect;
+export type NewCity = typeof cities.$inferInsert;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type Offer = typeof offers.$inferSelect;

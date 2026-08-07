@@ -43,16 +43,24 @@ const initDb = () => {
       order_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS cities (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `);
 
+  // Migrate: add 'images' column to products if missing
   try {
-    const tableInfo = sqlite.pragma('table_info(products)') as any[];
-    const hasImagesCol = tableInfo.some(col => col.name === 'images');
-    if (!hasImagesCol) {
+    const productCols = sqlite.pragma('table_info(products)') as any[];
+    if (!productCols.some(col => col.name === 'images')) {
       sqlite.exec(`ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
     }
   } catch (e) {
-    console.error('Migration notice:', e);
+    console.error('Migration notice (products.images):', e);
   }
 
   sqlite.exec(`
@@ -70,7 +78,27 @@ const initDb = () => {
       status TEXT NOT NULL DEFAULT 'new',
       created_at TEXT NOT NULL
     );
+  `);
 
+  // Migrate: add new order columns if missing
+  const orderMigrations: [string, string][] = [
+    ['delivery_city', 'TEXT'],
+    ['delivery_date', 'TEXT'],
+    ['delivery_time', 'TEXT'],
+    ['cake_message', 'TEXT'],
+  ];
+  try {
+    const orderCols = sqlite.pragma('table_info(orders)') as any[];
+    for (const [colName, colType] of orderMigrations) {
+      if (!orderCols.some((col: any) => col.name === colName)) {
+        sqlite.exec(`ALTER TABLE orders ADD COLUMN ${colName} ${colType}`);
+      }
+    }
+  } catch (e) {
+    console.error('Migration notice (orders new columns):', e);
+  }
+
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS offers (
       id TEXT PRIMARY KEY,
       heading TEXT NOT NULL,
@@ -135,6 +163,19 @@ const initDb = () => {
       value TEXT NOT NULL
     );
   `);
+
+  // Seed default city "Trivandrum" if cities table is empty
+  try {
+    const cityCount = sqlite.prepare('SELECT COUNT(*) as cnt FROM cities').get() as { cnt: number };
+    if (cityCount.cnt === 0) {
+      const now = new Date().toISOString();
+      sqlite.prepare(
+        'INSERT OR IGNORE INTO cities (id, name, is_active, sort_order, created_at) VALUES (?, ?, 1, 0, ?)'
+      ).run('city_trivandrum', 'Trivandrum', now);
+    }
+  } catch (e) {
+    console.error('Seed cities error:', e);
+  }
 };
 
 initDb();
