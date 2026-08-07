@@ -159,7 +159,7 @@ export async function POST(request: Request) {
     // Async Notification via Email & Admin Alerts (detached execution to prevent customer waiting)
     setTimeout(async () => {
       try {
-        const adminEmailSetting = db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
+        const adminEmailSetting = await db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
         const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'myhomelycakes@gmail.com';
 
         const deliveryDisplay = deliveryDate && deliveryTime
