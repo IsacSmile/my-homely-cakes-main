@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 
 export interface TeamMember {
   id: string;
@@ -142,7 +142,7 @@ export default function MeetTheTeamSection() {
   };
 
   return (
-    <section className="py-20 sm:py-28 bg-[#FAF7F2] text-[#2C1A14] overflow-hidden border-t border-b border-[#EAD1B6]/50 relative">
+    <section className="py-16 sm:py-24 bg-[#FAF7F2] text-[#2C1A14] overflow-hidden border-t border-b border-[#EAD1B6]/50 relative">
       
       {/* Editorial Decorative Background Motif (Subtle Line Illustration) */}
       <div className="absolute top-10 right-10 opacity-5 pointer-events-none hidden lg:block">
@@ -155,30 +155,27 @@ export default function MeetTheTeamSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* EDITORIAL HERO SECTION HEADER */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-14 sm:mb-20">
+        {/* EDITORIAL HERO SECTION HEADER (Matching Most Ordered This Week Section Typography) */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-14">
           
-          {/* Left Column: Typography Hierarchy */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="h-px w-8 bg-[#8E552D]/60" />
-              <span className="text-[11px] sm:text-xs tracking-[0.25em] uppercase font-bold text-[#8E552D]">
-                Behind The Oven Doors
-              </span>
+          {/* Left Column: Typography Hierarchy matching Weekly Leaderboard style */}
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>Behind The Oven Doors</span>
             </div>
 
-            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#2C1A14] tracking-tight leading-[1.12]">
-              Meet the Hands <br className="hidden sm:inline" />
-              <span className="italic font-normal text-[#8E552D]">Behind Your Cake</span>
+            <h2 className="font-serif text-3xl font-bold text-bakery-chocolate">
+              Meet the Hands Behind Your Cake
             </h2>
 
-            <p className="text-sm sm:text-base text-[#4D2B16]/80 max-w-xl leading-relaxed font-sans pt-1">
+            <p className="text-xs sm:text-sm text-bakery-800/80 leading-relaxed font-sans pt-0.5">
               The passionate home bakers and artisanal sugar decorators crafting every 100% preservative-free cake at MyHomelyCake Trivandrum.
             </p>
           </div>
 
           {/* Right Column: Sleek Editorial Navigation (← 01 / 04 →) */}
-          <div className="lg:col-span-4 flex items-center justify-between lg:justify-end gap-6 pt-4 lg:pt-0 border-t lg:border-t-0 border-[#EAD1B6]/60">
+          <div className="flex items-center gap-6 self-start md:self-end">
             
             {/* Slide Counter (01 / 04) */}
             <div className="font-mono text-xs font-semibold tracking-wider text-[#6B3E20]">
@@ -190,7 +187,7 @@ export default function MeetTheTeamSection() {
             </div>
 
             {/* Editorial Minimal Arrow Controls */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleScrollLeft}
                 className="p-3 rounded-full border border-[#2C1A14]/20 hover:border-[#2C1A14] text-[#2C1A14] hover:bg-[#2C1A14] hover:text-white transition-all duration-300 active:scale-95 shadow-xs"
@@ -236,7 +233,7 @@ export default function MeetTheTeamSection() {
               <div
                 key={`${member.id}-${idx}`}
                 className={`w-[280px] sm:w-[340px] shrink-0 group flex flex-col justify-between transition-transform duration-500 ${
-                  isOdd ? 'sm:mt-6' : ''
+                  isOdd ? 'sm:mt-5' : ''
                 }`}
               >
                 {/* Large Editorial Arch Portrait Frame */}
@@ -288,7 +285,7 @@ export default function MeetTheTeamSection() {
         </div>
 
         {/* Progress Bar Indicator */}
-        <div className="mt-10 max-w-xs mx-auto h-0.5 bg-[#EAD1B6]/50 rounded-full overflow-hidden">
+        <div className="mt-8 max-w-xs mx-auto h-0.5 bg-[#EAD1B6]/50 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#8E552D] transition-all duration-300 rounded-full"
             style={{ width: `${((activeSlideIndex + 1) / members.length) * 100}%` }}
