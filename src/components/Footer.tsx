@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Phone, MapPin, Heart, Mail, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
+import { Phone, MapPin, Heart, Mail, CheckCircle2, ShieldCheck, Lock, Clock, Truck, Moon } from 'lucide-react';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -44,7 +44,7 @@ export default function Footer() {
   return (
     <footer className="bg-bakery-chocolate text-bakery-100 pt-16 pb-8 border-t border-amber-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           
           {/* Brand & Story */}
           <div className="space-y-4">
@@ -129,6 +129,50 @@ export default function Footer() {
                 <ShieldCheck className="w-4 h-4" />
                 <span>No Advance Online Payment Required</span>
               </div>
+            </div>
+          </div>
+
+          {/* Working Hours & Delivery */}
+          <div>
+            <h4 className="font-serif text-lg font-semibold text-white mb-4">Hours &amp; Delivery</h4>
+            <div className="space-y-3 text-sm text-bakery-300">
+
+              {/* Weekdays */}
+              <div className="flex items-start gap-2.5">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white font-semibold text-xs">Mon – Fri</p>
+                  <p className="text-bakery-300 text-xs">8:30 AM – 11:30 PM</p>
+                </div>
+              </div>
+
+              {/* Weekends */}
+              <div className="flex items-start gap-2.5">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white font-semibold text-xs">Sat – Sun</p>
+                  <p className="text-bakery-300 text-xs">9:00 AM – 11:30 PM</p>
+                </div>
+              </div>
+
+              {/* 24/7 Delivery */}
+              <div className="flex items-start gap-2.5">
+                <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-emerald-400 font-semibold text-xs">Delivery 24/7</p>
+                  <p className="text-bakery-300 text-xs">All days, any time</p>
+                </div>
+              </div>
+
+              {/* Midnight Delivery */}
+              <div className="flex items-start gap-2.5">
+                <Moon className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-indigo-300 font-semibold text-xs">Midnight Delivery</p>
+                  <p className="text-bakery-300 text-xs">Surprise deliveries available</p>
+                </div>
+              </div>
+
             </div>
           </div>
 
