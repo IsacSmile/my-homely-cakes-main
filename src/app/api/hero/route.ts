@@ -49,7 +49,7 @@ const DEFAULT_HERO = {
   ctaPrimaryText: "Explore Cake Menu",
   ctaPrimaryLink: "/shop",
   ctaSecondaryText: "Call Baker Direct",
-  ctaSecondaryPhone: "+91 98765 43210",
+  ctaSecondaryPhone: "+91 99470 66011",
   slides: DEFAULT_SLIDES,
 };
 

@@ -48,8 +48,8 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
       }`}>
         <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span>Freshly Baked Home Cakes • Express Delivery Across Trivandrum</span>
-        <a href="tel:9876543210" className="hidden sm:inline-flex items-center gap-1 font-semibold text-amber-300 underline ml-2">
-          <PhoneCall className="w-3 h-3" /> +91 98765 43210
+        <a href="tel:919947066011" className="hidden sm:inline-flex items-center gap-1 font-semibold text-amber-300 underline ml-2">
+          <PhoneCall className="w-3 h-3" /> +91 99470 66011
         </a>
       </div>
 
@@ -174,10 +174,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             ))}
             <div className="pt-2 border-t border-bakery-100">
               <a
-                href="tel:9876543210"
+                href="tel:919947066011"
                 className="flex items-center justify-center gap-2 w-full bg-amber-50 text-amber-900 font-bold py-2.5 rounded-2xl text-xs"
               >
-                <PhoneCall className="w-4 h-4 text-amber-700" /> Call Baker: +91 98765 43210
+                <PhoneCall className="w-4 h-4 text-amber-700" /> Call Baker: +91 99470 66011
               </a>
             </div>
           </div>

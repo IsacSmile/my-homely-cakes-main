@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@myhomelycakes.com"
+                placeholder="myhomelycakes@gmail.com"
                 className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-4 py-3 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600 pl-10"
               />
               <Mail className="w-4 h-4 text-bakery-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

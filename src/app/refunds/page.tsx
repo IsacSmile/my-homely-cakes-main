@@ -19,7 +19,7 @@ export default function RefundsPage() {
 
         <h3 className="font-bold text-base text-bakery-900">3. Damaged or Incorrect Cakes</h3>
         <p>
-          In the rare event that your cake arrives damaged or with an incorrect flavor/inscription, please inspect the cake upon arrival and inform our delivery personnel or call us immediately at +91 98765 43210 for an instant replacement or full refund.
+          In the rare event that your cake arrives damaged or with an incorrect flavor/inscription, please inspect the cake upon arrival and inform our delivery personnel or call us immediately at +91 99470 66011 for an instant replacement or full refund.
         </p>
       </div>
     </div>

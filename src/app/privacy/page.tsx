@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
         <h3 className="font-bold text-base text-bakery-900">4. Contact Us</h3>
         <p>
-          If you have questions regarding your privacy or wish to request deletion of your order records, please email <a href="mailto:orders@myhomelycakes.com" className="text-amber-800 underline font-semibold">orders@myhomelycakes.com</a> or call +91 98765 43210.
+          If you have questions regarding your privacy or wish to request deletion of your order records, please email <a href="mailto:myhomelycakes@gmail.com" className="text-amber-800 underline font-semibold">myhomelycakes@gmail.com</a> or call +91 99470 66011.
         </p>
       </div>
     </div>

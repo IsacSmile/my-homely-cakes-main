@@ -12,7 +12,7 @@ const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 let dbInstance: any;
 let sqliteInstance: any = null;
 
-if (tursoUrl) {
+if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
   const client = createClient({
     url: tursoUrl,
     authToken: tursoAuthToken,

@@ -41,7 +41,7 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
     ctaPrimaryText: "Explore Cake Menu",
     ctaPrimaryLink: "/shop",
     ctaSecondaryText: "Call Baker Direct",
-    ctaSecondaryPhone: "+91 98765 43210",
+    ctaSecondaryPhone: "+91 99470 66011",
     slides: FALLBACK_SLIDES,
   });
 

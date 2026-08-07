@@ -7,22 +7,22 @@ async function seed() {
   console.log('🌱 Seeding MyHomelyCake database...');
 
   // 1. Default Admin User
-  const existingAdmin = db.select().from(adminUsers).where(eq(adminUsers.email, 'admin@myhomelycakes.com')).get();
+  const existingAdmin = db.select().from(adminUsers).where(eq(adminUsers.email, 'myhomelycakes@gmail.com')).get();
   if (!existingAdmin) {
     const passwordHash = await bcrypt.hash('Admin@123456!', 10);
     db.insert(adminUsers).values({
       id: 'admin_1',
-      email: 'admin@myhomelycakes.com',
+      email: 'myhomelycakes@gmail.com',
       passwordHash,
       createdAt: new Date().toISOString(),
     }).run();
-    console.log('✅ Created default admin user: admin@myhomelycakes.com');
+    console.log('✅ Created default admin user: myhomelycakes@gmail.com');
   }
 
   // 2. Default Settings
   const defaultSettings = [
-    { id: 'set_1', key: 'admin_whatsapp', value: '919876543210' },
-    { id: 'set_2', key: 'admin_email', value: 'orders@myhomelycakes.com' },
+    { id: 'set_1', key: 'admin_whatsapp', value: '919947066011' },
+    { id: 'set_2', key: 'admin_email', value: 'myhomelycakes@gmail.com' },
   ];
 
   for (const s of defaultSettings) {

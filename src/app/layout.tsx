@@ -46,8 +46,8 @@ export default function RootLayout({
     '@type': 'Bakery',
     name: 'MyHomelyCake Trivandrum',
     image: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136',
-    telephone: '+919876543210',
-    email: 'orders@myhomelycakes.com',
+    telephone: '+919947066011',
+    email: 'myhomelycakes@gmail.com',
     priceRange: '₹450 - ₹2000',
     address: {
       '@type': 'PostalAddress',

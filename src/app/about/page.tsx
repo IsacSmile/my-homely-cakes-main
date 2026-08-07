@@ -90,7 +90,7 @@ export default function AboutPage() {
             Explore Cake Menu
           </Link>
           <a
-            href="tel:9876543210"
+            href="tel:919947066011"
             className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-3 px-6 rounded-full transition-all flex items-center gap-1.5"
           >
             <PhoneCall className="w-3.5 h-3.5 text-amber-400" />

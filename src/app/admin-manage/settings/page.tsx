@@ -49,7 +49,7 @@ export default function AdminSettingsPage() {
         if (settingsData) {
           setEmail(settingsData.email || '');
           setNewEmail(settingsData.email || '');
-          setNotificationEmail(settingsData.notificationEmail || 'orders@myhomelycakes.com');
+          setNotificationEmail(settingsData.notificationEmail || 'myhomelycakes@gmail.com');
         }
 
         if (heroData) {
@@ -519,7 +519,7 @@ export default function AdminSettingsPage() {
               type="text"
               value={ctaSecondaryPhone}
               onChange={(e) => setCtaSecondaryPhone(e.target.value)}
-              placeholder="+91 98765 43210"
+              placeholder="+91 99470 66011"
               className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
             />
           </div>
@@ -567,7 +567,7 @@ export default function AdminSettingsPage() {
               required
               value={notificationEmail}
               onChange={(e) => setNotificationEmail(e.target.value)}
-              placeholder="orders@myhomelycakes.com"
+              placeholder="myhomelycakes@gmail.com"
               className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
             />
           </div>

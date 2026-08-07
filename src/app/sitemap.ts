@@ -5,14 +5,20 @@ import { products } from '@/db/schema';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://myhomelycakes.com';
 
-  const allProducts = db.select().from(products).all();
-
-  const productUrls = allProducts.map((product: any) => ({
-    url: `${baseUrl}/shop?product=${product.slug}`,
-    lastModified: new Date(product.createdAt),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  let productUrls: any[] = [];
+  try {
+    const rawProducts = db.select().from(products).all();
+    if (Array.isArray(rawProducts)) {
+      productUrls = rawProducts.map((product: any) => ({
+        url: `${baseUrl}/shop?product=${product.slug}`,
+        lastModified: product.createdAt ? new Date(product.createdAt) : new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }));
+    }
+  } catch (e) {
+    console.error('Sitemap products fetch warning:', e);
+  }
 
   return [
     {

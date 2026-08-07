@@ -111,8 +111,8 @@ export default function Footer() {
                 <Phone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>
                   <strong>Order Hotline:</strong><br />
-                  <a href="tel:9876543210" className="text-white hover:text-amber-400 font-medium">
-                    +91 98765 43210
+                  <a href="tel:919947066011" className="text-white hover:text-amber-400 font-medium">
+                    +91 99470 66011
                   </a>
                 </span>
               </p>
@@ -120,8 +120,8 @@ export default function Footer() {
                 <Mail className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>
                   <strong>Email:</strong><br />
-                  <a href="mailto:orders@myhomelycakes.com" className="text-white hover:text-amber-400">
-                    orders@myhomelycakes.com
+                  <a href="mailto:myhomelycakes@gmail.com" className="text-white hover:text-amber-400">
+                    myhomelycakes@gmail.com
                   </a>
                 </span>
               </p>
