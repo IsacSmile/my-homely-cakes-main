@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Cake, Tag, Mail, Settings, LogOut, Bell, ChevronRight, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Cake, Tag, Users, Mail, Settings, LogOut, Bell, ChevronRight, Menu, X } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -48,6 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Orders', href: '/admin-manage/orders', icon: ShoppingCart, badge: newOrdersCount },
     { name: 'Products Catalog', href: '/admin-manage/products', icon: Cake },
     { name: 'Occasion Offers', href: '/admin-manage/offers', icon: Tag },
+    { name: 'Team & Bakers', href: '/admin-manage/team', icon: Users },
     { name: 'Subscribers', href: '/admin-manage/subscribers', icon: Mail },
     { name: 'Settings', href: '/admin-manage/settings', icon: Settings },
   ];

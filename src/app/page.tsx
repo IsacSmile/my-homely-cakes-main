@@ -7,6 +7,7 @@ import { products, offers, orders, emailSignups } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import ProductCard from '@/components/ProductCard';
 import OccasionOffersBanner from '@/components/OccasionOffersBanner';
+import MeetTheTeamSection from '@/components/MeetTheTeamSection';
 
 export const revalidate = 60; // Revalidate dynamic content every 60 seconds
 
@@ -113,7 +114,7 @@ export default async function HomePage() {
                       <h4 className="font-serif text-sm font-bold text-bakery-chocolate">Tender Coconut Dream Cake</h4>
                     </div>
                   </div>
-                  <span className="font-serif text-base font-extrabold text-amber-800">₹650</span>
+                  <span className="font-price text-base font-medium text-amber-800">₹650</span>
                 </div>
               </div>
             </div>
@@ -137,7 +138,7 @@ export default async function HomePage() {
             </div>
             <div>
               <div className="flex items-center gap-2 justify-center md:justify-start">
-                <span className="font-serif text-3xl md:text-4xl font-extrabold text-amber-800">
+                <span className="font-price font-medium text-3xl md:text-4xl text-amber-800">
                   {displayMonthlyCount}+
                 </span>
                 <span className="text-xs uppercase font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">Verified</span>
@@ -246,6 +247,9 @@ export default async function HomePage() {
         </section>
 
       </div>
+
+      {/* MEET THE TEAM SHOWCASE CAROUSEL */}
+      <MeetTheTeamSection />
     </div>
   );
 }

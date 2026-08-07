@@ -49,6 +49,16 @@ export const offers = sqliteTable('offers', {
   createdAt: text('created_at').notNull(),
 });
 
+export const teamMembers = sqliteTable('team_members', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  occupation: text('occupation').notNull(),
+  photoUrl: text('photo_url').notNull(),
+  bio: text('bio'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export const emailSignups = sqliteTable('email_signups', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
@@ -87,5 +97,7 @@ export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type Offer = typeof offers.$inferSelect;
 export type NewOffer = typeof offers.$inferInsert;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type NewTeamMember = typeof teamMembers.$inferInsert;
 export type EmailSignup = typeof emailSignups.$inferSelect;
 export type AdminUser = typeof adminUsers.$inferSelect;
