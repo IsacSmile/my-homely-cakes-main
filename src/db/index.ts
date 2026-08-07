@@ -1,25 +1,41 @@
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzleLibsql } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 import Database from 'better-sqlite3';
 import * as schema from './schema';
 import path from 'path';
 import fs from 'fs';
 
-const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
-if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+const tursoUrl = process.env.TURSO_DATABASE_URL || (process.env.DATABASE_URL?.startsWith('libsql') || process.env.DATABASE_URL?.startsWith('https') ? process.env.DATABASE_URL : undefined);
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+
+let dbInstance: any;
+let sqliteInstance: any = null;
+
+if (tursoUrl) {
+  const client = createClient({
+    url: tursoUrl,
+    authToken: tursoAuthToken,
+  });
+  dbInstance = drizzleLibsql(client, { schema });
+} else {
+  const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
+  if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
+  sqliteInstance = new Database(sqlitePath);
+  sqliteInstance.pragma('journal_mode = WAL');
+  dbInstance = drizzleSqlite(sqliteInstance, { schema });
 }
 
-const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
-const sqlite = new Database(sqlitePath);
+export const db = dbInstance;
 
-// Enable WAL mode for performance
-sqlite.pragma('journal_mode = WAL');
-
-export const db = drizzleSqlite(sqlite, { schema });
-
-// Auto-initialize tables if they don't exist
+// Auto-initialize local tables if using local SQLite
 const initDb = () => {
-  sqlite.exec(`
+  if (!sqliteInstance) return;
+  sqliteInstance.exec(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -55,15 +71,15 @@ const initDb = () => {
 
   // Migrate: add 'images' column to products if missing
   try {
-    const productCols = sqlite.pragma('table_info(products)') as any[];
-    if (!productCols.some(col => col.name === 'images')) {
-      sqlite.exec(`ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
+    const productCols = sqliteInstance.pragma('table_info(products)') as any[];
+    if (!productCols.some((col: any) => col.name === 'images')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
     }
   } catch (e) {
     console.error('Migration notice (products.images):', e);
   }
 
-  sqlite.exec(`
+  sqliteInstance.exec(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       order_number TEXT NOT NULL UNIQUE,
@@ -88,17 +104,17 @@ const initDb = () => {
     ['cake_message', 'TEXT'],
   ];
   try {
-    const orderCols = sqlite.pragma('table_info(orders)') as any[];
+    const orderCols = sqliteInstance.pragma('table_info(orders)') as any[];
     for (const [colName, colType] of orderMigrations) {
       if (!orderCols.some((col: any) => col.name === colName)) {
-        sqlite.exec(`ALTER TABLE orders ADD COLUMN ${colName} ${colType}`);
+        sqliteInstance.exec(`ALTER TABLE orders ADD COLUMN ${colName} ${colType}`);
       }
     }
   } catch (e) {
     console.error('Migration notice (orders new columns):', e);
   }
 
-  sqlite.exec(`
+  sqliteInstance.exec(`
     CREATE TABLE IF NOT EXISTS offers (
       id TEXT PRIMARY KEY,
       heading TEXT NOT NULL,
@@ -166,10 +182,10 @@ const initDb = () => {
 
   // Seed default city "Trivandrum" if cities table is empty
   try {
-    const cityCount = sqlite.prepare('SELECT COUNT(*) as cnt FROM cities').get() as { cnt: number };
+    const cityCount = sqliteInstance.prepare('SELECT COUNT(*) as cnt FROM cities').get() as { cnt: number };
     if (cityCount.cnt === 0) {
       const now = new Date().toISOString();
-      sqlite.prepare(
+      sqliteInstance.prepare(
         'INSERT OR IGNORE INTO cities (id, name, is_active, sort_order, created_at) VALUES (?, ?, 1, 0, ?)'
       ).run('city_trivandrum', 'Trivandrum', now);
     }

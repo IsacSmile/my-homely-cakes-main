@@ -10,8 +10,8 @@ export default async function AdminProductsPage() {
   const rawCategories = db.select().from(categories).all();
 
   // Attach live product count to categories
-  const initialCategories = rawCategories.map(cat => {
-    const pCount = initialProducts.filter(p => p.category === cat.name).length;
+  const initialCategories = rawCategories.map((cat: any) => {
+    const pCount = initialProducts.filter((p: any) => p.category === cat.name).length;
     return {
       ...cat,
       productCount: pCount,

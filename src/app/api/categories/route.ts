@@ -11,9 +11,9 @@ export async function GET() {
     const allCategories = db.select().from(categories).orderBy(asc(categories.displayOrder)).all();
     const allProducts = db.select().from(products).all();
 
-    const categoriesWithCount = allCategories.map(cat => {
+    const categoriesWithCount = allCategories.map((cat: any) => {
       const count = allProducts.filter(
-        p => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+        (p: any) => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
       ).length;
       return {
         ...cat,
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     // Case-insensitive duplicate check
     const allCats = db.select().from(categories).all();
     const isDuplicate = allCats.some(
-      c => c.name.toLowerCase() === cleanName.toLowerCase() || c.slug === slug
+      (c: any) => c.name.toLowerCase() === cleanName.toLowerCase() || c.slug === slug
     );
 
     if (isDuplicate) {

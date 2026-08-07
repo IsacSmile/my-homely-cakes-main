@@ -101,7 +101,7 @@ export async function GET() {
 
     // Fetch header settings
     const allSettings = db.select().from(settings).all();
-    const map = allSettings.reduce((acc, curr) => {
+    const map = allSettings.reduce((acc: Record<string, string>, curr: any) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {} as Record<string, string>);

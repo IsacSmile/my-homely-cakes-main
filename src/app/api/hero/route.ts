@@ -56,7 +56,7 @@ const DEFAULT_HERO = {
 export async function GET() {
   try {
     const allSettings = db.select().from(settings).all();
-    const map = allSettings.reduce((acc, item) => {
+    const map = allSettings.reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;
       return acc;
     }, {} as Record<string, string>);

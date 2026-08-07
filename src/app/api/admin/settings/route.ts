@@ -12,7 +12,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const allSettings = db.select().from(settings).all();
-  const settingsMap = allSettings.reduce((acc, curr) => {
+  const settingsMap = allSettings.reduce((acc: Record<string, string>, curr: any) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {} as Record<string, string>);

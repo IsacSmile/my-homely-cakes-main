@@ -23,7 +23,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Action: Reorder up/down
     if (action === 'reorder') {
       const allCats = db.select().from(categories).orderBy(asc(categories.displayOrder)).all();
-      const currentIndex = allCats.findIndex(c => c.id === id);
+      const currentIndex = allCats.findIndex((c: any) => c.id === id);
 
       if (currentIndex !== -1) {
         let targetIndex = currentIndex;
@@ -63,8 +63,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const newSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     // Check duplicate name on other categories
-    const allOtherCats = db.select().from(categories).all().filter(c => c.id !== id);
-    const isDuplicate = allOtherCats.some(c => c.name.toLowerCase() === cleanName.toLowerCase());
+    const allOtherCats = db.select().from(categories).all().filter((c: any) => c.id !== id);
+    const isDuplicate = allOtherCats.some((c: any) => c.name.toLowerCase() === cleanName.toLowerCase());
     if (isDuplicate) {
       return NextResponse.json({ error: `Category "${cleanName}" already exists.` }, { status: 400 });
     }
@@ -79,7 +79,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Re-link / update all products using the old category name so site stays 100% in sync
     const affectedProducts = db.select().from(products).all().filter(
-      p => p.category && p.category.trim().toLowerCase() === oldName.trim().toLowerCase()
+      (p: any) => p.category && p.category.trim().toLowerCase() === oldName.trim().toLowerCase()
     );
 
     for (const p of affectedProducts) {
@@ -127,7 +127,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     // Find products assigned to deleted category
     const affectedProducts = db.select().from(products).all().filter(
-      p => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+      (p: any) => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
     );
 
     // Reassign affected products to 'Uncategorized' fallback

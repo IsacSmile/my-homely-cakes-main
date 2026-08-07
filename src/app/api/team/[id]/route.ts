@@ -16,7 +16,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (body.action === 'reorder') {
       const { direction } = body; // 'up' or 'down'
       const allMembers = db.select().from(teamMembers).orderBy(asc(teamMembers.sortOrder)).all();
-      const currentIndex = allMembers.findIndex(m => m.id === resolvedParams.id);
+      const currentIndex = allMembers.findIndex((m: any) => m.id === resolvedParams.id);
 
       if (currentIndex === -1) return NextResponse.json({ error: 'Member not found' }, { status: 404 });
 

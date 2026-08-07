@@ -72,7 +72,7 @@ export async function GET() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([productId, count]) => {
-        const prod = allProducts.find(p => p.id === productId);
+        const prod = allProducts.find((p: any) => p.id === productId);
         return {
           productId,
           name: prod ? prod.name : 'Unknown Product',
@@ -80,7 +80,7 @@ export async function GET() {
         };
       });
 
-    const newOrdersBadgeCount = allOrders.filter(o => o.status === 'new').length;
+    const newOrdersBadgeCount = allOrders.filter((o: any) => o.status === 'new').length;
 
     return NextResponse.json({
       stats: {

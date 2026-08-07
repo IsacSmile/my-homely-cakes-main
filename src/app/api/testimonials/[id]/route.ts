@@ -23,8 +23,8 @@ export async function PUT(
     // Handle Reorder action
     if (body.action === 'reorder') {
       const { direction } = body;
-      const allTestimonials = db.select().from(testimonials).all().sort((a, b) => a.sortOrder - b.sortOrder);
-      const index = allTestimonials.findIndex((t) => t.id === id);
+      const allTestimonials = db.select().from(testimonials).all().sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+      const index = allTestimonials.findIndex((t: any) => t.id === id);
 
       if (index !== -1) {
         let swapIndex = -1;

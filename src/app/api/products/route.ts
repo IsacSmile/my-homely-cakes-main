@@ -17,12 +17,12 @@ export async function GET(request: Request) {
     let allProducts = db.select().from(products).all();
 
     if (category && category !== 'All') {
-      allProducts = allProducts.filter(p => p.category.toLowerCase() === category.toLowerCase());
+      allProducts = allProducts.filter((p: any) => p.category.toLowerCase() === category.toLowerCase());
     }
 
     if (search) {
       const q = search.toLowerCase();
-      allProducts = allProducts.filter(p => 
+      allProducts = allProducts.filter((p: any) => 
         p.name.toLowerCase().includes(q) || 
         p.description.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q)
@@ -30,9 +30,9 @@ export async function GET(request: Request) {
     }
 
     if (featured) {
-      allProducts.sort((a, b) => b.orderCount - a.orderCount);
+      allProducts.sort((a: any, b: any) => b.orderCount - a.orderCount);
     } else {
-      allProducts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      allProducts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     const totalCount = allProducts.length;

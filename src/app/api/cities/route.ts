@@ -26,13 +26,13 @@ export async function GET(request: Request) {
       .all();
 
     // Return all cities to authenticated admin, only active to public
-    const filteredCities = (isAdmin && showAll) ? allCities : allCities.filter(c => c.isActive);
+    const filteredCities = (isAdmin && showAll) ? allCities : allCities.filter((c: any) => c.isActive);
     const activeCities = filteredCities;
 
     // Ensure Trivandrum is always first if present
     const sorted = [
-      ...activeCities.filter(c => c.name.toLowerCase() === 'trivandrum'),
-      ...activeCities.filter(c => c.name.toLowerCase() !== 'trivandrum'),
+      ...activeCities.filter((c: any) => c.name.toLowerCase() === 'trivandrum'),
+      ...activeCities.filter((c: any) => c.name.toLowerCase() !== 'trivandrum'),
     ];
 
     return NextResponse.json({ cities: sorted });

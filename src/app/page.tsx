@@ -49,13 +49,13 @@ export default async function HomePage() {
 
   // 1. Most Ordered This Week (ranked list of top products by orderCount)
   const mostOrderedThisWeek = [...allProducts]
-    .sort((a, b) => b.orderCount - a.orderCount)
+    .sort((a: any, b: any) => b.orderCount - a.orderCount)
     .slice(0, 6);
 
   // 2. Active Occasion Offers
   const activeOffers = db.select().from(offers).where(eq(offers.isActive, true)).all();
   const topDiscount = activeOffers.length > 0
-    ? Math.max(...activeOffers.map(o => o.discountPercent))
+    ? Math.max(...activeOffers.map((o: any) => o.discountPercent))
     : 0;
 
   // 3. Monthly Orders Counter
@@ -64,7 +64,7 @@ export default async function HomePage() {
 
   // 4. Server-side fetch Hero Settings
   const allSettings = db.select().from(settings).all();
-  const settingsMap = allSettings.reduce((acc, item) => {
+  const settingsMap = allSettings.reduce((acc: Record<string, string>, item: any) => {
     acc[item.key] = item.value;
     return acc;
   }, {} as Record<string, string>);
