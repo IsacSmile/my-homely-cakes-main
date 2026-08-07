@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { orders } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await getAdminFromCookies();
@@ -16,10 +17,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Invalid order status' }, { status: 400 });
     }
 
-    db.update(orders)
+    await db.update(orders)
       .set({ status })
       .where(eq(orders.id, resolvedParams.id))
       .run();
+
+    revalidatePath('/admin-manage/orders');
+    revalidatePath('/admin-manage/overview');
 
     return NextResponse.json({ success: true, status });
   } catch (error) {
@@ -33,7 +37,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   try {
     const resolvedParams = await params;
-    db.delete(orders).where(eq(orders.id, resolvedParams.id)).run();
+    await db.delete(orders).where(eq(orders.id, resolvedParams.id)).run();
+
+    revalidatePath('/admin-manage/orders');
+    revalidatePath('/admin-manage/overview');
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });

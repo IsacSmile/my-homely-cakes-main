@@ -3,13 +3,14 @@ import { db } from '@/db';
 import { categories, products } from '@/db/schema';
 import { asc, eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const allCategories = db.select().from(categories).orderBy(asc(categories.displayOrder)).all();
-    const allProducts = db.select().from(products).all();
+    const allCategories = (await db.select().from(categories).orderBy(asc(categories.displayOrder)).all()) || [];
+    const allProducts = (await db.select().from(products).all()) || [];
 
     const categoriesWithCount = allCategories.map((cat: any) => {
       const count = allProducts.filter(
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     // Case-insensitive duplicate check
-    const allCats = db.select().from(categories).all();
+    const allCats = (await db.select().from(categories).all()) || [];
     const isDuplicate = allCats.some(
       (c: any) => c.name.toLowerCase() === cleanName.toLowerCase() || c.slug === slug
     );
@@ -61,7 +62,10 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    db.insert(categories).values(newCat).run();
+    await db.insert(categories).values(newCat).run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({
       success: true,

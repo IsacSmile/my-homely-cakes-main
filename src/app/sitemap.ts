@@ -7,7 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let productUrls: any[] = [];
   try {
-    const rawProducts = db.select().from(products).all();
+    const rawProducts = (await db.select().from(products).all()) || [];
     if (Array.isArray(rawProducts)) {
       productUrls = rawProducts.map((product: any) => ({
         url: `${baseUrl}/shop?product=${product.slug}`,

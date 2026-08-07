@@ -11,11 +11,11 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const allOrders = db.select().from(orders).orderBy(desc(orders.createdAt)).all();
-    const allProducts = db.select().from(products).all();
-    const allSearchLogs = db.select().from(searchLogs).all();
-    const allClickLogs = db.select().from(clickLogs).all();
-    const allSubscribers = db.select().from(emailSignups).all();
+    const allOrders = (await db.select().from(orders).orderBy(desc(orders.createdAt)).all()) || [];
+    const allProducts = (await db.select().from(products).all()) || [];
+    const allSearchLogs = (await db.select().from(searchLogs).all()) || [];
+    const allClickLogs = (await db.select().from(clickLogs).all()) || [];
+    const allSubscribers = (await db.select().from(emailSignups).all()) || [];
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();

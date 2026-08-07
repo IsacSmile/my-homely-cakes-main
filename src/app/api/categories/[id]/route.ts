@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { categories, products } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,14 +16,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await request.json();
     const { name, displayOrder, action } = body;
 
-    const existingCat = db.select().from(categories).where(eq(categories.id, id)).get();
+    const existingCat = await db.select().from(categories).where(eq(categories.id, id)).get();
     if (!existingCat) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
     // Action: Reorder up/down
     if (action === 'reorder') {
-      const allCats = db.select().from(categories).orderBy(asc(categories.displayOrder)).all();
+      const allCats = (await db.select().from(categories).orderBy(asc(categories.displayOrder)).all()) || [];
       const currentIndex = allCats.findIndex((c: any) => c.id === id);
 
       if (currentIndex !== -1) {
@@ -39,18 +40,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           allCats[currentIndex].displayOrder = allCats[targetIndex].displayOrder;
           allCats[targetIndex].displayOrder = tempOrder;
 
-          db.update(categories)
+          await db.update(categories)
             .set({ displayOrder: allCats[currentIndex].displayOrder })
             .where(eq(categories.id, allCats[currentIndex].id))
             .run();
 
-          db.update(categories)
+          await db.update(categories)
             .set({ displayOrder: allCats[targetIndex].displayOrder })
             .where(eq(categories.id, allCats[targetIndex].id))
             .run();
         }
       }
 
+      revalidatePath('/shop');
+      revalidatePath('/');
       return NextResponse.json({ success: true });
     }
 
@@ -63,7 +66,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const newSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     // Check duplicate name on other categories
-    const allOtherCats = db.select().from(categories).all().filter((c: any) => c.id !== id);
+    const allCatsList = (await db.select().from(categories).all()) || [];
+    const allOtherCats = allCatsList.filter((c: any) => c.id !== id);
     const isDuplicate = allOtherCats.some((c: any) => c.name.toLowerCase() === cleanName.toLowerCase());
     if (isDuplicate) {
       return NextResponse.json({ error: `Category "${cleanName}" already exists.` }, { status: 400 });
@@ -72,22 +76,26 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const oldName = existingCat.name;
 
     // Update Category record
-    db.update(categories)
+    await db.update(categories)
       .set({ name: cleanName, slug: newSlug })
       .where(eq(categories.id, id))
       .run();
 
     // Re-link / update all products using the old category name so site stays 100% in sync
-    const affectedProducts = db.select().from(products).all().filter(
+    const allProdsList = (await db.select().from(products).all()) || [];
+    const affectedProducts = allProdsList.filter(
       (p: any) => p.category && p.category.trim().toLowerCase() === oldName.trim().toLowerCase()
     );
 
     for (const p of affectedProducts) {
-      db.update(products)
+      await db.update(products)
         .set({ category: cleanName })
         .where(eq(products.id, p.id))
         .run();
     }
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({
       success: true,
@@ -106,14 +114,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   try {
     const { id } = await params;
-    const cat = db.select().from(categories).where(eq(categories.id, id)).get();
+    const cat = await db.select().from(categories).where(eq(categories.id, id)).get();
     if (!cat) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
     // Ensure 'Uncategorized' fallback category exists
     const fallbackCategoryName = 'Uncategorized';
-    let fallbackCat = db.select().from(categories).where(eq(categories.name, fallbackCategoryName)).get();
+    let fallbackCat = await db.select().from(categories).where(eq(categories.name, fallbackCategoryName)).get();
     if (!fallbackCat) {
       fallbackCat = {
         id: 'cat_uncategorized',
@@ -122,24 +130,28 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         displayOrder: 999,
         createdAt: new Date().toISOString(),
       };
-      db.insert(categories).values(fallbackCat).run();
+      await db.insert(categories).values(fallbackCat).run();
     }
 
     // Find products assigned to deleted category
-    const affectedProducts = db.select().from(products).all().filter(
+    const allProdsList = (await db.select().from(products).all()) || [];
+    const affectedProducts = allProdsList.filter(
       (p: any) => p.category && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
     );
 
     // Reassign affected products to 'Uncategorized' fallback
     for (const p of affectedProducts) {
-      db.update(products)
+      await db.update(products)
         .set({ category: fallbackCategoryName })
         .where(eq(products.id, p.id))
         .run();
     }
 
     // Delete category
-    db.delete(categories).where(eq(categories.id, id)).run();
+    await db.delete(categories).where(eq(categories.id, id)).run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json({
       success: true,
