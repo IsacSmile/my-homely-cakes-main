@@ -12,7 +12,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const resolvedParams = await params;
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder } = body;
 
     const prod = await db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
     if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -31,9 +31,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         images: JSON.stringify(galleryImages),
         category: category ? category.trim() : prod.category,
         baseWeightG: baseWeightG ? parseInt(baseWeightG, 10) : prod.baseWeightG,
- basePrice: basePrice ? parseInt(basePrice, 10) : prod.basePrice,
+        basePrice: basePrice ? parseInt(basePrice, 10) : prod.basePrice,
         variants: variants ? (typeof variants === 'string' ? variants : JSON.stringify(variants)) : prod.variants,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : prod.isAvailable,
+        isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : prod.isFeatured,
+        featuredOrder: featuredOrder !== undefined ? Number(featuredOrder) : prod.featuredOrder,
       })
       .where(eq(products.id, resolvedParams.id))
       .run();
@@ -44,6 +46,35 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminFromCookies();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const resolvedParams = await params;
+    const body = await request.json();
+    const prod = await db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
+    if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+
+    const updates: Partial<typeof prod> = {};
+    if (body.isFeatured !== undefined) updates.isFeatured = Boolean(body.isFeatured);
+    if (body.featuredOrder !== undefined) updates.featuredOrder = Number(body.featuredOrder);
+    if (body.isAvailable !== undefined) updates.isAvailable = Boolean(body.isAvailable);
+
+    await db.update(products)
+      .set(updates)
+      .where(eq(products.id, resolvedParams.id))
+      .run();
+
+    revalidatePath('/shop');
+    revalidatePath('/');
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to patch product' }, { status: 500 });
   }
 }
 

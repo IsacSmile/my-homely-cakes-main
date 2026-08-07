@@ -45,6 +45,8 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
       base_price INTEGER NOT NULL,
       variants TEXT NOT NULL DEFAULT '[500, 1000, 2000]',
       is_available INTEGER NOT NULL DEFAULT 1,
+      is_featured INTEGER NOT NULL DEFAULT 0,
+      featured_order INTEGER NOT NULL DEFAULT 0,
       order_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
@@ -191,14 +193,20 @@ const initDb = () => {
     );
   `);
 
-  // Migrate: add 'images' column to products if missing
+  // Migrate: add 'images', 'is_featured', 'featured_order' columns to products if missing
   try {
     const productCols = sqliteInstance.pragma('table_info(products)') as any[];
     if (!productCols.some((col: any) => col.name === 'images')) {
       sqliteInstance.exec(`ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'`);
     }
+    if (!productCols.some((col: any) => col.name === 'is_featured')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0`);
+    }
+    if (!productCols.some((col: any) => col.name === 'featured_order')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN featured_order INTEGER NOT NULL DEFAULT 0`);
+    }
   } catch (e) {
-    console.error('Migration notice (products.images):', e);
+    console.error('Migration notice (products new columns):', e);
   }
 
   sqliteInstance.exec(`

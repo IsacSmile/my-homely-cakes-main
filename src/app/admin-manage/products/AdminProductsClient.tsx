@@ -42,10 +42,32 @@ export default function AdminProductsClient({
   const filteredProducts = useMemo(() => {
     return productsList.filter((p) => {
       const matchesSearch = !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCat = selectedCategory === 'all' || p.category === selectedCategory;
+      const matchesCat = selectedCategory === 'all'
+        ? true
+        : selectedCategory === 'featured'
+          ? Boolean(p.isFeatured)
+          : p.category === selectedCategory;
       return matchesSearch && matchesCat;
     });
   }, [productsList, searchQuery, selectedCategory]);
+
+  const handleToggleFeatured = async (product: any) => {
+    const newFeatured = !product.isFeatured;
+    setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, isFeatured: newFeatured } : p));
+
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFeatured: newFeatured }),
+      });
+      if (!res.ok) {
+        setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, isFeatured: !newFeatured } : p));
+      }
+    } catch {
+      setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, isFeatured: !newFeatured } : p));
+    }
+  };
 
   // Paginated products slice
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
@@ -234,6 +256,7 @@ export default function AdminProductsClient({
             className="bg-bakery-50 border border-bakery-200 rounded-xl px-3 py-2 text-xs font-semibold text-bakery-chocolate focus:outline-none focus:border-amber-600"
           >
             <option value="all">All Categories ({productsList.length})</option>
+            <option value="featured">⭐ Featured Only ({productsList.filter(p => p.isFeatured).length})</option>
             {categoriesList.map((cat) => (
               <option key={cat.id} value={cat.name}>{cat.name}</option>
             ))}
@@ -257,6 +280,7 @@ export default function AdminProductsClient({
                 product={product}
                 onEdit={() => openEditModal(product)}
                 onDelete={() => handleDeleteProduct(product.id, product.name)}
+                onToggleFeatured={() => handleToggleFeatured(product)}
               />
             ))}
           </div>
@@ -477,10 +501,12 @@ function AdminProductCard({
   product,
   onEdit,
   onDelete,
+  onToggleFeatured,
 }: {
   product: any;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleFeatured: () => void;
 }) {
   const [imgSrc, setImgSrc] = useState<string>(product.imageUrl || '/cake-placeholder.svg');
 
@@ -496,7 +522,9 @@ function AdminProductCard({
   } catch (e) {}
 
   return (
-    <div className="group bg-white rounded-3xl overflow-hidden border border-bakery-200/80 shadow-soft hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between">
+    <div className={`group bg-white rounded-3xl overflow-hidden border transition-all duration-300 flex flex-col justify-between ${
+      product.isFeatured ? 'border-amber-400 ring-2 ring-amber-500/20 shadow-soft-lg' : 'border-bakery-200/80 shadow-soft hover:shadow-soft-lg'
+    }`}>
       
       {/* Product Photo Container */}
       <div className="relative h-48 w-full bg-bakery-100 overflow-hidden">
@@ -509,6 +537,13 @@ function AdminProductCard({
           onError={() => setImgSrc('/cake-placeholder.svg')}
           loading="lazy"
         />
+
+        {/* Featured Badge */}
+        {product.isFeatured && (
+          <span className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+            ⭐ Featured
+          </span>
+        )}
 
         <span
           className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-xs ${
@@ -527,9 +562,25 @@ function AdminProductCard({
 
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div>
-          <span className="inline-block bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200/60 mb-1.5">
-            {product.category}
-          </span>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="inline-block bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200/60">
+              {product.category}
+            </span>
+
+            {/* Quick 1-Click Featured Toggle */}
+            <button
+              type="button"
+              onClick={onToggleFeatured}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 ${
+                product.isFeatured
+                  ? 'bg-amber-100 text-amber-900 border-amber-400 hover:bg-amber-200'
+                  : 'bg-bakery-50 text-bakery-500 border-bakery-200 hover:border-amber-300 hover:text-amber-800'
+              }`}
+              title={product.isFeatured ? 'Click to remove from Featured' : 'Click to mark as Featured on Home Page'}
+            >
+              <span>{product.isFeatured ? '⭐ Featured' : '☆ Feature'}</span>
+            </button>
+          </div>
 
           <h3 className="font-serif text-base font-bold text-bakery-chocolate line-clamp-1">
             {product.name}
@@ -585,7 +636,7 @@ function AdminProductCard({
             className="flex-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate font-semibold text-xs py-2.5 rounded-2xl border border-bakery-200/80 flex items-center justify-center gap-1.5 transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span>Edit Cake & Photos</span>
+            <span>Edit Cake</span>
           </button>
 
           <button

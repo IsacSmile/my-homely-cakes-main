@@ -24,6 +24,8 @@ export default function ProductModalLazy({
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Signature Cakes');
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [featuredOrder, setFeaturedOrder] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
   const [photos, setPhotos] = useState<string[]>(['', '', '', '']);
@@ -44,6 +46,8 @@ export default function ProductModalLazy({
     if (editingProduct) {
       setName(editingProduct.name || '');
       setDescription(editingProduct.description || '');
+      setIsFeatured(Boolean(editingProduct.isFeatured));
+      setFeaturedOrder(Number(editingProduct.featuredOrder || 0));
       
       let loadedPhotos: string[] = ['', '', '', ''];
       try {
@@ -263,6 +267,8 @@ export default function ProductModalLazy({
       basePrice: defaultVar.price,
       variants: finalVariants,
       isAvailable,
+      isFeatured,
+      featuredOrder,
     };
 
     try {
@@ -483,17 +489,51 @@ export default function ProductModalLazy({
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="availCheck"
-              checked={isAvailable}
-              onChange={(e) => setIsAvailable(e.target.checked)}
-              className="rounded text-amber-600 h-4 w-4"
-            />
-            <label htmlFor="availCheck" className="text-xs font-semibold text-bakery-chocolate">
-              In Stock & Available for Direct Customer Orders
-            </label>
+          <div className="space-y-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-200/70">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="availCheck"
+                checked={isAvailable}
+                onChange={(e) => setIsAvailable(e.target.checked)}
+                className="rounded text-amber-600 h-4 w-4"
+              />
+              <label htmlFor="availCheck" className="text-xs font-semibold text-bakery-chocolate">
+                In Stock & Available for Direct Customer Orders
+              </label>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-amber-200/50">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="featuredCheck"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="rounded text-amber-600 h-4 w-4"
+                />
+                <label htmlFor="featuredCheck" className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                  ⭐ Feature this cake on Home Page (&quot;Handpicked Favorites&quot;)
+                </label>
+              </div>
+
+              {isFeatured && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <label htmlFor="featuredOrderInput" className="text-[11px] font-bold text-amber-800">
+                    Sort Order:
+                  </label>
+                  <input
+                    id="featuredOrderInput"
+                    type="number"
+                    min={0}
+                    value={featuredOrder}
+                    onChange={(e) => setFeaturedOrder(Number(e.target.value))}
+                    className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none"
+                    placeholder="0"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-4 border-t border-bakery-100 flex items-center justify-end gap-3">

@@ -9,6 +9,8 @@ import ProductCard from '@/components/ProductCard';
 import HeroSection from '@/components/HeroSection';
 import BelowTheFoldLazy from '@/components/BelowTheFoldLazy';
 
+import FeaturedProductsSection from '@/components/FeaturedProductsSection';
+
 // Dynamic below-the-fold components
 const OccasionOffersBanner = dynamic(() => import('@/components/OccasionOffersBanner'));
 const MeetTheTeamSection = dynamic(() => import('@/components/MeetTheTeamSection'));
@@ -47,7 +49,12 @@ export default async function HomePage() {
   // Fetch active products server-side
   const allProducts = (await db.select().from(products).all()) || [];
 
-  // 1. Most Ordered This Week (ranked list of top products by orderCount)
+  // 1. Featured Products (Curated by admin, ordered by featuredOrder or recency)
+  const featuredProducts = allProducts
+    .filter((p: any) => Boolean(p.isFeatured) && Boolean(p.isAvailable))
+    .sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // 2. Most Ordered This Week (ranked list of top products by orderCount)
   const mostOrderedThisWeek = [...allProducts]
     .sort((a: any, b: any) => b.orderCount - a.orderCount)
     .slice(0, 6);
@@ -134,6 +141,9 @@ export default async function HomePage() {
             </span>
           </div>
         </section>
+
+        {/* FEATURED PRODUCTS (HANDPICKED FAVORITES - ADMIN CURATED) */}
+        <FeaturedProductsSection products={featuredProducts} discountPercent={topDiscount} />
 
         {/* MOST ORDERED THIS WEEK */}
         <section className="space-y-8">

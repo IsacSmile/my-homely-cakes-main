@@ -20,6 +20,8 @@ export const products = sqliteTable('products', {
   basePrice: integer('base_price').notNull(),
   variants: text('variants').notNull().default('[500, 1000, 2000]'),
   isAvailable: integer('is_available', { mode: 'boolean' }).notNull().default(true),
+  isFeatured: integer('is_featured', { mode: 'boolean' }).notNull().default(false),
+  featuredOrder: integer('featured_order').notNull().default(0),
   orderCount: integer('order_count').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });

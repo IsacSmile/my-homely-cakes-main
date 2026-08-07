@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder } = body;
 
     if (!name || !description || (!imageUrl && (!images || images.length === 0)) || !category || !basePrice) {
       return NextResponse.json({ error: 'Missing required product fields (Name, Description, Image, Category, Base Price)' }, { status: 400 });
@@ -80,6 +80,8 @@ export async function POST(request: Request) {
       basePrice: parseInt(basePrice, 10),
       variants: typeof variants === 'string' ? variants : JSON.stringify(variants || [500, 1000, 2000]),
       isAvailable: isAvailable !== false,
+      isFeatured: Boolean(isFeatured),
+      featuredOrder: Number(featuredOrder) || 0,
       orderCount: 0,
       createdAt: new Date().toISOString(),
     };
