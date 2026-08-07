@@ -174,8 +174,8 @@ export default function ShopClient({
         </div>
       ) : (
         <div className="space-y-12">
-          {/* Responsive Breakpoints: 1 col mobile, 2 col tablet, 4 col desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {/* Zomato / Swiggy style: 2 cols on mobile, 3 cols tablet, 4 cols desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {productsList.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

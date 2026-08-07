@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Cake, Phone, MapPin, Heart, Mail, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
+import { Phone, MapPin, Heart, Mail, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -48,8 +49,14 @@ export default function Footer() {
           {/* Brand & Story */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
-                <Cake className="w-6 h-6 text-amber-400" />
+              <div className="relative w-12 h-12 rounded-full overflow-hidden border border-amber-500/30 bg-white p-0.5 shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="MyHomelyCake Logo"
+                  fill
+                  sizes="48px"
+                  className="object-contain"
+                />
               </div>
               <span className="font-serif text-2xl font-bold text-white tracking-tight">
                 MyHomelyCake
