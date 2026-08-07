@@ -91,6 +91,19 @@ const initDb = () => {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS testimonials (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      location TEXT NOT NULL,
+      cake_name TEXT NOT NULL,
+      rating INTEGER NOT NULL DEFAULT 5,
+      quote TEXT NOT NULL,
+      initials TEXT NOT NULL,
+      avatar_bg TEXT NOT NULL DEFAULT 'bg-amber-100 text-amber-900 border-amber-300',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS email_signups (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,

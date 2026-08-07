@@ -59,6 +59,19 @@ export const teamMembers = sqliteTable('team_members', {
   createdAt: text('created_at').notNull(),
 });
 
+export const testimonials = sqliteTable('testimonials', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  location: text('location').notNull(),
+  cakeName: text('cake_name').notNull(),
+  rating: integer('rating').notNull().default(5),
+  quote: text('quote').notNull(),
+  initials: text('initials').notNull(),
+  avatarBg: text('avatar_bg').notNull().default('bg-amber-100 text-amber-900 border-amber-300'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export const emailSignups = sqliteTable('email_signups', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
@@ -99,5 +112,7 @@ export type Offer = typeof offers.$inferSelect;
 export type NewOffer = typeof offers.$inferInsert;
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type NewTeamMember = typeof teamMembers.$inferInsert;
+export type Testimonial = typeof testimonials.$inferSelect;
+export type NewTestimonial = typeof testimonials.$inferInsert;
 export type EmailSignup = typeof emailSignups.$inferSelect;
 export type AdminUser = typeof adminUsers.$inferSelect;

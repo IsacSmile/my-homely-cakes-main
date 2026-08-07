@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, MessageSquareQuote, Star, CheckCircle2 } from 'lucide-react';
 
-interface Testimonial {
+export interface Testimonial {
   id: string;
   name: string;
   location: string;
@@ -12,9 +12,10 @@ interface Testimonial {
   quote: string;
   initials: string;
   avatarBg: string;
+  sortOrder: number;
 }
 
-const TESTIMONIALS_DATA: Testimonial[] = [
+const FALLBACK_TESTIMONIALS: Testimonial[] = [
   {
     id: 't1',
     name: 'Anjali Nair',
@@ -24,6 +25,7 @@ const TESTIMONIALS_DATA: Testimonial[] = [
     quote: 'The Tender Coconut cake for my daughter’s 1st birthday was an absolute dream! So fresh, perfectly moist, and zero artificial sweetness. Everyone at the party asked where we ordered it from.',
     initials: 'AN',
     avatarBg: 'bg-amber-100 text-amber-900 border-amber-300',
+    sortOrder: 1,
   },
   {
     id: 't2',
@@ -34,6 +36,7 @@ const TESTIMONIALS_DATA: Testimonial[] = [
     quote: 'Ordered the Belgian Chocolate Truffle for our wedding anniversary. Delivery was right on time at 7 PM and the cake melted in our mouths. 100% authentic home bakery quality!',
     initials: 'SK',
     avatarBg: 'bg-rose-100 text-rose-900 border-rose-300',
+    sortOrder: 2,
   },
   {
     id: 't3',
@@ -44,40 +47,23 @@ const TESTIMONIALS_DATA: Testimonial[] = [
     quote: 'We order cakes for all our team birthdays at Technopark from MyHomelyCake. The online 1-tap ordering with cash/UPI on delivery is so convenient and completely stress-free.',
     initials: 'PD',
     avatarBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-  },
-  {
-    id: 't4',
-    name: 'Reshma Pillai',
-    location: 'Vazhuthacaud, Trivandrum',
-    cakeName: 'Fresh Alphonso Mango Cake',
-    rating: 5,
-    quote: 'You can instantly taste the difference with real Amul butter and natural cream. No heavy commercial icing or chemical flavorings. My parents loved the Mango Bliss cake!',
-    initials: 'RP',
-    avatarBg: 'bg-amber-100 text-amber-900 border-amber-300',
-  },
-  {
-    id: 't5',
-    name: 'Gokul Krishna',
-    location: 'Nanthancode, Trivandrum',
-    cakeName: 'Nutella Hazelnut Crunch',
-    rating: 5,
-    quote: 'Extremely courteous phone confirmation right after placing the order. They customized the birthday message on top beautifully. Highly recommended home bakers in Trivandrum!',
-    initials: 'GK',
-    avatarBg: 'bg-sky-100 text-sky-900 border-sky-300',
-  },
-  {
-    id: 't6',
-    name: 'Lakshmi Menon',
-    location: 'Sasthamangalam, Trivandrum',
-    cakeName: 'Persian Pistachio Rose Cake',
-    rating: 5,
-    quote: 'Finding 100% eggless handcrafted cakes in TVM that taste this rich was a blessing. The Pistachio Rose cake was the absolute star of our family weekend gathering!',
-    initials: 'LM',
-    avatarBg: 'bg-purple-100 text-purple-900 border-purple-300',
+    sortOrder: 3,
   },
 ];
 
 export default function TestimonialsSection() {
+  const [data, setData] = useState<{
+    eyebrow: string;
+    heading: string;
+    subheading: string;
+    testimonials: Testimonial[];
+  }>({
+    eyebrow: 'Customer Stories',
+    heading: 'What Our Customers Say',
+    subheading: 'Real stories from the people who made their celebrations a little sweeter with MyHomelyCake.',
+    testimonials: FALLBACK_TESTIMONIALS,
+  });
+
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [isInteracting, setIsInteracting] = useState(false);
 
@@ -88,19 +74,33 @@ export default function TestimonialsSection() {
   const scrollLeftStart = useRef(0);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch reviews dynamically from API
+  useEffect(() => {
+    fetch('/api/testimonials')
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.testimonials && resData.testimonials.length > 0) {
+          setData(resData);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const items = data.testimonials || FALLBACK_TESTIMONIALS;
+
   // Update active slide index based on scroll position
   const handleScroll = () => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || items.length === 0) return;
     const cardWidth = 380;
-    const index = Math.floor((el.scrollLeft + 100) / cardWidth) % TESTIMONIALS_DATA.length;
+    const index = Math.floor((el.scrollLeft + 100) / cardWidth) % items.length;
     setActiveSlideIndex(index);
   };
 
   // Continuous smooth auto-scroll loop via requestAnimationFrame
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || items.length === 0) return;
 
     let lastTime = performance.now();
     const speed = 0.35; // smooth, comfortable, luxury pace
@@ -127,15 +127,10 @@ export default function TestimonialsSection() {
     return () => {
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
     };
-  }, [isInteracting]);
+  }, [isInteracting, items.length]);
 
   // Duplicate items for infinite loop preview
-  const displayTestimonials = [
-    ...TESTIMONIALS_DATA,
-    ...TESTIMONIALS_DATA,
-    ...TESTIMONIALS_DATA,
-    ...TESTIMONIALS_DATA,
-  ];
+  const displayTestimonials = [...items, ...items, ...items, ...items];
 
   // Pause & Resume Helpers
   const pauseAutoScroll = () => {
@@ -208,22 +203,22 @@ export default function TestimonialsSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* SECTION HEADER — Strictly matching Meet The Team & Weekly Leaderboard typography scale */}
+        {/* SECTION HEADER — Dynamic settings with exact typography scale */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-14">
           
           {/* Left Column: Typography Hierarchy */}
           <div className="space-y-1.5 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">
               <MessageSquareQuote className="w-4 h-4 text-amber-600" />
-              <span>Customer Stories</span>
+              <span>{data.eyebrow}</span>
             </div>
 
             <h2 className="font-serif text-3xl font-bold text-bakery-chocolate">
-              What Our Customers Say
+              {data.heading}
             </h2>
 
             <p className="text-xs sm:text-sm text-bakery-800/80 leading-relaxed font-sans pt-0.5">
-              Real stories from the people who made their celebrations a little sweeter with MyHomelyCake.
+              {data.subheading}
             </p>
           </div>
 
@@ -233,10 +228,10 @@ export default function TestimonialsSection() {
             {/* Slide Counter (01 / 06) */}
             <div className="font-mono text-xs font-semibold tracking-wider text-[#6B3E20]">
               <span className="text-[#2C1A14] font-bold text-sm">
-                {String((activeSlideIndex % TESTIMONIALS_DATA.length) + 1).padStart(2, '0')}
+                {String((activeSlideIndex % items.length) + 1).padStart(2, '0')}
               </span>
               <span className="mx-1.5 opacity-40">/</span>
-              <span className="opacity-60">{String(TESTIMONIALS_DATA.length).padStart(2, '0')}</span>
+              <span className="opacity-60">{String(items.length).padStart(2, '0')}</span>
             </div>
 
             {/* Editorial Minimal Arrow Controls */}
@@ -286,7 +281,7 @@ export default function TestimonialsSection() {
               {/* Top Row: 5-Star Rating & Subtle Quote Mark */}
               <div className="flex items-center justify-between border-b border-[#F5EFE6] pb-3">
                 <div className="flex items-center gap-1">
-                  {[...Array(item.rating)].map((_, i) => (
+                  {[...Array(item.rating || 5)].map((_, i) => (
                     <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
@@ -311,7 +306,7 @@ export default function TestimonialsSection() {
               {/* Bottom Row: Customer Avatar, Name & Location */}
               <div className="pt-3 border-t border-[#F5EFE6] flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full border-2 font-bold text-xs flex items-center justify-center shrink-0 shadow-xs ${item.avatarBg}`}>
+                  <div className={`w-10 h-10 rounded-full border-2 font-bold text-xs flex items-center justify-center shrink-0 shadow-xs ${item.avatarBg || 'bg-amber-100 text-amber-900 border-amber-300'}`}>
                     {item.initials}
                   </div>
                   <div className="flex flex-col">
@@ -338,7 +333,7 @@ export default function TestimonialsSection() {
         <div className="mt-8 max-w-xs mx-auto h-0.5 bg-[#EAD1B6]/50 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#8E552D] transition-all duration-300 rounded-full"
-            style={{ width: `${((activeSlideIndex + 1) / TESTIMONIALS_DATA.length) * 100}%` }}
+            style={{ width: `${((activeSlideIndex + 1) / items.length) * 100}%` }}
           />
         </div>
 
