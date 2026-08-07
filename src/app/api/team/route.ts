@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { teamMembers } from '@/db/schema';
-import { asc, eq } from 'drizzle-orm';
+import { asc } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -58,8 +58,9 @@ export async function GET() {
     }
 
     return NextResponse.json({ members });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Fetch team error:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to fetch team members' }, { status: 500 });
   }
 }
 
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, occupation, and photo URL are required.' }, { status: 400 });
     }
 
-    const currentCount = db.select().from(teamMembers).all().length;
+    const currentMembers = db.select().from(teamMembers).all();
     const memberId = 'tm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString();
 
@@ -83,15 +84,15 @@ export async function POST(request: Request) {
       occupation: occupation.trim(),
       photoUrl: photoUrl.trim(),
       bio: bio ? bio.trim() : null,
-      sortOrder: currentCount + 1,
+      sortOrder: currentMembers.length + 1,
       createdAt: now,
     };
 
     db.insert(teamMembers).values(newMember).run();
 
     return NextResponse.json({ success: true, member: newMember });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create team member error:', error);
-    return NextResponse.json({ error: 'Failed to add team member' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to add team member' }, { status: 500 });
   }
 }

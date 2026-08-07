@@ -81,6 +81,16 @@ const initDb = () => {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS team_members (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      occupation TEXT NOT NULL,
+      photo_url TEXT NOT NULL,
+      bio TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS email_signups (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
