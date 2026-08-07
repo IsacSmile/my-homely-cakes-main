@@ -12,23 +12,15 @@ const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 let dbInstance: any;
 let sqliteInstance: any = null;
 
-if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
-  const client = createClient({
-    url: tursoUrl,
-    authToken: tursoAuthToken,
-  });
-  dbInstance = drizzleLibsql(client, { schema });
-} else {
-  const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
-  if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
-  sqliteInstance = new Database(sqlitePath);
-  sqliteInstance.pragma('journal_mode = WAL');
-  dbInstance = drizzleSqlite(sqliteInstance, { schema });
+const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
+if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
 }
+
+const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
+sqliteInstance = new Database(sqlitePath);
+sqliteInstance.pragma('journal_mode = WAL');
+dbInstance = drizzleSqlite(sqliteInstance, { schema });
 
 export const db = dbInstance;
 
