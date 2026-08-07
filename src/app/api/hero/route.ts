@@ -6,6 +6,42 @@ import { getAdminFromCookies } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+export interface HeroSlide {
+  id: string;
+  imageUrl: string;
+  cardTag: string;
+  cardTitle: string;
+  cardPrice: string;
+  linkUrl: string;
+}
+
+const DEFAULT_SLIDES: HeroSlide[] = [
+  {
+    id: 'hs_1',
+    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER',
+    cardTitle: 'Belgian Chocolate Truffle',
+    cardPrice: '₹750',
+    linkUrl: '/shop',
+  },
+  {
+    id: 'hs_2',
+    imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'TRIVANDRUM FAVORITE',
+    cardTitle: 'Tender Coconut Dream Cake',
+    cardPrice: '₹650',
+    linkUrl: '/shop',
+  },
+  {
+    id: 'hs_3',
+    imageUrl: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'SEASONAL SPECIAL',
+    cardTitle: 'Fresh Alphonso Mango Cake',
+    cardPrice: '₹700',
+    linkUrl: '/shop',
+  },
+];
+
 const DEFAULT_HERO = {
   badge: "Trivandrum's Most Loved Home Bakery",
   heading: "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
@@ -14,14 +50,7 @@ const DEFAULT_HERO = {
   ctaPrimaryLink: "/shop",
   ctaSecondaryText: "Call Baker Direct",
   ctaSecondaryPhone: "+91 98765 43210",
-  images: [
-    "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80",
-    "https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1000&q=80",
-    "https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80"
-  ],
-  cardTag: "TRIVANDRUM FAVORITE",
-  cardTitle: "Tender Coconut Dream Cake",
-  cardPrice: "₹650",
+  slides: DEFAULT_SLIDES,
 };
 
 export async function GET() {
@@ -32,11 +61,28 @@ export async function GET() {
       return acc;
     }, {} as Record<string, string>);
 
-    let parsedImages = DEFAULT_HERO.images;
-    if (map.hero_images) {
+    let slides: HeroSlide[] = DEFAULT_SLIDES;
+    if (map.hero_slides) {
       try {
-        const p = JSON.parse(map.hero_images);
-        if (Array.isArray(p) && p.length > 0) parsedImages = p;
+        const parsed = JSON.parse(map.hero_slides);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          slides = parsed;
+        }
+      } catch (e) {}
+    } else if (map.hero_images) {
+      // Backward compatibility fallback from old simple images array
+      try {
+        const oldImages = JSON.parse(map.hero_images);
+        if (Array.isArray(oldImages) && oldImages.length > 0) {
+          slides = oldImages.map((imgUrl: string, idx: number) => ({
+            id: 'hs_' + (idx + 1),
+            imageUrl: imgUrl,
+            cardTag: idx === 1 ? 'TRIVANDRUM FAVORITE' : idx === 0 ? 'BESTSELLER' : 'SEASONAL SPECIAL',
+            cardTitle: idx === 1 ? 'Tender Coconut Dream Cake' : idx === 0 ? 'Belgian Chocolate Truffle' : 'Fresh Alphonso Mango Cake',
+            cardPrice: idx === 1 ? '₹650' : idx === 0 ? '₹750' : '₹700',
+            linkUrl: '/shop',
+          }));
+        }
       } catch (e) {}
     }
 
@@ -48,10 +94,7 @@ export async function GET() {
       ctaPrimaryLink: map.hero_cta_primary_link || DEFAULT_HERO.ctaPrimaryLink,
       ctaSecondaryText: map.hero_cta_secondary_text || DEFAULT_HERO.ctaSecondaryText,
       ctaSecondaryPhone: map.hero_cta_secondary_phone || DEFAULT_HERO.ctaSecondaryPhone,
-      images: parsedImages,
-      cardTag: map.hero_card_tag || DEFAULT_HERO.cardTag,
-      cardTitle: map.hero_card_title || DEFAULT_HERO.cardTitle,
-      cardPrice: map.hero_card_price || DEFAULT_HERO.cardPrice,
+      slides,
     };
 
     return NextResponse.json(result);
@@ -74,10 +117,7 @@ export async function POST(request: Request) {
       ctaPrimaryLink,
       ctaSecondaryText,
       ctaSecondaryPhone,
-      images,
-      cardTag,
-      cardTitle,
-      cardPrice,
+      slides,
     } = body;
 
     const pairs: [string, string][] = [
@@ -88,10 +128,7 @@ export async function POST(request: Request) {
       ['hero_cta_primary_link', ctaPrimaryLink || ''],
       ['hero_cta_secondary_text', ctaSecondaryText || ''],
       ['hero_cta_secondary_phone', ctaSecondaryPhone || ''],
-      ['hero_images', JSON.stringify(Array.isArray(images) ? images : DEFAULT_HERO.images)],
-      ['hero_card_tag', cardTag || ''],
-      ['hero_card_title', cardTitle || ''],
-      ['hero_card_price', cardPrice || ''],
+      ['hero_slides', JSON.stringify(Array.isArray(slides) && slides.length > 0 ? slides : DEFAULT_SLIDES)],
     ];
 
     for (const [key, value] of pairs) {
