@@ -213,7 +213,21 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t border-amber-900/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-bakery-400">
-          <p>© {new Date().getFullYear()} MyHomelyCake Trivandrum. All rights reserved.</p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} MyHomelyCake Trivandrum. All rights reserved.</p>
+            <span className="hidden sm:inline text-amber-900/60">•</span>
+            <p className="text-bakery-300">
+              Engineered by{' '}
+              <a
+                href="https://instagram.com/faiz_imam__"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 font-semibold hover:text-amber-300 hover:underline transition-colors"
+              >
+                Faiz.I
+              </a>
+            </p>
+          </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1 text-bakery-300">
               Baked with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> in Trivandrum
