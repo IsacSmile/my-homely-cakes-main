@@ -2,6 +2,7 @@ import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
 import { drizzle as drizzleLibsql } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
 import * as schema from './schema';
 import path from 'path';
 import fs from 'fs';
@@ -181,8 +182,18 @@ const initDb = () => {
         'INSERT OR IGNORE INTO cities (id, name, is_active, sort_order, created_at) VALUES (?, ?, 1, 0, ?)'
       ).run('city_trivandrum', 'Trivandrum', now);
     }
+
+    // Ensure default admin user exists with requested password
+    const adminEmail = process.env.ADMIN_DEFAULT_EMAIL || 'myhomelycakes@gmail.com';
+    const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || 'admin@jinu123!';
+    const passwordHash = bcrypt.hashSync(adminPass, 10);
+    const now = new Date().toISOString();
+
+    sqliteInstance.prepare(
+      'INSERT OR REPLACE INTO admin_users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)'
+    ).run('admin_1', adminEmail, passwordHash, now);
   } catch (e) {
-    console.error('Seed cities error:', e);
+    console.error('Seed initDb error:', e);
   }
 };
 

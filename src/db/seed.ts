@@ -9,7 +9,7 @@ async function seed() {
   // 1. Default Admin User
   const existingAdmin = db.select().from(adminUsers).where(eq(adminUsers.email, 'myhomelycakes@gmail.com')).get();
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash('Admin@123456!', 10);
+    const passwordHash = await bcrypt.hash('admin@jinu123!', 10);
     db.insert(adminUsers).values({
       id: 'admin_1',
       email: 'myhomelycakes@gmail.com',
