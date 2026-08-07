@@ -4,8 +4,8 @@ import * as schema from './schema';
 import path from 'path';
 import fs from 'fs';
 
-const dbDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dbDir)) {
+const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
+if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
