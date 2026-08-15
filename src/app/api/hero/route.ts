@@ -55,7 +55,7 @@ const DEFAULT_HERO = {
 
 export async function GET() {
   try {
-    const allSettings = db.select().from(settings).all();
+    const allSettings = (await db.select().from(settings).all()) || [];
     const map = allSettings.reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;
       return acc;
@@ -132,12 +132,12 @@ export async function POST(request: Request) {
     ];
 
     for (const [key, value] of pairs) {
-      const existing = db.select().from(settings).where(eq(settings.key, key)).get();
+      const existing = await db.select().from(settings).where(eq(settings.key, key)).get();
       if (existing) {
-        db.update(settings).set({ value }).where(eq(settings.key, key)).run();
+        await db.update(settings).set({ value }).where(eq(settings.key, key)).run();
       } else {
         const id = 'set_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-        db.insert(settings).values({ id, key, value }).run();
+        await db.insert(settings).values({ id, key, value }).run();
       }
     }
 

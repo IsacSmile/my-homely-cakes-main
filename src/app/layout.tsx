@@ -36,6 +36,8 @@ export const metadata: Metadata = {
   },
 };
 
+import SessionProviderWrapper from '@/components/SessionProviderWrapper';
+
 export default function RootLayout({
   children,
 }: {
@@ -76,12 +78,14 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
         />
       </head>
-      <body className="min-h-screen flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
-        <CartProvider>
-          <MainLayoutClientWrapper>
-            {children}
-          </MainLayoutClientWrapper>
-        </CartProvider>
+      <body className="min-h-screen max-w-full w-full overflow-x-clip relative flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
+        <SessionProviderWrapper>
+          <CartProvider>
+            <MainLayoutClientWrapper>
+              {children}
+            </MainLayoutClientWrapper>
+          </CartProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );

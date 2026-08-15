@@ -1,20 +1,21 @@
-'use client';
-
 import React from 'react';
 import ProductCard from './ProductCard';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 
 interface FeaturedProductsSectionProps {
   products: any[];
   discountPercent?: number;
+  isLoading?: boolean;
 }
 
 export default function FeaturedProductsSection({
   products,
   discountPercent = 0,
+  isLoading = false,
 }: FeaturedProductsSectionProps) {
-  if (!products || products.length === 0) {
+  if (!isLoading && (!products || products.length === 0)) {
     return null; // Hide section entirely if admin hasn't marked any products as featured
   }
 
@@ -49,15 +50,19 @@ export default function FeaturedProductsSection({
         </div>
 
         {/* Featured Products Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              discountPercent={discountPercent}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <ProductGridSkeleton count={4} />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                discountPercent={discountPercent}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

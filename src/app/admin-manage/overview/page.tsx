@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Cake, Search, MousePointer, Mail, TrendingUp, Bell, Calendar, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { formatINR } from '@/lib/pricing';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { AdminStatCardSkeleton } from '@/components/ui/Skeletons';
 
 export default function AdminOverviewPage() {
   const [data, setData] = useState<any>(null);
@@ -11,21 +13,32 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     fetch('/api/admin/dashboard')
-      .then(res => res.json())
-      .then(json => setData(json))
+      .then(res => {
+        if (res.status === 401) {
+          window.location.href = '/admin-manage';
+          return null;
+        }
+        return res.json();
+      })
+      .then(json => {
+        if (json) setData(json);
+      })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse p-4">
-        <div className="h-8 bg-bakery-200/60 rounded-xl w-64"></div>
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64 rounded-xl" />
+          <Skeleton className="h-4 w-96 rounded" />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
-          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
-          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
-          <div className="h-24 bg-bakery-100 rounded-3xl"></div>
+          <AdminStatCardSkeleton />
+          <AdminStatCardSkeleton />
+          <AdminStatCardSkeleton />
+          <AdminStatCardSkeleton />
         </div>
       </div>
     );

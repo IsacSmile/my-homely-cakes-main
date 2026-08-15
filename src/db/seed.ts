@@ -7,10 +7,10 @@ async function seed() {
   console.log('🌱 Seeding MyHomelyCake database...');
 
   // 1. Default Admin User
-  const existingAdmin = db.select().from(adminUsers).where(eq(adminUsers.email, 'myhomelycakes@gmail.com')).get();
+  const existingAdmin = await db.select().from(adminUsers).where(eq(adminUsers.email, 'myhomelycakes@gmail.com')).get();
   if (!existingAdmin) {
     const passwordHash = await bcrypt.hash('admin@jinu123!', 10);
-    db.insert(adminUsers).values({
+    await db.insert(adminUsers).values({
       id: 'admin_1',
       email: 'myhomelycakes@gmail.com',
       passwordHash,
@@ -26,9 +26,9 @@ async function seed() {
   ];
 
   for (const s of defaultSettings) {
-    const exists = db.select().from(settings).where(eq(settings.key, s.key)).get();
+    const exists = await db.select().from(settings).where(eq(settings.key, s.key)).get();
     if (!exists) {
-      db.insert(settings).values(s).run();
+      await db.insert(settings).values(s).run();
     }
   }
 
@@ -42,9 +42,9 @@ async function seed() {
     { id: 'cat_6', name: 'Custom Occasion Cakes', slug: 'custom-occasion-cakes', displayOrder: 6, createdAt: new Date().toISOString() },
   ];
   for (const c of initialCategories) {
-    const exists = db.select().from(categories).where(eq(categories.id, c.id)).get();
+    const exists = await db.select().from(categories).where(eq(categories.id, c.id)).get();
     if (!exists) {
-      db.insert(categories).values(c).run();
+      await db.insert(categories).values(c).run();
     }
   }
   console.log('✅ Seeded default categories.');
@@ -382,18 +382,102 @@ async function seed() {
       orderCount: 39,
       createdAt: new Date().toISOString(),
     },
+    {
+      id: 'cake_19',
+      name: 'Pistachio Matcha Cream Cake',
+      slug: 'pistachio-matcha-cream-cake',
+      description: 'Japanese ceremonial grade matcha sponge infused with silky pistachio cream and topped with crushed roasted pistachios.',
+      imageUrl: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
+      images: JSON.stringify([
+        'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
+      ]),
+      category: 'Signature Cakes',
+      baseWeightG: 500,
+      basePrice: 820,
+      variants: makeVariants(820),
+      isAvailable: true,
+      orderCount: 58,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'cake_20',
+      name: 'Choco Vanilla Swirl Delight',
+      slug: 'choco-vanilla-swirl-delight',
+      description: 'Dual layered dark chocolate and Madagascar vanilla bean sponge frosted with marbled chocolate buttercream.',
+      imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
+      images: JSON.stringify([
+        'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
+      ]),
+      category: 'Chocolate & Truffle',
+      baseWeightG: 500,
+      basePrice: 680,
+      variants: makeVariants(680),
+      isAvailable: true,
+      orderCount: 92,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'cake_21',
+      name: 'Kottayam Passion Fruit Bliss',
+      slug: 'kottayam-passion-fruit-bliss',
+      description: 'Tangy fresh passion fruit glaze over moist vanilla bean cake, filled with passion fruit curd and white chocolate mousse.',
+      imageUrl: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=800&q=80',
+      images: JSON.stringify([
+        'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=800&q=80',
+      ]),
+      category: 'Fresh Fruit & Berry',
+      baseWeightG: 500,
+      basePrice: 740,
+      variants: makeVariants(740),
+      isAvailable: true,
+      orderCount: 63,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'cake_22',
+      name: 'Rich Dark Forest Cherry Fudge',
+      slug: 'rich-dark-forest-cherry-fudge',
+      description: 'Moist cocoa sponge steeped in black cherry syrup, filled with dark chocolate fudge and maraschino cherries.',
+      imageUrl: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&w=800&q=80',
+      images: JSON.stringify([
+        'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&w=800&q=80',
+      ]),
+      category: 'Chocolate & Truffle',
+      baseWeightG: 500,
+      basePrice: 760,
+      variants: makeVariants(760),
+      isAvailable: true,
+      orderCount: 104,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'cake_23',
+      name: 'Royal Honey Almond Crunch Cake',
+      slug: 'royal-honey-almond-crunch-cake',
+      description: 'Pure Wayanad wild honey soaked sponge topped with caramelized sliced almonds and diplomat vanilla cream.',
+      imageUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&w=800&q=80',
+      images: JSON.stringify([
+        'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&w=800&q=80',
+      ]),
+      category: 'Kerala Specialities',
+      baseWeightG: 500,
+      basePrice: 800,
+      variants: makeVariants(800),
+      isAvailable: true,
+      orderCount: 71,
+      createdAt: new Date().toISOString(),
+    },
   ];
 
   for (const p of initialProducts) {
-    const exists = db.select().from(products).where(eq(products.id, p.id)).get();
-    if (!exists) {
-      db.insert(products).values(p).run();
+    const existing = await db.select().from(products).where(eq(products.id, p.id));
+    if (existing.length === 0) {
+      await db.insert(products).values(p);
     } else {
-      // Update variants to new structured format
-      db.update(products).set({ variants: p.variants }).where(eq(products.id, p.id)).run();
+      await db.update(products).set(p).where(eq(products.id, p.id));
     }
   }
-  console.log('✅ Seeded products with structured weight-price variants.');
+  console.log(`✅ Seeded ${initialProducts.length} products with structured weight-price variants.`);
 
   // 4. Default Occasion Offers
   const initialOffers = [
@@ -418,9 +502,9 @@ async function seed() {
   ];
 
   for (const o of initialOffers) {
-    const exists = db.select().from(offers).where(eq(offers.id, o.id)).get();
+    const exists = await db.select().from(offers).where(eq(offers.id, o.id)).get();
     if (!exists) {
-      db.insert(offers).values(o).run();
+      await db.insert(offers).values(o).run();
     }
   }
   console.log('✅ Seeded occasion offers.');

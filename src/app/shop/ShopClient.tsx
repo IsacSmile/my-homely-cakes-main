@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import ProductCard from '@/components/ProductCard';
-import { Search, Cake, Loader2, Sparkles } from 'lucide-react';
+import { Search, Cake, Sparkles, Loader2 } from 'lucide-react';
+import { ProductGridSkeleton } from '@/components/ui/Skeletons';
 
 interface ShopClientProps {
   initialProducts: any[];
@@ -104,12 +105,12 @@ export default function ShopClient({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by flavor (e.g. Tender Coconut, Truffle, Mango)…"
-              className="w-full bg-white border border-bakery-300/80 rounded-full py-3.5 pl-12 pr-28 text-xs sm:text-sm text-bakery-chocolate placeholder-bakery-400 shadow-soft focus:outline-none focus:border-amber-600"
+              className="w-full bg-white border border-bakery-300/80 rounded-full py-3 sm:py-3.5 pl-10 sm:pl-12 pr-24 sm:pr-28 text-xs sm:text-sm text-bakery-chocolate placeholder-bakery-400 shadow-soft focus:outline-none focus:border-amber-600"
             />
-            <Search className="w-5 h-5 text-bakery-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-bakery-400 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2" />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-full shadow-sm transition-all active:scale-95"
+              className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 sm:px-6 py-2 sm:py-2.5 rounded-full shadow-sm transition-all active:scale-95 min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
             >
               Search
             </button>
@@ -118,11 +119,11 @@ export default function ShopClient({
       </div>
 
       {/* Horizontal Scroll Category Filter Pills */}
-      <div className="flex items-center justify-start md:justify-center gap-2.5 overflow-x-auto pb-2 scrollbar-none max-w-full">
+      <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none max-w-full">
         {/* Default 'All' pill */}
         <button
           onClick={() => handleCategoryClick('All')}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+          className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 min-h-[40px] sm:min-h-[44px] ${
             selectedCategory === 'All'
               ? 'bg-bakery-chocolate text-white shadow-soft scale-105'
               : 'bg-white text-bakery-chocolate hover:bg-bakery-100 border border-bakery-200/80'
@@ -138,7 +139,7 @@ export default function ShopClient({
             <button
               key={cat.id}
               onClick={() => handleCategoryClick(cat.name)}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 min-h-[40px] sm:min-h-[44px] ${
                 isSelected
                   ? 'bg-bakery-chocolate text-white shadow-soft scale-105'
                   : 'bg-white text-bakery-chocolate hover:bg-bakery-100 border border-bakery-200/80'
@@ -152,10 +153,7 @@ export default function ShopClient({
 
       {/* Instant First-Paint Products Grid (No initial full page spinner!) */}
       {isFilterLoading ? (
-        <div className="py-16 text-center space-y-3">
-          <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto" />
-          <p className="text-xs text-bakery-600 font-medium">Filtering cakes...</p>
-        </div>
+        <ProductGridSkeleton count={8} />
       ) : productsList.length === 0 ? (
         <div className="py-16 text-center bg-white rounded-3xl border border-bakery-200 p-8 space-y-4">
           <Cake className="w-12 h-12 text-bakery-300 mx-auto" />
@@ -175,7 +173,7 @@ export default function ShopClient({
       ) : (
         <div className="space-y-12">
           {/* Zomato / Swiggy style: 2 cols on mobile, 3 cols tablet, 4 cols desktop */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
             {productsList.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

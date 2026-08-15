@@ -50,7 +50,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
     <div className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-bakery-200/70 shadow-xs hover:shadow-soft-lg transition-all duration-300 flex flex-col justify-between transform hover:-translate-y-0.5">
       
       {/* Product Image Container */}
-      <div className="relative h-36 sm:h-48 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
+      <div className="relative aspect-[4/3] sm:aspect-auto sm:h-48 w-full bg-bakery-100 overflow-hidden cursor-pointer" onClick={handleCardClick}>
         <Image
           src={imgSrc}
           alt={product.name}
@@ -65,7 +65,7 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
 
         {/* Category Pill */}
-        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-md text-bakery-chocolate text-[9px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border border-bakery-200/50 shadow-xs max-w-[75%] truncate">
+        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-md text-bakery-chocolate text-[9px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border border-bakery-200/50 shadow-xs max-w-[70%] truncate">
           {product.category}
         </span>
 
@@ -83,14 +83,14 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
             e.stopPropagation();
             toggleWishlist(product.id);
           }}
-          className={`absolute bottom-2 right-2 sm:bottom-3 sm:right-3 p-1.5 sm:p-2 rounded-full transition-all duration-200 shadow-md ${
+          className={`absolute bottom-2 right-2 sm:bottom-3 sm:right-3 p-2 rounded-full transition-all duration-200 shadow-md min-w-[36px] min-h-[36px] flex items-center justify-center ${
             isWishlisted
               ? 'bg-rose-500 text-white scale-110'
               : 'bg-white/90 text-bakery-chocolate/70 hover:text-rose-500 hover:bg-white'
           }`}
           aria-label="Wishlist"
         >
-          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
         {/* Popular Badge */}
@@ -102,38 +102,38 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
       </div>
 
       {/* Product Content Details */}
-      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5">
+      <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
         <div>
           <h3
             onClick={handleCardClick}
-            className="font-serif text-sm sm:text-base font-bold text-bakery-chocolate line-clamp-1 cursor-pointer hover:text-amber-700 transition-colors leading-snug"
+            className="font-serif text-xs sm:text-base font-bold text-bakery-chocolate line-clamp-1 cursor-pointer hover:text-amber-700 transition-colors leading-snug"
           >
             {product.name}
           </h3>
-          <p className="text-[11px] sm:text-xs text-bakery-800/70 line-clamp-1 sm:line-clamp-2 mt-0.5 leading-tight">
+          <p className="text-[10px] sm:text-xs text-bakery-800/70 line-clamp-1 sm:line-clamp-2 mt-0.5 leading-tight">
             {product.description}
           </p>
         </div>
 
         {/* Price & Weight info — Montserrat Medium Weight */}
-        <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between">
-          <div>
-            <span className="text-[9px] sm:text-[10px] text-bakery-600 block font-medium">
+        <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between gap-1">
+          <div className="min-w-0">
+            <span className="text-[8px] sm:text-[10px] text-bakery-600 block font-medium truncate">
               Starts at ({lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`})
             </span>
             <div className="flex items-baseline gap-1">
-              <span className="font-price text-base sm:text-xl font-medium text-amber-800 tracking-tight">
+              <span className="font-price text-sm sm:text-xl font-medium text-amber-800 tracking-tight">
                 {formatINR(finalBasePrice)}
               </span>
               {discountPercent > 0 && (
-                <span className="font-price text-[10px] sm:text-xs text-bakery-400 font-medium line-through">
+                <span className="font-price text-[9px] sm:text-xs text-bakery-400 font-medium line-through">
                   {formatINR(lowestVariant.price)}
                 </span>
               )}
             </div>
           </div>
 
-          <span className="text-[9px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-price">
+          <span className="text-[8px] sm:text-[9px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-price shrink-0">
             {lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`}
           </span>
         </div>
@@ -143,20 +143,20 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
           <button
             type="button"
             onClick={() => addToCart(product, lowestVariant.weightG, 1)}
-            className="flex items-center justify-center gap-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate border border-bakery-200 font-semibold text-[11px] sm:text-xs py-2 px-1.5 rounded-xl transition-colors active:scale-95"
+            className="flex items-center justify-center gap-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate border border-bakery-200 font-semibold text-[11px] sm:text-xs py-2 px-1 rounded-xl transition-colors active:scale-95 min-h-[42px] sm:min-h-[44px]"
             title="Add to Cart"
           >
-            <ShoppingBag className="w-3 h-3 text-amber-700 shrink-0" />
+            <ShoppingBag className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             <span className="truncate">Cart</span>
           </button>
 
           <button
             type="button"
             onClick={handleCardClick}
-            className="flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] sm:text-xs py-2 px-1.5 rounded-xl transition-all shadow-xs hover:shadow-soft active:scale-95"
+            className="flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] sm:text-xs py-2 px-1 rounded-xl transition-all shadow-xs hover:shadow-soft active:scale-95 min-h-[42px] sm:min-h-[44px]"
             title="Order Cake"
           >
-            <Zap className="w-3 h-3 text-amber-200 shrink-0" />
+            <Zap className="w-3.5 h-3.5 text-amber-200 shrink-0" />
             <span className="truncate">Order</span>
           </button>
         </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles, ArrowRight, PhoneCall, Check } from 'lucide-react';
 import { HeroSlide } from '@/app/api/hero/route';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 const FALLBACK_SLIDES: HeroSlide[] = [
   {
@@ -37,7 +38,7 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
   const [heroData, setHeroData] = useState<any>(initialHeroData || {
     badge: "Trivandrum's Most Loved Home Bakery",
     heading: "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
-    subheading: "Handcrafted with 100% natural butter, organic cream, and zero preservatives. Browse our menu, pick your weight, and place your order in 1 tap — no login or payment gateway needed!",
+    subheading: "Handcrafted with 100% natural butter, organic cream, and zero preservatives. Browse our menu, pick your weight, and place your order easily with Google sign-in!",
     ctaPrimaryText: "Explore Cake Menu",
     ctaPrimaryLink: "/shop",
     ctaSecondaryText: "Call Baker Direct",
@@ -85,10 +86,10 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
   return (
     <section className="relative overflow-hidden pt-8 pb-14 md:pt-14 md:pb-20 bg-gradient-to-b from-bakery-softBg via-bakery-100/50 to-bakery-softBg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 lg:gap-12 items-center">
           
           {/* Left Content Column */}
-          <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
+          <div className="md:col-span-7 space-y-5 text-center md:text-left">
             {/* Badge */}
             {heroData.badge && (
               <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-900 text-xs font-bold px-4 py-2 rounded-full border border-amber-500/30">
@@ -98,17 +99,17 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
             )}
 
             {/* Heading */}
-            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-4xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
               {heroData.heading}
             </h1>
 
             {/* Subheading */}
-            <p className="text-xs sm:text-base text-bakery-800/80 max-w-xl mx-auto lg:mx-0 leading-relaxed font-sans">
+            <p className="text-xs sm:text-sm md:text-base text-bakery-800/80 max-w-xl mx-auto md:mx-0 leading-relaxed font-sans">
               {heroData.subheading}
             </p>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3.5">
               <Link
                 href={heroData.ctaPrimaryLink || '/shop'}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-3.5 sm:py-4 rounded-full text-sm shadow-soft-lg transition-all duration-200 hover:scale-105 active:scale-95"
@@ -127,25 +128,28 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
             </div>
 
             {/* Guarantees Badges */}
-            <div className="pt-5 grid grid-cols-3 gap-3 border-t border-bakery-200/60 max-w-lg mx-auto lg:mx-0">
-              <div className="flex items-center gap-2 text-xs font-semibold text-bakery-900">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>No Account Needed</span>
+            <div className="pt-4 sm:pt-5 grid grid-cols-3 gap-1.5 sm:gap-3 border-t border-bakery-200/60 max-w-lg mx-auto md:mx-0">
+              <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-bakery-900 leading-tight">
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                <span>Track Order Online</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-bakery-900">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-bakery-900 leading-tight">
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
                 <span>Pay on Delivery</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-bakery-900">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-bakery-900 leading-tight">
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
                 <span>100% Fresh Bake</span>
               </div>
             </div>
           </div>
 
           {/* Right Featured Hero Carousel Showcase Column */}
-          <div className="lg:col-span-5 relative group">
+          <div className="md:col-span-5 relative group max-w-md mx-auto md:max-w-none w-full">
             <div className="relative aspect-square w-full rounded-4xl overflow-hidden shadow-2xl border-4 border-white bg-bakery-200">
+              
+              {/* Skeleton background placeholder */}
+              <Skeleton className="absolute inset-0 z-0 w-full h-full rounded-none" />
               
               {/* Cross-Fading Images Array */}
               {slides.map((slide, idx) => {

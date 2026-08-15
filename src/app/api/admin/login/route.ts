@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const admin = db.select().from(adminUsers).where(eq(adminUsers.email, email.trim())).get();
+    const admin = await db.select().from(adminUsers).where(eq(adminUsers.email, email.trim())).get();
 
     if (!admin) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

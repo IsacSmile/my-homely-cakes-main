@@ -7,10 +7,7 @@ import * as schema from './schema';
 import path from 'path';
 import fs from 'fs';
 
-const isProductionVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || process.env.USE_TURSO_REMOTE === 'true';
-const tursoUrl = isProductionVercel
-  ? (process.env.TURSO_DATABASE_URL || (process.env.DATABASE_URL?.startsWith('libsql') || process.env.DATABASE_URL?.startsWith('https') ? process.env.DATABASE_URL : undefined))
-  : undefined;
+const tursoUrl = process.env.TURSO_DATABASE_URL || (process.env.DATABASE_URL?.startsWith('libsql') || process.env.DATABASE_URL?.startsWith('https') ? process.env.DATABASE_URL : undefined);
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 
 let dbInstance: any;
@@ -25,6 +22,15 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
 
   // Initialize Turso tables if missing
   client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT,
+      image TEXT,
+      google_id TEXT,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -61,6 +67,7 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
 
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       order_number TEXT NOT NULL UNIQUE,
       customer_name TEXT NOT NULL,
       mobile TEXT NOT NULL,
@@ -141,7 +148,69 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
       key TEXT NOT NULL UNIQUE,
       value TEXT NOT NULL
     );
-  `).catch(err => console.error('Turso table init error:', err));
+  `).then(async () => {
+    try {
+      await client.execute(`ALTER TABLE orders ADD COLUMN user_id TEXT;`).catch(() => {});
+      await client.execute(`ALTER TABLE orders ADD COLUMN consumer_status TEXT NOT NULL DEFAULT 'received';`).catch(() => {});
+      await client.execute(`ALTER TABLE users ADD COLUMN points_balance INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE orders ADD COLUMN points_redeemed INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE orders ADD COLUMN points_discount_amount INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE orders ADD COLUMN points_credited INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`
+        CREATE TABLE IF NOT EXISTS points_transactions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          order_id TEXT,
+          points_change INTEGER NOT NULL,
+          type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `).catch(() => {});
+      await client.execute(`
+        CREATE TABLE IF NOT EXISTS outlets (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          address TEXT NOT NULL,
+          image_url TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        );
+      `).catch(() => {});
+      const adminEmail = process.env.ADMIN_DEFAULT_EMAIL || 'myhomelycakes@gmail.com';
+      const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || 'admin@jinu123!';
+      const passwordHash = bcrypt.hashSync(adminPass, 10);
+      const now = new Date().toISOString();
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO admin_users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)',
+        args: ['admin_1', adminEmail, passwordHash, now]
+      });
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO cities (id, name, is_active, sort_order, created_at) VALUES (?, ?, 1, 0, ?)',
+        args: ['city_trivandrum', 'Trivandrum', now]
+      });
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 1, ?)',
+        args: ['out_kowdiar', 'MyHomelyCake — Kowdiar Flagship', 'Near Golf Club, Main Road, Kowdiar, Thiruvananthapuram, Kerala 695003', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80', now]
+      });
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 2, ?)',
+        args: ['out_pattom', 'MyHomelyCake — Pattom Store', 'Pattom Junction, Medical College Road, Pattom, Thiruvananthapuram, Kerala 695004', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80', now]
+      });
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 3, ?)',
+        args: ['out_kazhakkoottam', 'MyHomelyCake — Technopark Branch', 'Opp. Technopark Main Gate, Kazhakkoottam, Thiruvananthapuram, Kerala 695581', 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=800&q=80', now]
+      });
+      await client.execute({
+        sql: 'INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 4, ?)',
+        args: ['out_vellayambalam', 'MyHomelyCake — Vellayambalam Express', 'Althara Junction, Vellayambalam, Thiruvananthapuram, Kerala 695010', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80', now]
+      });
+    } catch (e) {
+      console.error('Turso seed init error:', e);
+    }
+  }).catch(err => console.error('Turso table init error:', err));
+
 } else {
   const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
   if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
@@ -160,6 +229,16 @@ export const db = dbInstance;
 const initDb = () => {
   if (!sqliteInstance) return;
   sqliteInstance.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT,
+      image TEXT,
+      google_id TEXT,
+      points_balance INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -191,7 +270,27 @@ const initDb = () => {
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS points_transactions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      order_id TEXT,
+      points_change INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
+
+  // Migrate: add 'points_balance' to users if missing
+  try {
+    const userCols = sqliteInstance.pragma('table_info(users)') as any[];
+    if (!userCols.some((col: any) => col.name === 'points_balance')) {
+      sqliteInstance.exec(`ALTER TABLE users ADD COLUMN points_balance INTEGER NOT NULL DEFAULT 0`);
+    }
+  } catch (e) {
+    console.error('Migration notice (users points_balance):', e);
+  }
 
   // Migrate: add 'images', 'is_featured', 'featured_order' columns to products if missing
   try {
@@ -212,6 +311,7 @@ const initDb = () => {
   sqliteInstance.exec(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       order_number TEXT NOT NULL UNIQUE,
       customer_name TEXT NOT NULL,
       mobile TEXT NOT NULL,
@@ -220,18 +320,29 @@ const initDb = () => {
       items TEXT NOT NULL,
       subtotal INTEGER NOT NULL,
       discount_amount INTEGER NOT NULL DEFAULT 0,
+      points_redeemed INTEGER NOT NULL DEFAULT 0,
+      points_discount_amount INTEGER NOT NULL DEFAULT 0,
+      points_earned INTEGER NOT NULL DEFAULT 0,
+      points_credited INTEGER NOT NULL DEFAULT 0,
       total_amount INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'new',
+      consumer_status TEXT NOT NULL DEFAULT 'received',
       created_at TEXT NOT NULL
     );
   `);
 
   // Migrate: add new order columns if missing
   const orderMigrations: [string, string][] = [
+    ['user_id', 'TEXT'],
     ['delivery_city', 'TEXT'],
     ['delivery_date', 'TEXT'],
     ['delivery_time', 'TEXT'],
     ['cake_message', 'TEXT'],
+    ['consumer_status', "TEXT NOT NULL DEFAULT 'received'"],
+    ['points_redeemed', 'INTEGER NOT NULL DEFAULT 0'],
+    ['points_discount_amount', 'INTEGER NOT NULL DEFAULT 0'],
+    ['points_earned', 'INTEGER NOT NULL DEFAULT 0'],
+    ['points_credited', 'INTEGER NOT NULL DEFAULT 0'],
   ];
   try {
     const orderCols = sqliteInstance.pragma('table_info(orders)') as any[];
@@ -308,6 +419,15 @@ const initDb = () => {
       key TEXT NOT NULL UNIQUE,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS outlets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      address TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Seed default city "Trivandrum" if cities table is empty
@@ -318,6 +438,15 @@ const initDb = () => {
       sqliteInstance.prepare(
         'INSERT OR IGNORE INTO cities (id, name, is_active, sort_order, created_at) VALUES (?, ?, 1, 0, ?)'
       ).run('city_trivandrum', 'Trivandrum', now);
+    }
+
+    const outletCount = sqliteInstance.prepare('SELECT COUNT(*) as cnt FROM outlets').get() as { cnt: number };
+    if (outletCount.cnt === 0) {
+      const now = new Date().toISOString();
+      sqliteInstance.prepare('INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 1, ?)').run('out_kowdiar', 'MyHomelyCake — Kowdiar Flagship', 'Near Golf Club, Main Road, Kowdiar, Thiruvananthapuram, Kerala 695003', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80', now);
+      sqliteInstance.prepare('INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 2, ?)').run('out_pattom', 'MyHomelyCake — Pattom Store', 'Pattom Junction, Medical College Road, Pattom, Thiruvananthapuram, Kerala 695004', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80', now);
+      sqliteInstance.prepare('INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 3, ?)').run('out_kazhakkoottam', 'MyHomelyCake — Technopark Branch', 'Opp. Technopark Main Gate, Kazhakkoottam, Thiruvananthapuram, Kerala 695581', 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=800&q=80', now);
+      sqliteInstance.prepare('INSERT OR IGNORE INTO outlets (id, name, address, image_url, sort_order, created_at) VALUES (?, ?, ?, ?, 4, ?)').run('out_vellayambalam', 'MyHomelyCake — Vellayambalam Express', 'Althara Junction, Vellayambalam, Thiruvananthapuram, Kerala 695010', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80', now);
     }
 
     // Ensure default admin user exists with requested password
@@ -333,5 +462,6 @@ const initDb = () => {
     console.error('Seed initDb error:', e);
   }
 };
+
 
 initDb();

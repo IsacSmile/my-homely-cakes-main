@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('mhc_admin_token')?.value;
+  const token = request.cookies.get('admin_token')?.value || request.cookies.get('mhc_admin_token')?.value;
   const path = request.nextUrl.pathname;
 
   // Protect admin routes except login page itself

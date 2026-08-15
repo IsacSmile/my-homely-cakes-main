@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Plus, Trash2, X, Upload, Link as LinkIcon, RefreshCw, Loader2, Scale } from 'lucide-react';
+import {
+  Plus, Trash2, X, Upload, Link as LinkIcon, RefreshCw, Loader2, Scale,
+  Star, ArrowLeft, ArrowRight, AlertTriangle, RotateCcw, GripVertical
+} from 'lucide-react';
 import { parseProductVariants, WeightVariant } from '@/lib/pricing';
 
 interface ProductModalLazyProps {
@@ -27,11 +30,14 @@ export default function ProductModalLazy({
   const [isFeatured, setIsFeatured] = useState(false);
   const [featuredOrder, setFeaturedOrder] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const [photos, setPhotos] = useState<string[]>(['', '', '', '']);
+  const [lastFiles, setLastFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [uploadingSlots, setUploadingSlots] = useState<boolean[]>([false, false, false, false]);
   const [uploadErrors, setUploadErrors] = useState<string[]>(['', '', '', '']);
   const [showUrlPaste, setShowUrlPaste] = useState<boolean[]>([false, false, false, false]);
+  const [draggedSlotIndex, setDraggedSlotIndex] = useState<number | null>(null);
 
   const [weightVariants, setWeightVariants] = useState<WeightVariant[]>([
     { weightG: 500, price: 650, isDefault: true },
@@ -40,8 +46,11 @@ export default function ProductModalLazy({
     { weightG: 2000, price: 2250, isDefault: false },
   ]);
 
+  const globalFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
+    setValidationError(null);
 
     if (editingProduct) {
       setName(editingProduct.name || '');
@@ -53,13 +62,16 @@ export default function ProductModalLazy({
       try {
         if (editingProduct.images) {
           const parsed = typeof editingProduct.images === 'string' ? JSON.parse(editingProduct.images) : editingProduct.images;
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const valid = parsed.filter((u: any) => typeof u === 'string' && u.trim().length > 0);
             loadedPhotos = [
-              parsed[0] || editingProduct.imageUrl || '',
-              parsed[1] || '',
-              parsed[2] || '',
-              parsed[3] || ''
+              valid[0] || editingProduct.imageUrl || '',
+              valid[1] || '',
+              valid[2] || '',
+              valid[3] || ''
             ];
+          } else if (editingProduct.imageUrl) {
+            loadedPhotos[0] = editingProduct.imageUrl;
           }
         } else if (editingProduct.imageUrl) {
           loadedPhotos[0] = editingProduct.imageUrl;
@@ -69,6 +81,7 @@ export default function ProductModalLazy({
       }
 
       setPhotos(loadedPhotos);
+      setLastFiles([null, null, null, null]);
       setUploadingSlots([false, false, false, false]);
       setUploadErrors(['', '', '', '']);
       setShowUrlPaste([false, false, false, false]);
@@ -84,6 +97,7 @@ export default function ProductModalLazy({
         '',
         ''
       ]);
+      setLastFiles([null, null, null, null]);
       setUploadingSlots([false, false, false, false]);
       setUploadErrors(['', '', '', '']);
       setShowUrlPaste([false, false, false, false]);
@@ -100,8 +114,16 @@ export default function ProductModalLazy({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = async (slotIndex: number, file: File) => {
-    // Clear previous error for this slot
+  // Single file upload worker
+  const uploadSingleFile = async (slotIndex: number, file: File) => {
+    // Store last file for retry
+    setLastFiles(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = file;
+      return copy;
+    });
+
+    // Reset error
     setUploadErrors(prev => {
       const copy = [...prev];
       copy[slotIndex] = '';
@@ -112,7 +134,7 @@ export default function ProductModalLazy({
     if (!allowedTypes.includes(file.type.toLowerCase())) {
       setUploadErrors(prev => {
         const copy = [...prev];
-        copy[slotIndex] = 'Invalid format (JPG, PNG, WebP only)';
+        copy[slotIndex] = 'Invalid format. JPG, PNG, WebP, or GIF only.';
         return copy;
       });
       return;
@@ -121,7 +143,7 @@ export default function ProductModalLazy({
     if (file.size > 5 * 1024 * 1024) {
       setUploadErrors(prev => {
         const copy = [...prev];
-        copy[slotIndex] = 'File exceeds 5MB limit';
+        copy[slotIndex] = 'File exceeds 5MB limit. Please choose a smaller image.';
         return copy;
       });
       return;
@@ -149,17 +171,18 @@ export default function ProductModalLazy({
           copy[slotIndex] = data.url;
           return copy;
         });
+        setValidationError(null);
       } else {
         setUploadErrors(prev => {
           const copy = [...prev];
-          copy[slotIndex] = data.error || 'Failed to upload image';
+          copy[slotIndex] = data.error || 'Failed to upload image.';
           return copy;
         });
       }
     } catch (e: any) {
       setUploadErrors(prev => {
         const copy = [...prev];
-        copy[slotIndex] = e?.message || 'Error uploading image file';
+        copy[slotIndex] = e?.message || 'Network error during file upload.';
         return copy;
       });
     } finally {
@@ -171,6 +194,117 @@ export default function ProductModalLazy({
     }
   };
 
+  // Batch Multi-File Upload
+  const handleBatchFilesUpload = async (files: FileList | File[], startSlotIdx = 0) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    let currentSlot = startSlotIdx;
+    for (let i = 0; i < fileArray.length; i++) {
+      // Find next available slot if current is out of range
+      while (currentSlot < 4 && (uploadingSlots[currentSlot])) {
+        currentSlot++;
+      }
+      if (currentSlot >= 4) break;
+
+      await uploadSingleFile(currentSlot, fileArray[i]);
+      currentSlot++;
+    }
+  };
+
+  // Delete Image from storage and reset state
+  const handleRemovePhoto = async (slotIndex: number) => {
+    const currentUrl = photos[slotIndex];
+
+    setPhotos(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = '';
+      return copy;
+    });
+    setUploadErrors(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = '';
+      return copy;
+    });
+    setLastFiles(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = null;
+      return copy;
+    });
+
+    if (currentUrl && (currentUrl.startsWith('/uploads/') || currentUrl.includes('public.blob.vercel-storage.com'))) {
+      try {
+        await fetch('/api/upload', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: currentUrl }),
+        });
+      } catch (e) {
+        console.error('Failed to remove image from server storage:', e);
+      }
+    }
+  };
+
+  // Reorder & Cover controls
+  const handleSwapSlots = (indexA: number, indexB: number) => {
+    if (indexA < 0 || indexA >= 4 || indexB < 0 || indexB >= 4 || indexA === indexB) return;
+
+    setPhotos(prev => {
+      const copy = [...prev];
+      const temp = copy[indexA];
+      copy[indexA] = copy[indexB];
+      copy[indexB] = temp;
+      return copy;
+    });
+
+    setUploadErrors(prev => {
+      const copy = [...prev];
+      const temp = copy[indexA];
+      copy[indexA] = copy[indexB];
+      copy[indexB] = temp;
+      return copy;
+    });
+
+    setShowUrlPaste(prev => {
+      const copy = [...prev];
+      const temp = copy[indexA];
+      copy[indexA] = copy[indexB];
+      copy[indexB] = temp;
+      return copy;
+    });
+
+    setLastFiles(prev => {
+      const copy = [...prev];
+      const temp = copy[indexA];
+      copy[indexA] = copy[indexB];
+      copy[indexB] = temp;
+      return copy;
+    });
+  };
+
+  const handleSetAsCover = (slotIndex: number) => {
+    if (slotIndex === 0 || !photos[slotIndex]) return;
+
+    setPhotos(prev => {
+      const selected = prev[slotIndex];
+      const rest = prev.filter((_, i) => i !== slotIndex);
+      return [selected, ...rest];
+    });
+
+    setUploadErrors(prev => {
+      const selected = prev[slotIndex];
+      const rest = prev.filter((_, i) => i !== slotIndex);
+      return [selected, ...rest];
+    });
+
+    setShowUrlPaste(prev => {
+      const selected = prev[slotIndex];
+      const rest = prev.filter((_, i) => i !== slotIndex);
+      return [selected, ...rest];
+    });
+  };
+
+  // Variant Rows
   const handleAddVariantRow = () => {
     const nextWeight = (weightVariants[weightVariants.length - 1]?.weightG || 500) + 500;
     const nextPrice = (weightVariants[weightVariants.length - 1]?.price || 500) + 500;
@@ -210,35 +344,40 @@ export default function ProductModalLazy({
 
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+
     if (isAnyUploading) {
-      alert('Please wait for all image uploads to finish.');
+      setValidationError('Please wait for image uploads to complete.');
       return;
     }
 
-    if (!name || !description) return;
+    if (!name.trim() || !description.trim()) {
+      setValidationError('Cake name and description are required.');
+      return;
+    }
 
     if (!photos[0] || !photos[0].trim()) {
-      alert('Main Photo (Slot 1) is mandatory. Please upload or provide a main image.');
+      setValidationError('Main Cover Photo (Slot 1) is mandatory. Please upload or paste a main image.');
       return;
     }
 
     if (weightVariants.length === 0) {
-      alert('At least one weight-price pair is required.');
+      setValidationError('At least one weight-price variant is required.');
       return;
     }
 
     const weightSet = new Set<number>();
     for (const v of weightVariants) {
       if (!v.weightG || v.weightG <= 0) {
-        alert('All weight values must be positive numbers (in grams).');
+        setValidationError('All weight values must be positive numbers in grams.');
         return;
       }
       if (!v.price || v.price <= 0) {
-        alert('All price values must be positive numbers (in ₹).');
+        setValidationError('All price values must be positive numbers in ₹.');
         return;
       }
       if (weightSet.has(v.weightG)) {
-        alert(`Duplicate weight option found (${v.weightG}g). Weights must be unique per product.`);
+        setValidationError(`Duplicate weight option found (${v.weightG}g). Weights must be unique.`);
         return;
       }
       weightSet.add(v.weightG);
@@ -286,10 +425,10 @@ export default function ProductModalLazy({
         onSaved(data.product || { ...payload, id: editingProduct?.id || ('prod_' + Date.now()) }, !!editingProduct);
         onClose();
       } else {
-        alert(data.error || 'Operation failed');
+        setValidationError(data.error || 'Failed to save product.');
       }
     } catch (e) {
-      alert('Failed to save product');
+      setValidationError('Network error while saving product.');
     } finally {
       setIsSaving(false);
     }
@@ -305,12 +444,22 @@ export default function ProductModalLazy({
             <h3 className="font-serif text-xl font-bold text-bakery-chocolate">
               {editingProduct ? 'Edit Cake Details & Photos' : 'Add New Cake to Store'}
             </h3>
-            <p className="text-[11px] text-bakery-600">Upload product photos, set weight prices, and toggle availability</p>
+            <p className="text-[11px] text-bakery-600">
+              Upload product photos, set weight prices, drag to reorder gallery, and toggle availability
+            </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-bakery-100 text-bakery-400 hover:text-bakery-900 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Global Validation Error Banner */}
+        {validationError && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-semibold text-rose-800 flex items-center gap-2 animate-fadeIn">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmitProduct} className="space-y-6">
           
@@ -322,7 +471,7 @@ export default function ProductModalLazy({
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setValidationError(null); }}
                 placeholder="e.g. Tender Coconut Dream Cake"
                 className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
               />
@@ -342,23 +491,47 @@ export default function ProductModalLazy({
             </div>
           </div>
 
-          {/* PRIMARY FILE UPLOAD PRODUCT GALLERY (4 Photo Slots) */}
+          {/* PRIMARY FILE UPLOAD PRODUCT GALLERY (4 Photo Slots with Reordering & Batch Upload) */}
           <div className="space-y-3 bg-amber-50/70 p-5 rounded-3xl border border-amber-200/80">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <label className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
                   <Upload className="w-4 h-4 text-amber-700" />
-                  Product Image Gallery (File Upload Primary) *
+                  Product Image Gallery (Batch Upload &amp; Reorder) *
                 </label>
                 <p className="text-[10px] text-amber-800">
-                  Upload image files directly (JPG, PNG, WebP up to 5MB). Slot 1 is mandatory for the main storefront card.
+                  Select or drag-and-drop single/multiple image files (JPG, PNG, WebP up to 5MB). Slot 1 is the primary storefront cover photo. Drag cards to reorder.
                 </p>
               </div>
-              {isAnyUploading && (
-                <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading image...
-                </span>
-              )}
+
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="file"
+                  ref={globalFileInputRef}
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleBatchFilesUpload(e.target.files, 0);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => globalFileInputRef.current?.click()}
+                  className="bg-amber-700 hover:bg-amber-600 text-white font-bold text-[11px] px-3.5 py-1.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Upload Multiple Files</span>
+                </button>
+
+                {isAnyUploading && (
+                  <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* 4 Image Upload Slots Grid */}
@@ -372,17 +545,30 @@ export default function ProductModalLazy({
                   uploadError={uploadErrors[slotIdx]}
                   showUrlOption={showUrlPaste[slotIdx]}
                   isMandatory={slotIdx === 0}
-                  onFileSelect={(file) => handleFileUpload(slotIdx, file)}
+                  lastFile={lastFiles[slotIdx]}
+                  isDragging={draggedSlotIndex === slotIdx}
+                  onDragStart={() => setDraggedSlotIndex(slotIdx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDropSlot={() => {
+                    if (draggedSlotIndex !== null && draggedSlotIndex !== slotIdx) {
+                      handleSwapSlots(draggedSlotIndex, slotIdx);
+                      setDraggedSlotIndex(null);
+                    }
+                  }}
+                  onBatchFilesSelect={(files) => handleBatchFilesUpload(files, slotIdx)}
+                  onFileSelect={(file) => uploadSingleFile(slotIdx, file)}
+                  onRetry={() => {
+                    if (lastFiles[slotIdx]) uploadSingleFile(slotIdx, lastFiles[slotIdx]!);
+                  }}
+                  onSetAsCover={() => handleSetAsCover(slotIdx)}
+                  onMoveLeft={() => handleSwapSlots(slotIdx, slotIdx - 1)}
+                  onMoveRight={() => handleSwapSlots(slotIdx, slotIdx + 1)}
                   onUrlChange={(url) => setPhotos(prev => {
                     const copy = [...prev];
                     copy[slotIdx] = url;
                     return copy;
                   })}
-                  onRemove={() => setPhotos(prev => {
-                    const copy = [...prev];
-                    copy[slotIdx] = '';
-                    return copy;
-                  })}
+                  onRemove={() => handleRemovePhoto(slotIdx)}
                   onToggleUrlOption={() => setShowUrlPaste(prev => {
                     const copy = [...prev];
                     copy[slotIdx] = !copy[slotIdx];
@@ -399,7 +585,7 @@ export default function ProductModalLazy({
               <div>
                 <label className="text-xs font-bold text-bakery-chocolate flex items-center gap-1.5">
                   <Scale className="w-4 h-4 text-amber-700" />
-                  Weight & Price Variants (Admin Custom Prices) *
+                  Weight &amp; Price Variants (Admin Custom Prices) *
                 </label>
                 <p className="text-[10px] text-bakery-600">
                   Specify weight (g) and price (₹) pairs. Radio button selects the default pre-selected option.
@@ -483,7 +669,7 @@ export default function ProductModalLazy({
               required
               rows={3}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => { setDescription(e.target.value); setValidationError(null); }}
               placeholder="Fresh layers of soft sponge infused with..."
               className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
             />
@@ -499,7 +685,7 @@ export default function ProductModalLazy({
                 className="rounded text-amber-600 h-4 w-4"
               />
               <label htmlFor="availCheck" className="text-xs font-semibold text-bakery-chocolate">
-                In Stock & Available for Direct Customer Orders
+                In Stock &amp; Available for Direct Customer Orders
               </label>
             </div>
 
@@ -558,7 +744,7 @@ export default function ProductModalLazy({
   );
 }
 
-// Single Image Upload Slot Component
+// Single Image Upload Slot Component with Drag-and-Drop & Action Controls
 function ImageUploadSlot({
   slotIndex,
   imageUrl,
@@ -566,7 +752,17 @@ function ImageUploadSlot({
   uploadError,
   showUrlOption,
   isMandatory,
+  lastFile,
+  isDragging,
+  onDragStart,
+  onDragOver,
+  onDropSlot,
+  onBatchFilesSelect,
   onFileSelect,
+  onRetry,
+  onSetAsCover,
+  onMoveLeft,
+  onMoveRight,
   onUrlChange,
   onRemove,
   onToggleUrlOption,
@@ -577,7 +773,17 @@ function ImageUploadSlot({
   uploadError?: string;
   showUrlOption: boolean;
   isMandatory: boolean;
+  lastFile: File | null;
+  isDragging: boolean;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDropSlot: () => void;
+  onBatchFilesSelect: (files: FileList) => void;
   onFileSelect: (file: File) => void;
+  onRetry: () => void;
+  onSetAsCover: () => void;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
   onUrlChange: (url: string) => void;
   onRemove: () => void;
   onToggleUrlOption: () => void;
@@ -585,31 +791,62 @@ function ImageUploadSlot({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imgErr, setImgErr] = useState(false);
 
-  const slotTitle = slotIndex === 0 ? 'Main Photo *' : `Photo ${slotIndex + 1}`;
+  const slotTitle = slotIndex === 0 ? 'Main Cover *' : `Photo ${slotIndex + 1}`;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileSelect(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      if (e.dataTransfer.files.length > 1) {
+        onBatchFilesSelect(e.dataTransfer.files);
+      } else {
+        onFileSelect(e.dataTransfer.files[0]);
+      }
+    } else {
+      onDropSlot();
     }
   };
 
   return (
-    <div className="bg-white p-3 rounded-2xl border border-amber-200/70 shadow-xs flex flex-col justify-between space-y-2">
+    <div
+      draggable={Boolean(imageUrl && !isUploading)}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={handleDrop}
+      className={`bg-white p-3 rounded-2xl border transition-all flex flex-col justify-between space-y-2 relative shadow-xs ${
+        isDragging ? 'opacity-40 border-dashed border-amber-500' : 'border-amber-200/70 hover:border-amber-400'
+      }`}
+    >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-bakery-chocolate">
+        <span className="text-[11px] font-bold text-bakery-chocolate flex items-center gap-1">
+          {imageUrl && <GripVertical className="w-3 h-3 text-bakery-400 cursor-grab shrink-0" />}
           {slotTitle}
         </span>
-        {isMandatory && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">Required</span>}
+        {isMandatory ? (
+          <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">Required</span>
+        ) : imageUrl ? (
+          <button
+            type="button"
+            onClick={onSetAsCover}
+            className="text-[9px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 flex items-center gap-0.5 transition-colors"
+            title="Make this photo the main cover photo"
+          >
+            <Star className="w-2.5 h-2.5 text-amber-600 fill-amber-600" /> Cover
+          </button>
+        ) : null}
       </div>
 
       <input
         type="file"
         ref={fileInputRef}
+        multiple
         accept="image/jpeg,image/png,image/webp,image/gif"
         onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            onFileSelect(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) {
+            if (e.target.files.length > 1) {
+              onBatchFilesSelect(e.target.files);
+            } else {
+              onFileSelect(e.target.files[0]);
+            }
           }
         }}
         className="hidden"
@@ -631,7 +868,30 @@ function ImageUploadSlot({
             onError={() => setImgErr(true)}
           />
           
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1">
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1">
+            <div className="flex items-center gap-1">
+              {slotIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={onMoveLeft}
+                  className="p-1 rounded bg-white/90 hover:bg-white text-bakery-chocolate text-[10px]"
+                  title="Move left"
+                >
+                  <ArrowLeft className="w-3 h-3 text-bakery-700" />
+                </button>
+              )}
+              {slotIndex < 3 && (
+                <button
+                  type="button"
+                  onClick={onMoveRight}
+                  className="p-1 rounded bg-white/90 hover:bg-white text-bakery-chocolate text-[10px]"
+                  title="Move right"
+                >
+                  <ArrowRight className="w-3 h-3 text-bakery-700" />
+                </button>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -667,15 +927,27 @@ function ImageUploadSlot({
             <span className="text-[11px] font-bold text-bakery-chocolate block group-hover:text-amber-800">
               Upload Image File
             </span>
-            <span className="text-[9px] text-bakery-500 block">Drag & drop or browse (max 5MB)</span>
+            <span className="text-[9px] text-bakery-500 block">Drag &amp; drop or browse (max 5MB)</span>
           </div>
         </div>
       )}
 
       {uploadError && (
-        <p className="text-[10px] font-semibold text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-200">
-          ⚠️ {uploadError}
-        </p>
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-200">
+            ⚠️ {uploadError}
+          </p>
+          {lastFile && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors w-full justify-center"
+            >
+              <RotateCcw className="w-3 h-3 text-amber-700" />
+              <span>Retry Upload</span>
+            </button>
+          )}
+        </div>
       )}
 
       <div className="pt-1">

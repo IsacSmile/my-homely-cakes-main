@@ -4,10 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Settings, Lock, Mail, CheckCircle2, ShieldAlert, Sparkles, Upload, Link as LinkIcon, RefreshCw, Loader2, Plus, Trash2, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { HeroSlide } from '@/app/api/hero/route';
+import { useCart } from '@/context/CartContext';
 
 export default function AdminSettingsPage() {
+  const { showToast } = useCart();
+
   const [email, setEmail] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
+  const [resendApiKey, setResendApiKey] = useState('');
+  const [resendFromEmail, setResendFromEmail] = useState('');
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -31,8 +36,12 @@ export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingHero, setIsSavingHero] = useState(false);
+  const [isSavingNotification, setIsSavingNotification] = useState(false);
+  
   const [message, setMessage] = useState('');
   const [heroMessage, setHeroMessage] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationError, setNotificationError] = useState('');
   const [error, setError] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +56,9 @@ export default function AdminSettingsPage() {
         if (settingsData) {
           setEmail(settingsData.email || '');
           setNewEmail(settingsData.email || '');
-          setNotificationEmail(settingsData.notificationEmail || 'myhomelycakes@gmail.com');
+          setNotificationEmail(settingsData.notificationEmail || 'faizdevandco@gmail.com');
+          setResendApiKey(settingsData.resendApiKey || '');
+          setResendFromEmail(settingsData.resendFromEmail || '');
         }
 
         if (heroData) {
@@ -161,7 +172,12 @@ export default function AdminSettingsPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setHeroMessage('Home page Hero banner updated successfully! 🚀');
+        setHeroMessage('Home page Hero banner updated successfully!');
+        showToast?.({
+          type: 'success',
+          title: 'Hero Banner Updated',
+          message: 'Home page Hero settings have been saved successfully.',
+        });
       } else {
         alert(data.error || 'Failed to update Hero settings');
       }
@@ -178,7 +194,7 @@ export default function AdminSettingsPage() {
     setError('');
 
     if (!currentPassword) {
-      setError('Current password is required to save account changes.');
+      setError('Current password is required to save account credential changes.');
       return;
     }
 
@@ -192,16 +208,20 @@ export default function AdminSettingsPage() {
           currentPassword,
           newEmail,
           newPassword,
-          notificationEmail,
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setMessage('Settings updated successfully!');
+        setMessage('Account credentials updated successfully!');
         setCurrentPassword('');
         setNewPassword('');
         setEmail(data.email);
+        showToast?.({
+          type: 'success',
+          title: 'Account Settings Saved',
+          message: 'Admin credentials updated successfully!',
+        });
       } else {
         setError(data.error || 'Failed to update settings.');
       }
@@ -532,9 +552,20 @@ export default function AdminSettingsPage() {
         </button>
       </form>
 
-      {/* ACCOUNT & NOTIFICATIONS SETTINGS */}
+
+
+      {/* ACCOUNT CREDENTIALS SETTINGS CARD */}
       <form onSubmit={handleSaveAccountSettings} className="bg-white rounded-3xl p-6 md:p-8 border border-bakery-200 shadow-soft space-y-6">
-        
+        <div className="border-b border-bakery-100 pb-4">
+          <h3 className="font-serif text-lg font-bold text-bakery-chocolate flex items-center gap-2">
+            <Lock className="w-5 h-5 text-amber-700" />
+            <span>Admin Login Credentials</span>
+          </h3>
+          <p className="text-[11px] text-bakery-600 mt-0.5">
+            Update your admin login username email or account password. Current password is required to change credentials.
+          </p>
+        </div>
+
         {message && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl text-xs font-semibold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -549,35 +580,7 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        {/* Section 1: Notifications Settings */}
         <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-bakery-chocolate flex items-center gap-2 border-b border-bakery-100 pb-2">
-            <Mail className="w-4 h-4 text-amber-700" />
-            <span>Store Email Alerts</span>
-          </h3>
-
-          <div>
-            <label className="text-xs font-bold text-bakery-800 block mb-1">
-              Admin Notification Email (for Resend order emails)
-            </label>
-            <input
-              type="email"
-              required
-              value={notificationEmail}
-              onChange={(e) => setNotificationEmail(e.target.value)}
-              placeholder="myhomelycakes@gmail.com"
-              className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
-            />
-          </div>
-        </div>
-
-        {/* Section 2: Account Security */}
-        <div className="space-y-4 pt-4 border-t border-bakery-200">
-          <h3 className="font-serif text-lg font-bold text-bakery-chocolate flex items-center gap-2 border-b border-bakery-100 pb-2">
-            <Lock className="w-4 h-4 text-amber-700" />
-            <span>Admin Credentials Update</span>
-          </h3>
-
           <div>
             <label className="text-xs font-bold text-bakery-800 block mb-1">
               Admin Login Email
@@ -606,7 +609,7 @@ export default function AdminSettingsPage() {
 
           <div className="pt-2 bg-amber-50 p-4 rounded-2xl border border-amber-200/60">
             <label className="text-xs font-bold text-amber-900 block mb-1">
-              Confirm Current Password * (Required to save account changes)
+              Confirm Current Password * (Required to save account credential changes)
             </label>
             <input
               type="password"
@@ -622,9 +625,9 @@ export default function AdminSettingsPage() {
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-2xl text-xs shadow-soft transition-all active:scale-95 disabled:opacity-50"
+          className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-2xl text-xs shadow-soft transition-all active:scale-95 disabled:opacity-50 min-h-[44px] cursor-pointer"
         >
-          {isSaving ? 'Updating Settings...' : 'Save Account Settings'}
+          {isSaving ? 'Updating Admin Credentials...' : 'Save Admin Login Credentials'}
         </button>
       </form>
     </div>

@@ -6,10 +6,13 @@ import {
   X, ShoppingBag, Zap, CheckCircle2, Scale, Sparkles,
   ChevronLeft, ChevronRight, Minus, Plus, MapPin,
   Calendar, Clock, MessageSquare, User, Phone, MapPinned,
-  ChevronDown, AlertCircle,
+  ChevronDown, AlertCircle, Lock, Package, CreditCard, PhoneCall, ArrowRight,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { parseProductVariants, getDefaultVariant, getVariantPrice, formatINR, WeightVariant } from '@/lib/pricing';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useSession } from 'next-auth/react';
+import { handleGoogleSignIn } from '@/lib/auth-toast';
 
 // ---------- IST Helpers ----------
 function getNowIST(): Date {
@@ -72,11 +75,40 @@ function SectionLabel({ icon, label }: { icon: React.ReactNode; label: string })
 
 export default function ProductDetailModal() {
   const { selectedModalProduct, closeProductModal, addToCart } = useCart();
+  const { data: session, status } = useSession();
 
   // Product state
   const [selectedWeight, setSelectedWeight] = useState<number>(500);
   const [qty, setQty] = useState<number>(1);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+
+  // Mobile swipe gesture state
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+
+  const minSwipeDistance = 35;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = (photosCount: number) => {
+    if (!touchStartX || !touchEndX || photosCount <= 1) return;
+    const distance = touchStartX - touchEndX;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      setActiveImageIndex((prev) => (prev === photosCount - 1 ? 0 : prev + 1));
+    } else if (isRightSwipe) {
+      setActiveImageIndex((prev) => (prev === 0 ? photosCount - 1 : prev - 1));
+    }
+  };
 
   // Delivery state
   const [cities, setCities] = useState<{ id: string; name: string }[]>([
@@ -93,13 +125,34 @@ export default function ProductDetailModal() {
   // Contact
   const [customerName, setCustomerName] = useState<string>('');
   const [mobile, setMobile] = useState<string>('');
-  const [address, setAddress] = useState<string>('');
 
   // UX State
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(true);
+
+  // Loyalty Points State
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [redeemPoints, setRedeemPoints] = useState<boolean>(false);
+
+  // Fetch user points when logged in
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/customer/points')
+        .then((res) => res.json())
+        .then((data) => {
+          if (typeof data.pointsBalance === 'number') {
+            setUserPoints(data.pointsBalance);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setUserPoints(0);
+      setRedeemPoints(false);
+    }
+  }, [session]);
 
   // Set defaults when modal opens
   useEffect(() => {
@@ -109,21 +162,27 @@ export default function ProductDetailModal() {
     setSelectedWeight(defVariant.weightG);
     setQty(1);
     setActiveImageIndex(0);
+    setIsImageLoading(true);
     setOrderSuccess(null);
     setErrors({});
     setShowSummary(false);
     setCakeMessage('');
     setSpecialNotes('');
-    setCustomerName('');
+    setCustomerName(session?.user?.name || '');
     setMobile('');
-    setAddress('');
+    setRedeemPoints(false);
 
     // Default delivery = now IST + 30 min
     const nowIST = getNowIST();
     const defaultDelivery = addMinutes(nowIST, 30);
     setDeliveryDate(formatDateISO(defaultDelivery));
     setDeliveryTime(formatTimeHHMM(defaultDelivery));
-  }, [selectedModalProduct]);
+  }, [selectedModalProduct, session?.user?.name]);
+
+  // Reset image loading spinner when active photo changes
+  useEffect(() => {
+    setIsImageLoading(true);
+  }, [activeImageIndex]);
 
   // Load additional cities in background without blocking mount
   useEffect(() => {
@@ -138,10 +197,34 @@ export default function ProductDetailModal() {
       .catch(() => {});
   }, [selectedModalProduct]);
 
-  // Close on Escape key
+  // Gallery photos list setup
+  let galleryPhotos: string[] = [selectedModalProduct?.imageUrl];
+  try {
+    if (selectedModalProduct?.images) {
+      const parsed = typeof selectedModalProduct.images === 'string'
+        ? JSON.parse(selectedModalProduct.images)
+        : selectedModalProduct.images;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        galleryPhotos = parsed.filter((url: string) => typeof url === 'string' && url.trim().length > 0);
+      }
+    }
+  } catch {
+    galleryPhotos = [selectedModalProduct?.imageUrl];
+  }
+  if (!galleryPhotos || galleryPhotos.length === 0) {
+    galleryPhotos = [selectedModalProduct?.imageUrl || '/cake-placeholder.svg'];
+  }
+
+  // Keyboard Navigation: Escape to close modal, Left/Right arrows to switch photos
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') closeProductModal();
-  }, [closeProductModal]);
+    if (e.key === 'Escape') {
+      closeProductModal();
+    } else if (e.key === 'ArrowLeft') {
+      setActiveImageIndex((prev) => (prev === 0 ? galleryPhotos.length - 1 : prev - 1));
+    } else if (e.key === 'ArrowRight') {
+      setActiveImageIndex((prev) => (prev === galleryPhotos.length - 1 ? 0 : prev + 1));
+    }
+  }, [closeProductModal, galleryPhotos.length]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -160,25 +243,18 @@ export default function ProductDetailModal() {
 
   if (!selectedModalProduct) return null;
 
-  // Gallery photos
-  let galleryPhotos: string[] = [selectedModalProduct.imageUrl];
-  try {
-    if (selectedModalProduct.images) {
-      const parsed = typeof selectedModalProduct.images === 'string'
-        ? JSON.parse(selectedModalProduct.images)
-        : selectedModalProduct.images;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        galleryPhotos = parsed.filter((url: string) => typeof url === 'string' && url.trim().length > 0);
-      }
-    }
-  } catch {
-    galleryPhotos = [selectedModalProduct.imageUrl];
-  }
-  if (galleryPhotos.length === 0) galleryPhotos = [selectedModalProduct.imageUrl || '/cake-placeholder.svg'];
-
   const variantsList: WeightVariant[] = parseProductVariants(selectedModalProduct);
   const unitPrice = getVariantPrice(selectedModalProduct, selectedWeight);
   const totalPrice = unitPrice * qty;
+  
+  // Points Redemption Calculation
+  const maxRedeemablePoints = Math.floor(userPoints / 100) * 100;
+  const potentialPointsDiscount = Math.floor(maxRedeemablePoints / 100) * 50;
+  const pointsDiscountAmount = (redeemPoints && maxRedeemablePoints >= 100)
+    ? Math.min(potentialPointsDiscount, Math.floor(totalPrice / 50) * 50)
+    : 0;
+  const finalPayablePrice = Math.max(0, totalPrice - pointsDiscountAmount);
+
   const activePhotoUrl = galleryPhotos[activeImageIndex] || galleryPhotos[0];
   const todayStr = formatDateISO(getNowIST());
 
@@ -200,7 +276,6 @@ export default function ProductDetailModal() {
     } else if (!validatePhone(mobile)) {
       newErrors.mobile = 'Please enter a valid 10-digit Indian mobile number.';
     }
-    if (!address.trim()) newErrors.address = 'Please enter your delivery address.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -217,12 +292,12 @@ export default function ProductDetailModal() {
         body: JSON.stringify({
           customerName: customerName.trim(),
           mobile: mobile.trim(),
-          address: address.trim(),
           deliveryCity: selectedCity,
           deliveryDate,
           deliveryTime,
           cakeMessage: cakeMessage.trim() || null,
           notes: specialNotes.trim() || null,
+          pointsToRedeem: redeemPoints ? maxRedeemablePoints : 0,
           items: [{
             productId: selectedModalProduct.id,
             name: selectedModalProduct.name,
@@ -248,7 +323,7 @@ export default function ProductDetailModal() {
   };
 
   const handleAddToCart = () => {
-    addToCart(selectedModalProduct, selectedWeight, qty);
+    addToCart(selectedModalProduct, selectedWeight, qty, cakeMessage, specialNotes);
     closeProductModal();
   };
 
@@ -265,129 +340,313 @@ export default function ProductDetailModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn max-w-full overflow-x-hidden p-0 sm:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) closeProductModal(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Order ${selectedModalProduct.name}`}
     >
-      <div className="bg-white w-full max-w-4xl sm:max-h-[92vh] max-h-[97vh] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative animate-scaleIn">
+      <div className={`bg-white w-full ${orderSuccess ? 'max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 rounded-3xl border border-bakery-200/60' : 'max-w-4xl sm:max-h-[90vh] max-h-[95vh] md:h-[640px] lg:h-[680px] rounded-t-3xl sm:rounded-3xl overflow-hidden'} shadow-2xl flex flex-col ${orderSuccess ? '' : 'md:flex-row'} relative animate-scaleIn`}>
 
         {/* Close Button */}
         <button
           onClick={closeProductModal}
-          className="absolute top-3 right-3 z-30 p-2 rounded-full bg-white/90 text-bakery-chocolate hover:bg-white shadow-md transition-colors"
+          className={`absolute top-4 right-4 z-40 p-2 rounded-full transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
+            orderSuccess 
+              ? 'bg-bakery-100/80 hover:bg-bakery-200 text-bakery-chocolate border border-bakery-200/60 shadow-2xs'
+              : 'bg-black/40 hover:bg-black/75 text-white backdrop-blur-md border border-white/20 shadow-md'
+          }`}
           aria-label="Close order modal"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {orderSuccess ? (
-          /* ─── SUCCESS SCREEN ─── */
-          <div className="p-8 w-full flex flex-col items-center justify-center text-center space-y-5 bg-gradient-to-b from-emerald-50 to-bakery-50 min-h-[400px]">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
-            </div>
-            <div>
-              <h2 className="font-serif text-2xl font-bold text-bakery-chocolate">Order Confirmed! 🎂</h2>
-              <p className="text-xs text-bakery-600 mt-1">Your homemade cake is being prepared with love.</p>
+          /* ─── ORDER CONFIRMED SUCCESS MODAL ─── */
+          <div className="w-full flex flex-col items-center text-center space-y-5 py-1">
+            {/* Refined Checkmark Badge */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100/70 text-amber-800 flex items-center justify-center border border-amber-300/60 shadow-2xs mx-auto shrink-0 mt-1">
+              <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-amber-700 stroke-[1.75]" />
             </div>
 
-            <div className="bg-white border border-bakery-200 rounded-2xl p-5 w-full max-w-sm space-y-3 text-left shadow-soft">
-              <div className="flex justify-between items-center border-b border-bakery-100 pb-2">
-                <span className="text-xs font-bold text-bakery-600">Order Reference</span>
-                <span className="font-mono font-extrabold text-amber-800 text-sm">{orderSuccess.orderNumber}</span>
+            {/* Typography */}
+            <div className="space-y-1">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-bakery-chocolate tracking-tight">Order Confirmed!</h2>
+              <p className="text-xs sm:text-sm text-bakery-600 font-medium max-w-xs sm:max-w-sm mx-auto leading-relaxed">
+                Your homemade cake is being prepared with care and love.
+              </p>
+            </div>
+
+            {/* Order Summary Card */}
+            <div className="bg-bakery-50/70 border border-bakery-200/80 rounded-2xl p-4 sm:p-5 w-full text-left space-y-3 shadow-2xs">
+              <div className="flex justify-between items-center border-b border-bakery-200/60 pb-2.5">
+                <span className="text-[11px] font-bold text-bakery-600 uppercase tracking-wider">Order Reference</span>
+                <span className="font-mono font-bold text-amber-900 text-xs sm:text-sm bg-amber-100/80 px-2.5 py-0.5 rounded-md border border-amber-200/90">
+                  #{orderSuccess.orderNumber}
+                </span>
               </div>
               <div className="text-xs space-y-2 text-bakery-800">
-                <div className="flex justify-between"><span className="text-bakery-500">Cake</span><span className="font-semibold">{selectedModalProduct.name}</span></div>
-                <div className="flex justify-between"><span className="text-bakery-500">Weight</span><span className="font-semibold">{selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}</span></div>
-                <div className="flex justify-between"><span className="text-bakery-500">Qty</span><span className="font-semibold">{qty}</span></div>
-                <div className="flex justify-between"><span className="text-bakery-500">City</span><span className="font-semibold">{orderSuccess.deliveryCity || selectedCity}</span></div>
+                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Cake</span><span className="font-semibold text-bakery-chocolate text-right truncate max-w-[60%]">{selectedModalProduct.name}</span></div>
+                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Weight</span><span className="font-semibold text-bakery-chocolate">{selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}</span></div>
+                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Quantity</span><span className="font-semibold text-bakery-chocolate">{qty}</span></div>
+                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">City</span><span className="font-semibold text-bakery-chocolate">{orderSuccess.deliveryCity || selectedCity}</span></div>
                 {orderSuccess.deliveryDate && (
-                  <div className="flex justify-between">
-                    <span className="text-bakery-500">Delivery</span>
-                    <span className="font-semibold">{formatDisplayDate(orderSuccess.deliveryDate)} • {formatDisplayTime(orderSuccess.deliveryTime)}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-bakery-500 font-medium">Delivery</span>
+                    <span className="font-semibold text-bakery-chocolate text-right">{formatDisplayDate(orderSuccess.deliveryDate)} • {formatDisplayTime(orderSuccess.deliveryTime)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-bakery-100 pt-2 mt-1">
-                  <span className="font-bold text-bakery-chocolate">Total</span>
-                  <span className="font-price font-medium text-amber-800 text-base">{formatINR(orderSuccess.totalAmount)}</span>
+                <div className="flex justify-between items-center border-t border-bakery-200/80 pt-2.5 mt-1">
+                  <span className="font-bold text-bakery-chocolate text-xs">Total Amount</span>
+                  <span className="font-price font-bold text-amber-800 text-base sm:text-lg">{formatINR(orderSuccess.totalAmount)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200/70 rounded-2xl p-4 text-xs text-amber-900 text-left w-full max-w-sm space-y-1.5">
-              <p className="font-bold mb-1">What happens next?</p>
-              <p>📞 Our baker will call <strong>{mobile}</strong> to confirm your order.</p>
-              <p>💳 Payment via UPI or Cash on Delivery.</p>
+            {/* Loyalty Points Earned Card */}
+            {typeof orderSuccess.estimatedPointsEarned === 'number' && orderSuccess.estimatedPointsEarned > 0 && (
+              <div className="bg-gradient-to-r from-amber-900 via-amber-900 to-amber-950 text-white p-3.5 sm:p-4 rounded-2xl border border-amber-700/60 text-left w-full space-y-1.5 shadow-soft">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>+{orderSuccess.estimatedPointsEarned} Points Pending Delivery</span>
+                </div>
+                <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  You will earn <strong>{orderSuccess.estimatedPointsEarned} points</strong> on this order. Points will be automatically credited to your balance when marked <strong>Delivered</strong>.
+                </p>
+              </div>
+            )}
+
+            {/* What Happens Next Box (Minimal Line Icons) */}
+            <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 text-xs text-amber-950 text-left w-full space-y-2.5">
+              <h4 className="font-bold text-bakery-chocolate text-xs uppercase tracking-wider">What happens next?</h4>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2.5 text-[11px] sm:text-xs text-bakery-800">
+                  <PhoneCall className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <span>Our Trivandrum baker will call <strong className="text-bakery-900">{mobile || 'you'}</strong> within 15–30 mins to confirm details.</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-[11px] sm:text-xs text-bakery-800">
+                  <CreditCard className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <span>No prepayment required. Pay via UPI (GPay/PhonePe) or Cash upon delivery.</span>
+                </div>
+              </div>
             </div>
 
-            <button
-              onClick={closeProductModal}
-              className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-8 py-3 rounded-full shadow-soft transition-all active:scale-95"
-            >
-              Continue Browsing
-            </button>
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-2.5 w-full pt-1">
+              <a
+                href="/orders"
+                onClick={closeProductModal}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-soft transition-all min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <Package className="w-4 h-4" />
+                <span>Track Order & Points</span>
+              </a>
+              <button
+                type="button"
+                onClick={closeProductModal}
+                className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold text-xs py-3 px-4 rounded-xl transition-all min-h-[44px] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Continue Browsing</span>
+                <ArrowRight className="w-4 h-4 opacity-70" />
+              </button>
+            </div>
           </div>
-
         ) : (
           <>
-            {/* ─── LEFT: IMAGE GALLERY ─── */}
-            <div className="hidden md:flex w-full md:w-5/12 flex-col bg-bakery-100 relative shrink-0">
-              <div className="relative flex-1 bg-bakery-200 overflow-hidden">
-                <Image
-                  src={activePhotoUrl}
-                  alt={selectedModalProduct.name}
-                  fill
-                  sizes="40vw"
-                  className="object-cover transition-all duration-300"
-                  priority
-                />
-                <div className="absolute top-3 left-3 bg-amber-500/90 text-white text-[11px] font-semibold px-3 py-1 rounded-full">
+            {/* ─── DESKTOP IMAGE GALLERY (Full-Bleed Edge-to-Edge) ─── */}
+            <div
+              className="hidden md:block w-full md:w-5/12 lg:w-1/2 relative shrink-0 bg-bakery-100 overflow-hidden self-stretch group"
+              role="region"
+              aria-roledescription="carousel"
+              aria-label={`${selectedModalProduct.name} image gallery`}
+            >
+              {/* Skeleton Loading Placeholder */}
+              {isImageLoading && (
+                <Skeleton className="absolute inset-0 z-10 w-full h-full rounded-none" />
+              )}
+
+              {/* Main Full-Bleed Desktop Image */}
+              <Image
+                key={activeImageIndex}
+                src={activePhotoUrl}
+                alt={`${selectedModalProduct.name} - View ${activeImageIndex + 1} of ${galleryPhotos.length}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className={`object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                onLoadingComplete={() => setIsImageLoading(false)}
+                priority
+              />
+
+              {/* Scrim Gradient Overlays for Contrast */}
+              <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none z-10" />
+              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none z-10" />
+
+              {/* Category Badge */}
+              <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                <span className="bg-black/50 text-amber-300 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20 shadow-md">
                   {selectedModalProduct.category}
-                </div>
-                {galleryPhotos.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setActiveImageIndex(p => p === 0 ? galleryPhotos.length - 1 : p - 1)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
-                      aria-label="Previous photo"
-                    ><ChevronLeft className="w-4 h-4" /></button>
-                    <button
-                      onClick={() => setActiveImageIndex(p => p === galleryPhotos.length - 1 ? 0 : p + 1)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
-                      aria-label="Next photo"
-                    ><ChevronRight className="w-4 h-4" /></button>
-                  </>
-                )}
+                </span>
               </div>
+
+              {/* Left/Right Glass Arrow Buttons */}
               {galleryPhotos.length > 1 && (
-                <div className="p-3 bg-white border-t border-bakery-200 flex items-center justify-center gap-2 overflow-x-auto">
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex(p => p === 0 ? galleryPhotos.length - 1 : p - 1)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/75 text-white backdrop-blur-md transition-all active:scale-95 opacity-80 group-hover:opacity-100 z-20 cursor-pointer shadow-md border border-white/20"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex(p => p === galleryPhotos.length - 1 ? 0 : p + 1)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/75 text-white backdrop-blur-md transition-all active:scale-95 opacity-80 group-hover:opacity-100 z-20 cursor-pointer shadow-md border border-white/20"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Floating Glassmorphism Thumbnail Strip & Dots (Overlayed over full-bleed image) */}
+              {galleryPhotos.length > 1 ? (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-2 p-1.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 shadow-lg max-w-[90%] overflow-x-auto">
                   {galleryPhotos.map((photo, idx) => (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${activeImageIndex === idx ? 'border-amber-600 scale-105' : 'border-bakery-200 opacity-60 hover:opacity-100'}`}
+                      className={`relative w-10 h-10 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        activeImageIndex === idx
+                          ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow-md opacity-100'
+                          : 'border-white/30 opacity-70 hover:opacity-100'
+                      }`}
+                      aria-label={`Thumbnail ${idx + 1}`}
                     >
-                      <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill sizes="48px" className="object-cover" loading="lazy" />
+                      <Image src={photo} alt={`${selectedModalProduct.name} thumbnail ${idx + 1}`} fill sizes="40px" className="object-cover" />
                     </button>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* ─── RIGHT: ORDER FORM ─── */}
             <div className="flex-1 flex flex-col overflow-hidden">
 
-              {/* Mobile: mini image strip at top */}
-              <div className="md:hidden relative h-44 bg-bakery-200 shrink-0">
-                <Image src={activePhotoUrl} alt={selectedModalProduct.name} fill sizes="100vw" className="object-cover" priority />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                <div className="absolute bottom-3 left-4 right-12">
-                  <span className="text-[10px] text-white/80 font-semibold uppercase tracking-widest">{selectedModalProduct.category}</span>
-                  <h2 className="font-serif text-lg font-bold text-white leading-tight">{selectedModalProduct.name}</h2>
+              {/* Mobile / Small device swipeable image slider banner */}
+              <div
+                className="md:hidden relative h-52 sm:h-60 bg-neutral-900 shrink-0 overflow-hidden select-none"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={() => onTouchEnd(galleryPhotos.length)}
+                role="region"
+                aria-roledescription="carousel"
+                aria-label={`${selectedModalProduct.name} mobile image slider`}
+              >
+                {/* Skeleton Loading Placeholder */}
+                {isImageLoading && (
+                  <Skeleton className="absolute inset-0 z-10 w-full h-full rounded-none" />
+                )}
+
+                {/* Mobile Slide Image */}
+                <Image
+                  key={activeImageIndex}
+                  src={activePhotoUrl}
+                  alt={`${selectedModalProduct.name} - View ${activeImageIndex + 1} of ${galleryPhotos.length}`}
+                  fill
+                  sizes="100vw"
+                  className={`object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                  onLoadingComplete={() => setIsImageLoading(false)}
+                  priority
+                />
+
+                {/* Top & Bottom Gradient Scrim Overlays for High Contrast */}
+                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/60 via-black/15 to-transparent pointer-events-none z-10" />
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none z-10" />
+
+                {/* Top Overlay: Category Badge */}
+                <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-black/60 backdrop-blur-md text-amber-300 px-3 py-1 rounded-full border border-white/20 shadow-xs">
+                    {selectedModalProduct.category}
+                  </span>
                 </div>
+
+                {/* Mobile Navigation Arrows (Subtle & Accessible) */}
+                {galleryPhotos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveImageIndex((prev) => (prev === 0 ? galleryPhotos.length - 1 : prev - 1));
+                      }}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs transition-all active:scale-90 cursor-pointer"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveImageIndex((prev) => (prev === galleryPhotos.length - 1 ? 0 : prev + 1));
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs transition-all active:scale-90 cursor-pointer"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* Product Title Banner at Bottom Left */}
+                <div className="absolute bottom-4 left-4 right-24 z-20 pointer-events-none">
+                  <h2 className="font-serif text-lg sm:text-xl font-bold text-white leading-tight drop-shadow-md truncate">
+                    {selectedModalProduct.name}
+                  </h2>
+                </div>
+
+                {/* Centered Pagination Dots at Bottom */}
+                {galleryPhotos.length > 1 && (
+                  <div className="absolute bottom-3.5 right-4 z-20 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 shadow-xs">
+                    {galleryPhotos.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                          activeImageIndex === idx ? 'w-5 bg-amber-400 shadow-xs' : 'w-2 bg-white/70 hover:bg-white'
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Mobile Tappable Thumbnail Carousel Strip */}
+              {galleryPhotos.length > 1 && (
+                <div className="md:hidden bg-amber-950 p-2.5 flex items-center justify-center gap-3 overflow-x-auto border-b border-amber-900/40 shrink-0">
+                  {galleryPhotos.map((photo, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        activeImageIndex === idx
+                          ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2 ring-offset-amber-950 scale-105 shadow-md opacity-100'
+                          : 'border-white/20 opacity-60 hover:opacity-100'
+                      }`}
+                      aria-label={`Thumbnail photo ${idx + 1}`}
+                    >
+                      <Image src={photo} alt={`${selectedModalProduct.name} mobile thumbnail ${idx + 1}`} fill sizes="48px" className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Scrollable form area */}
               <form
@@ -395,7 +654,7 @@ export default function ProductDetailModal() {
                 className="flex-1 overflow-y-auto overscroll-contain"
                 noValidate
               >
-                <div className="p-4 sm:p-5 space-y-5 pb-24 sm:pb-5">
+                <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 pb-24 sm:pb-5">
 
                   {/* Heading — desktop only */}
                   <div className="hidden md:block">
@@ -421,7 +680,7 @@ export default function ProductDetailModal() {
                               key={v.weightG}
                               type="button"
                               onClick={() => setSelectedWeight(v.weightG)}
-                              className={`py-2 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${isSelected
+                              className={`py-2 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 min-h-[44px] ${isSelected
                                 ? 'bg-amber-600 text-white border-amber-600 shadow-soft scale-[1.02]'
                                 : 'bg-bakery-50 text-bakery-chocolate border-bakery-200 hover:bg-bakery-100'
                               }`}
@@ -441,24 +700,24 @@ export default function ProductDetailModal() {
                       <label className="text-[11px] font-bold text-bakery-800 block mb-1.5">
                         Quantity <span className="text-rose-500">*</span>
                       </label>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <div className="flex items-center border border-bakery-200 rounded-xl overflow-hidden bg-bakery-50">
                           <button
                             type="button"
                             onClick={() => setQty(q => Math.max(1, q - 1))}
-                            className="px-4 py-2.5 text-bakery-chocolate hover:bg-bakery-100 active:bg-bakery-200 transition-colors disabled:opacity-30"
+                            className="px-3.5 py-2.5 text-bakery-chocolate hover:bg-bakery-100 active:bg-bakery-200 transition-colors disabled:opacity-30 min-w-[44px] min-h-[44px] flex items-center justify-center"
                             aria-label="Decrease quantity"
                             disabled={qty <= 1}
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="px-5 py-2.5 text-sm font-extrabold text-bakery-chocolate select-none min-w-[3rem] text-center">
+                          <span className="px-4 py-2.5 text-sm font-extrabold text-bakery-chocolate select-none min-w-[2.5rem] text-center">
                             {qty}
                           </span>
                           <button
                             type="button"
                             onClick={() => setQty(q => q + 1)}
-                            className="px-4 py-2.5 text-bakery-chocolate hover:bg-bakery-100 active:bg-bakery-200 transition-colors"
+                            className="px-3.5 py-2.5 text-bakery-chocolate hover:bg-bakery-100 active:bg-bakery-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                             aria-label="Increase quantity"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -466,11 +725,11 @@ export default function ProductDetailModal() {
                         </div>
 
                         {/* Live price */}
-                        <div className="flex-1 bg-amber-50 border border-amber-200/60 rounded-xl px-3.5 py-2 flex items-center justify-between">
+                        <div className="flex-1 bg-amber-50 border border-amber-200/60 rounded-xl px-3.5 py-2 flex items-center justify-between min-h-[44px]">
                           <span className="text-[10px] text-bakery-500 font-medium">
                             {qty > 1 ? `${qty} × ${formatINR(unitPrice)}` : `Price for ${selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}`}
                           </span>
-                          <span className="font-price text-lg font-medium text-amber-800">{formatINR(totalPrice)}</span>
+                          <span className="font-price text-base sm:text-lg font-medium text-amber-800">{formatINR(totalPrice)}</span>
                         </div>
                       </div>
                     </div>
@@ -490,7 +749,7 @@ export default function ProductDetailModal() {
                           id="order-city"
                           value={selectedCity}
                           onChange={e => { setSelectedCity(e.target.value); clearError('city'); }}
-                          className={`w-full appearance-none ${inputCls('city')} pr-8`}
+                          className={`w-full appearance-none ${inputCls('city')} pr-8 min-h-[44px]`}
                         >
                           {cities.length === 0 ? (
                             <option value="Trivandrum">Trivandrum</option>
@@ -520,10 +779,11 @@ export default function ProductDetailModal() {
                             value={deliveryDate}
                             min={todayStr}
                             onChange={e => { setDeliveryDate(e.target.value); clearError('deliveryDate'); }}
-                            className={`${inputCls('deliveryDate')} pl-8 cursor-pointer`}
+                            className={`${inputCls('deliveryDate')} pl-8 cursor-pointer min-h-[44px]`}
+                            suppressHydrationWarning
                           />
                         </div>
-                        {deliveryDate && <p className="text-[10px] text-amber-800 font-medium mt-0.5">{formatDisplayDate(deliveryDate)}</p>}
+                        {deliveryDate && <p className="text-[10px] text-amber-800 font-medium mt-0.5" suppressHydrationWarning>{formatDisplayDate(deliveryDate)}</p>}
                         {errors.deliveryDate && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.deliveryDate}</p>}
                       </div>
 
@@ -540,10 +800,11 @@ export default function ProductDetailModal() {
                             value={deliveryTime}
                             min={minTime}
                             onChange={e => { setDeliveryTime(e.target.value); clearError('deliveryTime'); }}
-                            className={`${inputCls('deliveryTime')} pl-8 cursor-pointer`}
+                            className={`${inputCls('deliveryTime')} pl-8 cursor-pointer min-h-[44px]`}
+                            suppressHydrationWarning
                           />
                         </div>
-                        {deliveryTime && <p className="text-[10px] text-amber-800 font-medium mt-0.5">{formatDisplayTime(deliveryTime)}</p>}
+                        {deliveryTime && <p className="text-[10px] text-amber-800 font-medium mt-0.5" suppressHydrationWarning>{formatDisplayTime(deliveryTime)}</p>}
                         {errors.deliveryTime && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.deliveryTime}</p>}
                       </div>
                     </div>
@@ -560,7 +821,7 @@ export default function ProductDetailModal() {
                       rows={2}
                       value={cakeMessage}
                       onChange={e => setCakeMessage(e.target.value)}
-                      placeholder='e.g. "Happy Birthday Sarah! 🎂"'
+                      placeholder='e.g. "Happy Birthday Sarah!"'
                       className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate placeholder-bakery-400 focus:outline-none focus:border-amber-600 resize-none"
                     />
                     <textarea
@@ -589,7 +850,7 @@ export default function ProductDetailModal() {
                           value={customerName}
                           onChange={e => { setCustomerName(e.target.value); clearError('customerName'); }}
                           placeholder="Your full name"
-                          className={`${inputCls('customerName')} pl-8`}
+                          className={`${inputCls('customerName')} pl-8 min-h-[44px]`}
                           autoComplete="name"
                         />
                       </div>
@@ -612,41 +873,63 @@ export default function ProductDetailModal() {
                           value={mobile}
                           onChange={e => { setMobile(e.target.value); clearError('mobile'); }}
                           placeholder="98765 43210"
-                          className={`${inputCls('mobile')} pl-14`}
+                          className={`${inputCls('mobile')} pl-14 min-h-[44px]`}
                           autoComplete="tel"
                           inputMode="numeric"
                         />
                       </div>
                       {errors.mobile && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.mobile}</p>}
                     </div>
-
-                    <div>
-                      <label htmlFor="order-address" className="text-[11px] font-bold text-bakery-800 block mb-1.5">
-                        Delivery Address <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <MapPinned className="w-3.5 h-3.5 text-bakery-400 absolute left-3 top-3 pointer-events-none" />
-                        <textarea
-                          id="order-address"
-                          required
-                          rows={3}
-                          value={address}
-                          onChange={e => { setAddress(e.target.value); clearError('address'); }}
-                          placeholder="House / Flat number, Street, Area, Landmark…"
-                          className={`${inputCls('address')} pl-8 resize-none`}
-                          autoComplete="street-address"
-                        />
-                      </div>
-                      {errors.address && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.address}</p>}
-                    </div>
                   </div>
+
+                  {/* ── LOYALTY POINTS REDEMPTION (Direct Order) ── */}
+                  {session?.user && (
+                    <div className="bg-gradient-to-r from-amber-50 via-amber-50 to-amber-100/70 border border-amber-200/90 p-3.5 rounded-2xl space-y-1.5 text-xs text-bakery-chocolate shadow-2xs">
+                      {userPoints >= 100 ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <label htmlFor="direct-redeem-points" className="font-bold flex items-center gap-2 cursor-pointer select-none">
+                              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>Redeem {maxRedeemablePoints} Points (₹{potentialPointsDiscount} Off)</span>
+                            </label>
+                            <input
+                              id="direct-redeem-points"
+                              type="checkbox"
+                              checked={redeemPoints}
+                              onChange={(e) => setRedeemPoints(e.target.checked)}
+                              className="w-4 h-4 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer accent-amber-600"
+                              aria-label={`Redeem ${maxRedeemablePoints} points for ₹${potentialPointsDiscount} discount`}
+                            />
+                          </div>
+                          <p className="text-[11px] text-bakery-600 leading-snug">
+                            You have <strong>{userPoints} points</strong> available. {redeemPoints ? `₹${pointsDiscountAmount} discount applied!` : 'Check the box to apply discount instantly.'}
+                          </p>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                            <div>
+                              <p className="font-bold text-xs text-bakery-chocolate">
+                                Rewards Points Balance: <span className="text-amber-700 font-extrabold">{userPoints} pts</span>
+                              </p>
+                              <p className="text-[10px] text-bakery-600 leading-snug">
+                                Earn 5 points for every ₹100 spent! Collect 100 points to unlock ₹50 off.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
 
                   {/* ── ORDER SUMMARY ── */}
                   <div className="bg-bakery-50 border border-bakery-200/70 rounded-2xl p-4 space-y-2.5">
                     <button
                       type="button"
                       onClick={() => setShowSummary(s => !s)}
-                      className="w-full flex items-center justify-between text-xs font-bold text-bakery-chocolate"
+                      className="w-full flex items-center justify-between text-xs font-bold text-bakery-chocolate min-h-[36px]"
                     >
                       <span className="flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-600" />
@@ -671,9 +954,15 @@ export default function ProductDetailModal() {
                         </div>
                         {cakeMessage && <div className="flex justify-between"><span className="text-bakery-500">Message</span><span className="font-semibold italic">&ldquo;{cakeMessage}&rdquo;</span></div>}
                         {customerName && <div className="flex justify-between"><span className="text-bakery-500">Contact</span><span className="font-semibold">{customerName}</span></div>}
+                        {redeemPoints && pointsDiscountAmount > 0 && (
+                          <div className="flex justify-between items-center text-emerald-700 font-semibold text-xs pt-1 border-t border-bakery-200/60">
+                            <span>Points Discount ({maxRedeemablePoints} pts)</span>
+                            <span className="font-price font-medium">-₹{pointsDiscountAmount}</span>
+                          </div>
+                        )}
                         <div className="border-t border-bakery-200 pt-2 flex justify-between items-center">
-                          <span className="font-bold text-bakery-chocolate">Total</span>
-                          <span className="font-price text-base font-medium text-amber-800">{formatINR(totalPrice)}</span>
+                          <span className="font-bold text-bakery-chocolate">Total Payable</span>
+                          <span className="font-price text-base font-bold text-amber-800">{formatINR(finalPayablePrice)}</span>
                         </div>
                       </div>
                     )}
@@ -682,31 +971,82 @@ export default function ProductDetailModal() {
                     {!showSummary && (
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-bakery-500">{qty} × {selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`} — {selectedCity || 'Trivandrum'}</span>
-                        <span className="font-price text-base font-medium text-amber-800">{formatINR(totalPrice)}</span>
+                        <div className="text-right">
+                          {redeemPoints && pointsDiscountAmount > 0 && (
+                            <span className="text-[10px] text-emerald-700 font-semibold block leading-none mb-0.5">(-₹{pointsDiscountAmount} pts off)</span>
+                          )}
+                          <span className="font-price text-base font-bold text-amber-800">{formatINR(finalPayablePrice)}</span>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Action Buttons — desktop */}
-                  <div className="hidden sm:flex items-center gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleAddToCart}
-                      className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 rounded-2xl text-xs transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <ShoppingBag className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>Add to Cart</span>
-                    </button>
+                  {/* Gated Order Submission / Action Buttons */}
+                  {!session?.user ? (
+                    <div className="space-y-3 pt-2">
+                      <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-2xl text-center space-y-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-bakery-chocolate uppercase tracking-wider">Sign In Required to Place Order</h4>
+                          <p className="text-xs text-bakery-800 leading-relaxed">
+                            Sign in with Google to place your order and track it anytime
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleAddToCart}
+                            className="w-full sm:w-auto flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 min-h-[44px]"
+                          >
+                            <ShoppingBag className="w-4 h-4 text-amber-700 shrink-0" />
+                            <span>Add to Cart</span>
+                          </button>
 
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-8 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
-                    >
-                      <Zap className="w-4 h-4 text-amber-200 shrink-0" />
-                      <span>{isSubmitting ? 'Placing Order...' : 'Place Order'}</span>
-                    </button>
-                  </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddToCart();
+                              handleGoogleSignIn(window.location.href);
+                            }}
+                            className="w-full sm:w-auto flex-2 inline-flex items-center justify-center gap-2 bg-white hover:bg-amber-100/60 text-bakery-chocolate font-bold py-3 px-4 rounded-xl border border-amber-300 shadow-xs transition-all text-xs min-h-[44px] cursor-pointer"
+                          >
+                            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                            </svg>
+                            <span>Sign in with Google to Place Order</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Action Buttons — desktop */}
+                      <div className="hidden sm:flex items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleAddToCart}
+                          className="flex-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 rounded-2xl text-xs transition-colors flex items-center justify-center gap-1.5 min-h-[44px]"
+                        >
+                          <ShoppingBag className="w-4 h-4 text-amber-700 shrink-0" />
+                          <span>Add to Cart</span>
+                        </button>
+
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="flex-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-8 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 min-h-[44px]"
+                        >
+                          <Zap className="w-4 h-4 text-amber-200 shrink-0" />
+                          <span>{isSubmitting ? 'Placing Order...' : `Place Order • ${formatINR(finalPayablePrice)}`}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                 </div>
               </form>
@@ -716,22 +1056,40 @@ export default function ProductDetailModal() {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="flex-none bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 px-4 rounded-2xl text-xs transition-colors flex items-center gap-1.5"
+                  className="flex-none bg-bakery-100 hover:bg-bakery-200 text-bakery-chocolate font-semibold py-3 px-4 rounded-2xl text-xs transition-colors flex items-center gap-1.5 min-h-[44px]"
                 >
                   <ShoppingBag className="w-4 h-4 text-amber-700" />
                   <span>Cart</span>
                 </button>
 
-                <button
-                  type="submit"
-                  form="order-form-mobile"
-                  disabled={isSubmitting}
-                  onClick={handleSubmit}
-                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
-                >
-                  <Zap className="w-4 h-4 text-amber-200 shrink-0" />
-                  <span>{isSubmitting ? 'Placing Order...' : `Place Order • ${formatINR(totalPrice)}`}</span>
-                </button>
+                {!session?.user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddToCart();
+                      handleGoogleSignIn(window.location.href);
+                    }}
+                    className="flex-1 bg-white hover:bg-amber-50 text-bakery-chocolate font-bold py-3 px-3 rounded-2xl text-xs border border-amber-300 shadow-soft transition-all flex items-center justify-center gap-2 active:scale-95 min-h-[44px]"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span className="truncate">Sign in to Order</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleSubmit}
+                    className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-2xl text-xs shadow-soft transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 min-h-[44px]"
+                  >
+                    <Zap className="w-4 h-4 text-amber-200 shrink-0" />
+                    <span>{isSubmitting ? 'Placing Order...' : `Place Order • ${formatINR(finalPayablePrice)}`}</span>
+                  </button>
+                )}
               </div>
 
             </div>

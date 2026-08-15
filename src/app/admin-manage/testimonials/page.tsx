@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquareQuote, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Star, CheckCircle2, X } from 'lucide-react';
+import { MessageSquareQuote, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Star, CheckCircle2, X, Cake } from 'lucide-react';
 import { Testimonial } from '@/components/TestimonialsSection';
 
 export default function AdminTestimonialsPage() {
@@ -315,8 +315,9 @@ export default function AdminTestimonialsPage() {
                   &quot;{item.quote}&quot;
                 </p>
 
-                <span className="inline-block bg-amber-50 text-amber-900 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-amber-200/70">
-                  🎂 {item.cakeName}
+                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-amber-200/70">
+                  <Cake className="w-3 h-3 text-amber-700 shrink-0" />
+                  <span>{item.cakeName}</span>
                 </span>
               </div>
 

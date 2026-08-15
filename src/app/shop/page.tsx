@@ -4,26 +4,25 @@ import { products, categories } from '@/db/schema';
 import { asc, desc } from 'drizzle-orm';
 import ShopClient from './ShopClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function ShopPage() {
-  // Pre-fetch initial products and admin categories on the server
-  const initialProducts = (await db
-    .select()
-    .from(products)
-    .orderBy(desc(products.createdAt))
-    .limit(20)
-    .all()) || [];
+  // Execute initial products and categories queries in parallel for fast loading
+  const [initialProducts, initialCategories] = await Promise.all([
+    db
+      .select()
+      .from(products)
+      .orderBy(desc(products.createdAt))
+      .limit(20)
+      .then((res: any[]) => res || []),
+    db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.displayOrder))
+      .then((res: any[]) => res || []),
+  ]);
 
-  const initialCategories = (await db
-    .select()
-    .from(categories)
-    .orderBy(asc(categories.displayOrder))
-    .all()) || [];
-
-  const allProds = (await db.select().from(products).all()) || [];
-  const totalProductsCount = allProds.length;
-  const initialHasMore = totalProductsCount > 20;
+  const initialHasMore = initialProducts.length >= 20;
 
   return (
     <ShopClient

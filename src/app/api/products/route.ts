@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const featured = searchParams.get('featured') === 'true';
 
-    let allProducts = (await db.select().from(products).all()) || [];
+    let allProducts = (await db.select().from(products)) || [];
 
     if (category && category !== 'All') {
       allProducts = allProducts.filter((p: any) => p.category.toLowerCase() === category.toLowerCase());

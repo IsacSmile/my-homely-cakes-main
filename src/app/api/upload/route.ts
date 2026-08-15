@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob';
 import fs from 'fs';
 import path from 'path';
 import { getAdminFromCookies } from '@/lib/auth';
@@ -66,3 +66,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to upload image' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const admin = await getAdminFromCookies();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { url } = await request.json();
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json({ error: 'Image URL is required' }, { status: 400 });
+    }
+
+    // 1. Local file deletion (/uploads/...)
+    if (url.startsWith('/uploads/')) {
+      const filename = path.basename(url);
+      const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // 2. Vercel Blob deletion
+    if (process.env.BLOB_READ_WRITE_TOKEN && url.includes('public.blob.vercel-storage.com')) {
+      await del(url);
+      return NextResponse.json({ success: true });
+    }
+
+    // External URL or base64 URL - nothing to clean up on disk
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('File deletion error:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to delete image file' }, { status: 500 });
+  }
+}
+

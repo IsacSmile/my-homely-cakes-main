@@ -34,8 +34,19 @@ export const cities = sqliteTable('cities', {
   createdAt: text('created_at').notNull(),
 });
 
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  name: text('name'),
+  image: text('image'),
+  googleId: text('google_id'),
+  pointsBalance: integer('points_balance').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export const orders = sqliteTable('orders', {
   id: text('id').primaryKey(),
+  userId: text('user_id'),
   orderNumber: text('order_number').notNull().unique(),
   customerName: text('customer_name').notNull(),
   mobile: text('mobile').notNull(),
@@ -48,8 +59,23 @@ export const orders = sqliteTable('orders', {
   items: text('items').notNull(),
   subtotal: integer('subtotal').notNull(),
   discountAmount: integer('discount_amount').notNull().default(0),
+  pointsRedeemed: integer('points_redeemed').notNull().default(0),
+  pointsDiscountAmount: integer('points_discount_amount').notNull().default(0),
+  pointsEarned: integer('points_earned').notNull().default(0),
+  pointsCredited: integer('points_credited', { mode: 'boolean' }).notNull().default(false),
   totalAmount: integer('total_amount').notNull(),
   status: text('status').notNull().default('new'),
+  consumerStatus: text('consumer_status').notNull().default('received'),
+  createdAt: text('created_at').notNull(),
+});
+
+export const pointsTransactions = sqliteTable('points_transactions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  orderId: text('order_id'),
+  pointsChange: integer('points_change').notNull(),
+  type: text('type').notNull(), // 'earned' | 'redeemed' | 'reversed'
+  description: text('description').notNull(),
   createdAt: text('created_at').notNull(),
 });
 
@@ -117,6 +143,15 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull(),
 });
 
+export const outlets = sqliteTable('outlets', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  address: text('address').notNull(),
+  imageUrl: text('image_url').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
@@ -132,3 +167,8 @@ export type Testimonial = typeof testimonials.$inferSelect;
 export type NewTestimonial = typeof testimonials.$inferInsert;
 export type EmailSignup = typeof emailSignups.$inferSelect;
 export type AdminUser = typeof adminUsers.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Outlet = typeof outlets.$inferSelect;
+export type NewOutlet = typeof outlets.$inferInsert;
+

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <div className="space-y-4 text-sm leading-relaxed text-bakery-800">
         <h3 className="font-bold text-base text-bakery-900">1. Information We Collect</h3>
         <p>
-          MyHomelyCake collects personal information solely for the purpose of order processing and local cake delivery within Trivandrum. When placing an order, we ask for your <strong>Name</strong>, <strong>Mobile Number</strong>, and optional <strong>Delivery Area Address</strong>.
+          MyHomelyCake collects personal information solely for the purpose of order processing and local cake delivery within Trivandrum. When placing an order, we ask for your <strong>Name</strong> and <strong>Mobile Number</strong>.
         </p>
 
         <h3 className="font-bold text-base text-bakery-900">2. No Customer Account Creation</h3>

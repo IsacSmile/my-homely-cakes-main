@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ArrowRight, MessageSquareQuote, Star, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MessageSquareQuote, Star, CheckCircle2, Cake } from 'lucide-react';
 
 export interface Testimonial {
   id: string;
@@ -298,8 +298,9 @@ export default function TestimonialsSection() {
 
               {/* Cake Ordered Tag */}
               <div className="pt-1">
-                <span className="inline-block bg-[#FAF4EB] text-[#8E552D] text-[10px] font-bold px-3 py-1 rounded-full border border-[#EAD1B6]/60">
-                  🎂 Ordered: {item.cakeName}
+                <span className="inline-flex items-center gap-1 bg-[#FAF4EB] text-[#8E552D] text-[10px] font-bold px-3 py-1 rounded-full border border-[#EAD1B6]/60">
+                  <Cake className="w-3 h-3 text-amber-700 shrink-0" />
+                  <span>Ordered: {item.cakeName}</span>
                 </span>
               </div>
 

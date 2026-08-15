@@ -44,7 +44,7 @@ export default function Footer() {
   return (
     <footer className="bg-bakery-chocolate text-bakery-100 pt-16 pb-8 border-t border-amber-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-10 mb-12">
           
           {/* Brand & Story */}
           <div className="space-y-4">
@@ -137,21 +137,12 @@ export default function Footer() {
             <h4 className="font-serif text-lg font-semibold text-white mb-4">Hours &amp; Delivery</h4>
             <div className="space-y-3 text-sm text-bakery-300">
 
-              {/* Weekdays */}
+              {/* 24/7 Working Hours */}
               <div className="flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-white font-semibold text-xs">Mon – Fri</p>
-                  <p className="text-bakery-300 text-xs">8:30 AM – 11:30 PM</p>
-                </div>
-              </div>
-
-              {/* Weekends */}
-              <div className="flex items-start gap-2.5">
-                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white font-semibold text-xs">Sat – Sun</p>
-                  <p className="text-bakery-300 text-xs">9:00 AM – 11:30 PM</p>
+                  <p className="text-amber-300 font-bold text-xs">24/7 Working Hours</p>
+                  <p className="text-white font-semibold text-xs">Open 24 Hours • 7 Days a Week</p>
                 </div>
               </div>
 
@@ -159,8 +150,8 @@ export default function Footer() {
               <div className="flex items-start gap-2.5">
                 <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-emerald-400 font-semibold text-xs">Delivery 24/7</p>
-                  <p className="text-bakery-300 text-xs">All days, any time</p>
+                  <p className="text-emerald-400 font-semibold text-xs">Express Delivery 24/7</p>
+                  <p className="text-bakery-300 text-xs">All days, any time across Trivandrum</p>
                 </div>
               </div>
 
@@ -177,7 +168,7 @@ export default function Footer() {
           </div>
 
           {/* Newsletter Signup Block */}
-          <div>
+          <div className="sm:col-span-2 md:col-span-2 lg:col-span-1 bg-amber-950/40 p-5 rounded-2xl border border-amber-900/40 lg:bg-transparent lg:p-0 lg:border-none lg:rounded-none">
             <h4 className="font-serif text-lg font-semibold text-white mb-4">Sweet Updates & Offers</h4>
             <p className="text-xs text-bakery-300 mb-3">
               Subscribe to receive Trivandrum festival discounts, weekend cake specials, and new flavor alerts!

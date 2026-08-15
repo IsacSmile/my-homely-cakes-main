@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw, Cake } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
+import { AdminOrderRowSkeleton } from '@/components/ui/Skeletons';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -14,9 +15,15 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = () => {
     fetch('/api/orders')
-      .then(res => res.json())
+      .then(res => {
+        if (res.status === 401) {
+          window.location.href = '/admin-manage';
+          return null;
+        }
+        return res.json();
+      })
       .then(data => {
-        if (Array.isArray(data?.orders)) {
+        if (data && Array.isArray(data?.orders)) {
           setOrders(data.orders);
         } else {
           setOrders([]);
@@ -26,11 +33,27 @@ export default function AdminOrdersPage() {
       .finally(() => setIsLoading(false));
   };
 
+  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 15000); // Auto-refresh orders every 15s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchOrders, 10000); // Auto-refresh orders every 10s
+
+    const handleNewOrder = (e: any) => {
+      fetchOrders();
+      if (e.detail?.id) {
+        setHighlightedOrderId(e.detail.id);
+        setTimeout(() => setHighlightedOrderId(null), 6000);
+      }
+    };
+
+    window.addEventListener('new-order-received', handleNewOrder);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('new-order-received', handleNewOrder);
+    };
   }, []);
+
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -45,6 +68,24 @@ export default function AdminOrdersPage() {
       }
     } catch (e) {
       alert('Failed to update status');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleConsumerStatusChange = async (orderId: string, newConsumerStatus: string) => {
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consumerStatus: newConsumerStatus }),
+      });
+      if (res.ok) {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, consumerStatus: newConsumerStatus } : o));
+      }
+    } catch (e) {
+      alert('Failed to update consumer status');
     } finally {
       setUpdatingId(null);
     }
@@ -183,7 +224,10 @@ export default function AdminOrdersPage() {
 
       {/* Orders List */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-bakery-600">Loading order log...</div>
+        <div className="space-y-4">
+          <AdminOrderRowSkeleton />
+          <AdminOrderRowSkeleton />
+        </div>
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-bakery-200 text-center space-y-3">
           <ShoppingCart className="w-10 h-10 text-bakery-300 mx-auto" />
@@ -206,8 +250,13 @@ export default function AdminOrdersPage() {
               <div
                 key={order.id}
                 className={`bg-white rounded-3xl p-5 md:p-6 border shadow-soft transition-all ${
-                  order.status === 'new' ? 'border-rose-300 ring-2 ring-rose-500/20' : 'border-bakery-200'
+                  highlightedOrderId === order.id
+                    ? 'border-amber-500 ring-4 ring-amber-400/80 bg-amber-100/60 animate-pulse'
+                    : order.status === 'new'
+                    ? 'border-rose-300 ring-2 ring-rose-500/20'
+                    : 'border-bakery-200'
                 } ${isChecked ? 'ring-2 ring-amber-500/40 bg-amber-50/20' : ''}`}
+
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bakery-100 pb-4">
                   <div className="flex items-center gap-3">
@@ -221,18 +270,32 @@ export default function AdminOrdersPage() {
                     </button>
 
                     <div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono font-extrabold text-amber-800 text-base">
                           {order.orderNumber}
                         </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                        {/* Internal Admin Status Badge */}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                           order.status === 'new' ? 'bg-rose-100 text-rose-800 animate-pulse' :
                           order.status === 'contacted' ? 'bg-amber-100 text-amber-900' :
                           order.status === 'confirmed' ? 'bg-emerald-100 text-emerald-900' :
                           order.status === 'completed' ? 'bg-blue-100 text-blue-900' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {order.status}
+                          Admin: {order.status}
+                        </span>
+
+                        {/* Consumer Facing Status Badge */}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase border ${
+                          (order.consumerStatus || 'received') === 'received' ? 'bg-amber-50 text-amber-900 border-amber-300' :
+                          order.consumerStatus === 'processing' ? 'bg-sky-50 text-sky-900 border-sky-300' :
+                          order.consumerStatus === 'baking' ? 'bg-orange-50 text-orange-900 border-orange-300' :
+                          order.consumerStatus === 'packed' ? 'bg-purple-50 text-purple-900 border-purple-300' :
+                          order.consumerStatus === 'dispatched' ? 'bg-indigo-50 text-indigo-900 border-indigo-300' :
+                          order.consumerStatus === 'delivered' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' :
+                          'bg-rose-50 text-rose-900 border-rose-300'
+                        }`}>
+                          Customer: {order.consumerStatus || 'received'}
                         </span>
                       </div>
                       <p className="text-xs text-bakery-400 mt-0.5">
@@ -241,29 +304,52 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions & Status Selector */}
-                  <div className="flex items-center gap-3">
+                  {/* Actions & Status Selectors */}
+                  <div className="flex flex-wrap items-center gap-3">
                     <a
                       href={`tel:${order.mobile}`}
-                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"
+                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-sm"
                     >
                       <Phone className="w-3.5 h-3.5" />
-                      <span>Call {order.mobile}</span>
+                      <span>Call</span>
                     </a>
 
-                    {/* Status Update Dropdown */}
+                    {/* Consumer Status Update Dropdown (Minimal & Prominent) */}
+                    <div className="flex items-center gap-1.5 bg-amber-50 p-1.5 rounded-2xl border border-amber-200 shadow-xs">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 px-1 hidden xl:inline">
+                        Customer Status:
+                      </span>
+                      <select
+                        value={order.consumerStatus || 'received'}
+                        onChange={(e) => handleConsumerStatusChange(order.id, e.target.value)}
+                        disabled={updatingId === order.id}
+                        className="bg-white border border-amber-300 text-amber-950 text-xs font-bold rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                        title="Update status visible to consumer on /orders"
+                      >
+                        <option value="received">Order Received</option>
+                        <option value="processing">Processing</option>
+                        <option value="baking">Baking Cake</option>
+                        <option value="packed">Packed & Ready</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    {/* Internal Status Update Dropdown */}
                     <div className="relative">
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusChange(order.id, e.target.value)}
                         disabled={updatingId === order.id}
-                        className="bg-bakery-50 border border-bakery-300 text-bakery-chocolate text-xs font-bold rounded-full px-3 py-2 focus:outline-none focus:border-amber-600"
+                        className="bg-bakery-50 border border-bakery-300 text-bakery-chocolate text-xs font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-600 cursor-pointer"
+                        title="Internal admin order status"
                       >
-                        <option value="new">Mark New</option>
-                        <option value="contacted">Mark Contacted</option>
-                        <option value="confirmed">Mark Confirmed</option>
-                        <option value="completed">Mark Completed</option>
-                        <option value="cancelled">Mark Cancelled</option>
+                        <option value="new">Internal: New</option>
+                        <option value="contacted">Internal: Contacted</option>
+                        <option value="confirmed">Internal: Confirmed</option>
+                        <option value="completed">Internal: Completed</option>
+                        <option value="cancelled">Internal: Cancelled</option>
                       </select>
                     </div>
 
@@ -294,10 +380,10 @@ export default function AdminOrdersPage() {
                         </span>
                       </p>
                     )}
-                    {order.address && <p><strong>Address:</strong> {order.address}</p>}
                     {order.cakeMessage && (
-                      <p className="text-amber-900 font-medium italic">
-                        <strong className="not-italic">🎂 Cake Message:</strong> &ldquo;{order.cakeMessage}&rdquo;
+                      <p className="text-amber-900 font-medium italic flex items-start gap-1">
+                        <Cake className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
+                        <span><strong className="not-italic">Cake Message:</strong> &ldquo;{order.cakeMessage}&rdquo;</span>
                       </p>
                     )}
                     {order.notes && <p className="text-amber-800 font-medium"><strong>Notes:</strong> {order.notes}</p>}
@@ -305,23 +391,65 @@ export default function AdminOrdersPage() {
 
                   {/* Items list */}
                   <div className="md:col-span-8 space-y-2">
-                    <span className="font-bold text-bakery-chocolate uppercase tracking-wider block">Ordered Cake Items:</span>
-                    <div className="space-y-1 bg-bakery-50 p-3 rounded-2xl border border-bakery-100">
+                    <span className="font-bold text-bakery-chocolate uppercase tracking-wider block">
+                      Ordered Cake Items ({itemsList.length}):
+                    </span>
+                    <div className="space-y-2 bg-bakery-50/80 p-3 rounded-2xl border border-bakery-200/80">
                       {itemsList.map((it: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-xs py-1">
-                          <span className="font-medium text-bakery-chocolate">
-                            • {it.name} ({it.weightG >= 1000 ? `${it.weightG / 1000}kg` : `${it.weightG}g`}) × {it.qty}
-                          </span>
-                          <span className="font-price font-medium text-amber-800">
-                            {formatINR(it.lineTotal || (it.calculatedPrice * it.qty))}
-                          </span>
+                        <div key={idx} className="bg-white p-3 rounded-xl border border-bakery-200/70 shadow-xs space-y-1.5">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-bakery-chocolate flex items-center gap-1.5">
+                              <Cake className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                              <span>{it.name} ({it.weightG >= 1000 ? `${it.weightG / 1000}kg` : `${it.weightG}g`}) × {it.qty}</span>
+                            </span>
+                            <span className="font-price font-bold text-amber-800">
+                              {formatINR(it.lineTotal || (it.calculatedPrice * it.qty))}
+                            </span>
+                          </div>
+
+                          {/* Per-Item Cake Message */}
+                          {it.cakeMessage ? (
+                            <div className="bg-amber-50/90 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/80 text-[11px] font-medium">
+                              <span className="font-extrabold text-amber-800">Cake Message:</span> &ldquo;{it.cakeMessage}&rdquo;
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-bakery-400 italic">No message requested for this cake</div>
+                          )}
+
+                          {/* Per-Item Special Notes / Instructions */}
+                          {it.specialNotes && (
+                            <div className="bg-blue-50/80 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-200/70 text-[11px] font-medium">
+                              <span className="font-extrabold text-blue-800">Item Notes / Instructions:</span> &ldquo;{it.specialNotes}&rdquo;
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                     
-                    <div className="flex justify-between items-center pt-2 font-bold text-sm text-bakery-chocolate">
-                      <span>Total Amount to Collect:</span>
-                      <span className="font-price text-lg font-medium text-amber-800 tracking-tight">{formatINR(order.totalAmount)}</span>
+                    <div className="pt-2 space-y-1 text-xs">
+                      {order.discountAmount > 0 && (
+                        <div className="flex justify-between text-emerald-700 font-semibold">
+                          <span>Offer Discount:</span>
+                          <span>-₹{order.discountAmount}</span>
+                        </div>
+                      )}
+                      {order.pointsDiscountAmount > 0 && (
+                        <div className="flex justify-between text-amber-800 font-semibold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                          <span>Points Redeemed ({order.pointsRedeemed} pts):</span>
+                          <span>-₹{order.pointsDiscountAmount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center font-bold text-sm text-bakery-chocolate pt-1 border-t border-bakery-200">
+                        <span>Total Amount to Collect:</span>
+                        <span className="font-price text-lg font-medium text-amber-800 tracking-tight">{formatINR(order.totalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-amber-700 font-medium pt-1">
+                        <span>Points Earned on Order:</span>
+                        <span className="font-bold">
+                          +{order.pointsCredited ? order.pointsEarned : Math.floor(order.totalAmount / 100) * 5} pts
+                          {order.pointsCredited ? ' (Credited)' : ' (Pending Delivery)'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

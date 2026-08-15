@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { orders, products, offers, settings } from '@/db/schema';
+import { orders, products, offers, settings, users, pointsTransactions } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,19 +25,41 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Please sign in with Google to place your order and track it anytime.' },
+        { status: 401 }
+      );
+    }
+
+    let userId: string | null = (session.user as any)?.id || null;
+    if (!userId && session.user.email) {
+      const userList = await db.select().from(users).where(eq(users.email, session.user.email));
+      if (userList.length > 0) {
+        userId = userList[0].id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Valid user session required. Please sign in with Google to continue.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       customerName,
       mobile,
-      address,
       notes,
       items,
-      // New fields
       deliveryCity,
       deliveryDate,
       deliveryTime,
       cakeMessage,
     } = body;
+    const rawPointsToRedeem = body.pointsToRedeem ?? body.pointsRedeemed ?? 0;
 
     // Validation
     if (!customerName || !mobile || !items || !Array.isArray(items) || items.length === 0) {
@@ -43,10 +67,6 @@ export async function POST(request: Request) {
         { error: 'Customer name, mobile number, and at least 1 item are required.' },
         { status: 400 }
       );
-    }
-
-    if (!address || !address.trim()) {
-      return NextResponse.json({ error: 'Delivery address is required.' }, { status: 400 });
     }
 
     // Validate phone number (Indian: 10 digits, optionally +91 prefix)
@@ -82,7 +102,8 @@ export async function POST(request: Request) {
     let itemsSummaryText = '';
 
     for (const item of items) {
-      const prod = await db.select().from(products).where(eq(products.id, item.productId)).get();
+      const prodList = await db.select().from(products).where(eq(products.id, item.productId));
+      const prod = prodList[0] || null;
       const name = prod ? prod.name : item.name || 'Delicious Cake';
       const qty = Math.max(1, item.qty || 1);
       const weightG = item.weightG || (prod ? prod.baseWeightG : 500);
@@ -100,28 +121,35 @@ export async function POST(request: Request) {
       const lineTotal = calculatedPrice * qty;
       subtotal += lineTotal;
 
+      const imageUrl = prod ? prod.imageUrl : (item.imageUrl || null);
+
       formattedItems.push({
         productId: item.productId,
         name,
+        imageUrl,
         weightG,
         qty,
         calculatedPrice,
         lineTotal,
+        cakeMessage: item.cakeMessage || null,
+        specialNotes: item.specialNotes || null,
       });
 
-      itemsSummaryText += `- ${name} (${weightG >= 1000 ? (weightG / 1000) + 'kg' : weightG + 'g'}) x ${qty} = ₹${lineTotal}\n`;
+      let itemLine = `- ${name} (${weightG >= 1000 ? (weightG / 1000) + 'kg' : weightG + 'g'}) x ${qty} = ₹${lineTotal}`;
+      if (item.cakeMessage) itemLine += ` [Cake Msg: "${item.cakeMessage}"]`;
+      if (item.specialNotes) itemLine += ` [Notes: "${item.specialNotes}"]`;
+      itemsSummaryText += itemLine + '\n';
 
       // Update product order count
       if (prod) {
         await db.update(products)
           .set({ orderCount: prod.orderCount + qty })
-          .where(eq(products.id, prod.id))
-          .run();
+          .where(eq(products.id, prod.id));
       }
     }
 
     // Check active offers for discount
-    const activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true)).all()) || [];
+    const activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true))) || [];
     let maxDiscountPercent = 0;
     for (const off of activeOffers) {
       if (off.discountPercent > maxDiscountPercent) {
@@ -130,16 +158,59 @@ export async function POST(request: Request) {
     }
 
     const discountAmount = Math.round((subtotal * maxDiscountPercent) / 100);
-    const totalAmount = Math.max(0, subtotal - discountAmount);
+
+    // Validate points redemption
+    const pointsToRedeem = Math.max(0, parseInt(rawPointsToRedeem, 10) || 0);
+    let pointsDiscountAmount = 0;
+    let validatedPointsRedeemed = 0;
+
+    if (pointsToRedeem >= 100 && userId) {
+      const userList = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (userList && userList.length > 0) {
+        const dbUser = userList[0];
+        const currentPoints = dbUser.pointsBalance || 0;
+
+        if (pointsToRedeem <= currentPoints && pointsToRedeem % 100 === 0) {
+          const calculatedPointsDiscount = Math.floor(pointsToRedeem / 100) * 50;
+          const subtotalAfterOffer = Math.max(0, subtotal - discountAmount);
+
+          if (calculatedPointsDiscount <= subtotalAfterOffer) {
+            validatedPointsRedeemed = pointsToRedeem;
+            pointsDiscountAmount = calculatedPointsDiscount;
+
+            // Deduct points from user's balance immediately
+            const newBalance = currentPoints - validatedPointsRedeemed;
+            await db.update(users)
+              .set({ pointsBalance: newBalance })
+              .where(eq(users.id, userId));
+
+            // Log points transaction
+            const txId = `pt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            await db.insert(pointsTransactions).values({
+              id: txId,
+              userId,
+              orderId,
+              pointsChange: -validatedPointsRedeemed,
+              type: 'redeemed',
+              description: `Redeemed ${validatedPointsRedeemed} points on Order ${orderNumber}`,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+    }
+
+    const totalAmount = Math.max(0, subtotal - discountAmount - pointsDiscountAmount);
 
     const now = new Date().toISOString();
 
     await db.insert(orders).values({
       id: orderId,
+      userId,
       orderNumber,
       customerName: customerName.trim(),
       mobile: mobile.trim(),
-      address: address ? address.trim() : null,
+      address: null,
       deliveryCity: deliveryCity ? deliveryCity.trim() : 'Trivandrum',
       deliveryDate: deliveryDate || null,
       deliveryTime: deliveryTime || null,
@@ -148,13 +219,19 @@ export async function POST(request: Request) {
       items: JSON.stringify(formattedItems),
       subtotal,
       discountAmount,
+      pointsRedeemed: validatedPointsRedeemed,
+      pointsDiscountAmount,
+      pointsEarned: 0,
+      pointsCredited: false,
       totalAmount,
       status: 'new',
+      consumerStatus: 'received',
       createdAt: now,
-    }).run();
+    });
 
     revalidatePath('/admin-manage/orders');
     revalidatePath('/admin-manage/overview');
+    revalidatePath('/orders');
 
     // Async Notification via Email & Admin Alerts (detached execution to prevent customer waiting)
     setTimeout(async () => {
@@ -170,7 +247,6 @@ export async function POST(request: Request) {
           orderNumber,
           customerName,
           mobile,
-          address,
           notes: [
             deliveryCity ? `City: ${deliveryCity}` : '',
             `Delivery: ${deliveryDisplay}`,
@@ -186,6 +262,8 @@ export async function POST(request: Request) {
       }
     }, 0);
 
+    const estimatedPointsEarned = Math.floor(totalAmount / 100) * 5;
+
     return NextResponse.json({
       success: true,
       orderId,
@@ -194,6 +272,9 @@ export async function POST(request: Request) {
       deliveryCity: deliveryCity || 'Trivandrum',
       deliveryDate,
       deliveryTime,
+      estimatedPointsEarned,
+      pointsRedeemed: validatedPointsRedeemed,
+      pointsDiscountAmount,
     });
   } catch (error) {
     console.error('Order creation error:', error);
@@ -212,7 +293,7 @@ export async function DELETE(request: Request) {
     }
 
     for (const id of orderIds) {
-      db.delete(orders).where(eq(orders.id, id)).run();
+      await db.delete(orders).where(eq(orders.id, id)).run();
     }
 
     return NextResponse.json({ success: true, count: orderIds.length });

@@ -10,6 +10,7 @@ import HeroSection from '@/components/HeroSection';
 import BelowTheFoldLazy from '@/components/BelowTheFoldLazy';
 
 import FeaturedProductsSection from '@/components/FeaturedProductsSection';
+import MoreProductsSection from '@/components/MoreProductsSection';
 
 // Dynamic below-the-fold components
 const OccasionOffersBanner = dynamic(() => import('@/components/OccasionOffersBanner'));
@@ -47,14 +48,23 @@ const DEFAULT_SLIDES = [
 
 export default async function HomePage() {
   // Fetch active products server-side
-  const allProducts = (await db.select().from(products).all()) || [];
+  const allProducts = (await db.select().from(products)) || [];
 
   // 1. Featured Products (Curated by admin, ordered by featuredOrder or recency)
   const featuredProducts = allProducts
     .filter((p: any) => Boolean(p.isFeatured) && Boolean(p.isAvailable))
     .sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // 2. Most Ordered This Week (ranked list of top products by orderCount)
+  // 2. Non-Featured Available Products (Fresh From The Oven / More From Our Bakery)
+  const nonFeaturedProducts = allProducts
+    .filter((p: any) => !p.isFeatured && Boolean(p.isAvailable))
+    .sort((a: any, b: any) => {
+      const numA = parseInt(a.id.replace(/\D/g, '') || '0', 10);
+      const numB = parseInt(b.id.replace(/\D/g, '') || '0', 10);
+      return numB - numA || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+  // 3. Most Ordered This Week (ranked list of top products by orderCount)
   const mostOrderedThisWeek = [...allProducts]
     .sort((a: any, b: any) => b.orderCount - a.orderCount)
     .slice(0, 6);
@@ -179,14 +189,17 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* MORE FROM OUR BAKERY (NON-FEATURED ACTIVE PRODUCTS) */}
+        <MoreProductsSection products={nonFeaturedProducts} discountPercent={topDiscount} />
+
         {/* WHY CHOOSE MYHOMELYCAKE */}
-        <section className="bg-bakery-chocolate text-white rounded-3xl p-8 sm:p-12 relative overflow-hidden">
-          <div className="max-w-3xl space-y-6">
-            <h2 className="font-serif text-3xl sm:text-4xl font-bold">
+        <section className="bg-bakery-chocolate text-white rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden">
+          <div className="max-w-full space-y-6">
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold">
               Why Trivandrum Loves Our Home Bakery
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 text-sm text-bakery-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2 text-sm text-bakery-200">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
                   <Cake className="w-5 h-5" />

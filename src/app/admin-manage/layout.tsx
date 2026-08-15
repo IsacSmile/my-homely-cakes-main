@@ -6,10 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Cake, Tag, Users, Mail,
   Settings, LogOut, Bell, ChevronRight, Menu, X,
-  MessageSquareQuote, MapPin,
+  MessageSquareQuote, MapPin, Store,
 } from 'lucide-react';
 
+
+import AdminSoundAlert from '@/components/AdminSoundAlert';
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+
   const pathname = usePathname();
   const router = useRouter();
   const [newOrdersCount, setNewOrdersCount] = useState(0);
@@ -51,6 +55,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Products Catalog', href: '/admin-manage/products', icon: Cake },
     { name: 'Occasion Offers', href: '/admin-manage/offers', icon: Tag },
     { name: 'Delivery Cities', href: '/admin-manage/cities', icon: MapPin },
+    { name: 'Our Outlets', href: '/admin-manage/outlets', icon: Store },
+
     { name: 'Customer Reviews', href: '/admin-manage/testimonials', icon: MessageSquareQuote },
     { name: 'Team & Bakers', href: '/admin-manage/team', icon: Users },
     { name: 'Subscribers', href: '/admin-manage/subscribers', icon: Mail },
@@ -64,18 +70,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ─── FIXED SIDEBAR (desktop) ─── */}
       <aside className="hidden md:flex fixed top-0 left-0 h-screen w-60 bg-[#0f0f0f] text-white flex-col z-30 border-r border-white/5">
 
-        {/* Logo / Brand */}
-        <div className="px-5 pt-7 pb-5 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-lg">
-              <Cake className="w-5 h-5 text-white" />
+        {/* Logo / Brand & Sound Alert Toggle */}
+        <div className="px-4 pt-6 pb-4 border-b border-white/10 flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-lg">
+              <Cake className="w-4 h-4 text-white" />
             </div>
-            <div className="leading-tight">
-              <p className="font-serif text-sm font-bold text-white tracking-tight">MyHomelyCake</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400">Admin Panel</p>
+            <div className="leading-tight min-w-0">
+              <p className="font-serif text-xs font-bold text-white tracking-tight truncate">MyHomelyCake</p>
+              <p className="text-[8.5px] font-bold uppercase tracking-wider text-amber-400 truncate">Admin Panel</p>
             </div>
           </div>
+
+          <AdminSoundAlert />
         </div>
+
+
 
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -130,13 +140,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ─── MOBILE: STICKY TOP BAR ─── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0f0f0f] text-white px-4 py-3.5 flex items-center justify-between border-b border-white/10 shadow-md">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
             <Cake className="w-4 h-4 text-white" />
           </div>
-          <span className="font-serif font-bold text-sm">MyHomelyCake Admin</span>
+          <span className="font-serif font-bold text-xs">MyHomelyCake</span>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <AdminSoundAlert />
           {newOrdersCount > 0 && (
             <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
               <Bell className="w-2.5 h-2.5" /> {newOrdersCount}
@@ -151,6 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </div>
+
 
       {/* ─── MOBILE: SLIDE-DOWN DRAWER ─── */}
       {sidebarOpen && (

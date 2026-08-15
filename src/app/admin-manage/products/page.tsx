@@ -6,8 +6,8 @@ import AdminProductsClient from './AdminProductsClient';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminProductsPage() {
-  const initialProducts = (await db.select().from(products).all()) || [];
-  const rawCategories = (await db.select().from(categories).all()) || [];
+  const initialProducts = (await db.select().from(products)) || [];
+  const rawCategories = (await db.select().from(categories)) || [];
 
   // Attach live product count to categories
   const initialCategories = rawCategories.map((cat: any) => {
