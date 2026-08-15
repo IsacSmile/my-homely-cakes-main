@@ -22,13 +22,23 @@ export interface ProductCardProps {
     orderCount: number;
   };
   discountPercent?: number;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product, discountPercent = 0 }: ProductCardProps) {
+function getOptimizedImageUrl(url?: string): string {
+  if (!url) return '/cake-placeholder.svg';
+  if (url.includes('images.unsplash.com')) {
+    const baseUrl = url.split('?')[0];
+    return `${baseUrl}?auto=format&fit=crop&w=600&q=75`;
+  }
+  return url;
+}
+
+export default function ProductCard({ product, discountPercent = 0, priority = false }: ProductCardProps) {
   const { addToCart, toggleWishlist, isInWishlist, openProductModal } = useCart();
   const isWishlisted = isInWishlist(product.id);
   const [imgSrc, setImgSrc] = useState<string>(
-    product.imageUrl || '/cake-placeholder.svg'
+    getOptimizedImageUrl(product.imageUrl)
   );
 
   const lowestVariant = getLowestVariant(product);
@@ -58,8 +68,10 @@ export default function ProductCard({ product, discountPercent = 0 }: ProductCar
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           onError={() => setImgSrc('/cake-placeholder.svg')}
-          loading="lazy"
+          priority={priority}
+          loading={priority ? undefined : 'lazy'}
         />
+
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />

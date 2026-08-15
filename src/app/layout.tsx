@@ -20,10 +20,11 @@ const priceFont = Montserrat({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-price',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {
+
   title: 'MyHomelyCake Trivandrum | Fresh Home Bakery Cakes Order Online',
   description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes. Direct phone call confirmation.',
   keywords: ['Cakes Trivandrum', 'Home Bakery Trivandrum', 'Cake Delivery Trivandrum', 'Tender Coconut Cake', 'Birthday Cake Trivandrum', 'MyHomelyCake'],
@@ -73,11 +74,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${headingFont.variable} ${bodyFont.variable} ${priceFont.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
         />
       </head>
+
       <body className="min-h-screen max-w-full w-full overflow-x-clip relative flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
         <SessionProviderWrapper>
           <CartProvider>
