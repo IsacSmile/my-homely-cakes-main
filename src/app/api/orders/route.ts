@@ -233,34 +233,33 @@ export async function POST(request: Request) {
     revalidatePath('/admin-manage/overview');
     revalidatePath('/orders');
 
-    // Async Notification via Email & Admin Alerts (detached execution to prevent customer waiting)
-    setTimeout(async () => {
-      try {
-        const adminEmailSetting = await db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
-        const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'myhomelycakes@gmail.com';
+    // Dispatch Email Notification to Admin (Awaited to ensure completion on Vercel Serverless)
+    try {
+      const adminEmailSetting = await db.select().from(settings).where(eq(settings.key, 'admin_email')).get();
+      const adminEmail = adminEmailSetting?.value || process.env.ADMIN_NOTIFICATION_EMAIL || 'myhomelycakes@gmail.com';
 
-        const deliveryDisplay = deliveryDate && deliveryTime
-          ? `${deliveryDate} at ${deliveryTime}`
-          : 'ASAP (30 mins)';
+      const deliveryDisplay = deliveryDate && deliveryTime
+        ? `${deliveryDate} at ${deliveryTime}`
+        : 'ASAP (30 mins)';
 
-        await sendAdminOrderEmail({
-          orderNumber,
-          customerName,
-          mobile,
-          notes: [
-            deliveryCity ? `City: ${deliveryCity}` : '',
-            `Delivery: ${deliveryDisplay}`,
-            cakeMessage ? `Cake Message: "${cakeMessage}"` : '',
-            notes ? `Notes: ${notes}` : '',
-          ].filter(Boolean).join('\n'),
-          itemsSummary: itemsSummaryText,
-          totalAmount,
-          adminEmail,
-        });
-      } catch (err) {
-        console.error('Background order notification error:', err);
-      }
-    }, 0);
+      await sendAdminOrderEmail({
+        orderNumber,
+        customerName,
+        mobile,
+        notes: [
+          deliveryCity ? `City: ${deliveryCity}` : '',
+          `Delivery: ${deliveryDisplay}`,
+          cakeMessage ? `Cake Message: "${cakeMessage}"` : '',
+          notes ? `Notes: ${notes}` : '',
+        ].filter(Boolean).join('\n'),
+        itemsSummary: itemsSummaryText,
+        totalAmount,
+        adminEmail,
+      });
+    } catch (err) {
+      console.error('Order email notification error:', err);
+    }
+
 
     const estimatedPointsEarned = Math.floor(totalAmount / 100) * 5;
 
