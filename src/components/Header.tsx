@@ -274,7 +274,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                     </div>
                   )}
                 </>
-              ) : isMounted ? (
+              ) : (
                 <button
                   type="button"
                   onClick={() => handleGoogleSignIn()}
@@ -290,8 +290,9 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                   <span className="hidden lg:inline">Sign in with Google</span>
                   <span className="inline lg:hidden">Sign In</span>
                 </button>
-              ) : null}
+              )}
             </div>
+
 
             {/* Cart Drawer Trigger */}
             <button
