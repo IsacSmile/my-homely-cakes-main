@@ -231,14 +231,19 @@ export default function ProductDetailModal() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Prevent body scroll when modal open
+  // Prevent body scroll & touch-drag when modal open
   useEffect(() => {
     if (selectedModalProduct) {
       document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
   }, [selectedModalProduct]);
 
   if (!selectedModalProduct) return null;
@@ -340,21 +345,21 @@ export default function ProductDetailModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn max-w-full overflow-x-hidden p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn max-w-full overflow-x-hidden p-0 sm:p-4 touch-none"
       onClick={(e) => { if (e.target === e.currentTarget) closeProductModal(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Order ${selectedModalProduct.name}`}
     >
-      <div className={`bg-white w-full ${orderSuccess ? 'max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 rounded-3xl border border-bakery-200/60' : 'max-w-4xl sm:max-h-[90vh] max-h-[95vh] md:h-[640px] lg:h-[680px] rounded-t-3xl sm:rounded-3xl overflow-hidden'} shadow-2xl flex flex-col ${orderSuccess ? '' : 'md:flex-row'} relative animate-scaleIn`}>
+      <div className={`bg-white w-full ${orderSuccess ? 'max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 rounded-3xl border border-bakery-200/60' : 'max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] md:h-[640px] lg:h-[680px] rounded-none sm:rounded-3xl overflow-hidden'} shadow-2xl flex flex-col ${orderSuccess ? '' : 'md:flex-row'} relative animate-scaleIn touch-auto`}>
 
         {/* Close Button */}
         <button
           onClick={closeProductModal}
-          className={`absolute top-4 right-4 z-40 p-2 rounded-full transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
+          className={`absolute top-3.5 right-3.5 z-40 p-2 rounded-full transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
             orderSuccess 
               ? 'bg-bakery-100/80 hover:bg-bakery-200 text-bakery-chocolate border border-bakery-200/60 shadow-2xs'
-              : 'bg-black/40 hover:bg-black/75 text-white backdrop-blur-md border border-white/20 shadow-md'
+              : 'bg-black/50 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-md'
           }`}
           aria-label="Close order modal"
         >
@@ -537,7 +542,7 @@ export default function ProductDetailModal() {
 
               {/* Mobile / Small device swipeable image slider banner */}
               <div
-                className="md:hidden relative h-52 sm:h-60 bg-neutral-900 shrink-0 overflow-hidden select-none"
+                className="md:hidden relative h-64 sm:h-72 bg-neutral-900 shrink-0 overflow-hidden select-none"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={() => onTouchEnd(galleryPhotos.length)}
@@ -563,12 +568,12 @@ export default function ProductDetailModal() {
                 />
 
                 {/* Top & Bottom Gradient Scrim Overlays for High Contrast */}
-                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/60 via-black/15 to-transparent pointer-events-none z-10" />
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none z-10" />
+                <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/70 via-black/20 to-transparent pointer-events-none z-10" />
+                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none z-10" />
 
                 {/* Top Overlay: Category Badge */}
-                <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-black/60 backdrop-blur-md text-amber-300 px-3 py-1 rounded-full border border-white/20 shadow-xs">
+                <div className="absolute top-3.5 left-3.5 z-20 pointer-events-none">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-black/60 backdrop-blur-md text-amber-300 px-3 py-1.5 rounded-full border border-white/20 shadow-xs">
                     {selectedModalProduct.category}
                   </span>
                 </div>

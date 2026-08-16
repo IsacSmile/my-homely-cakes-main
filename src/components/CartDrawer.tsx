@@ -48,6 +48,21 @@ export default function CartDrawer() {
     }
   }, [session]);
 
+  // Lock body scroll & touch-drag when cart drawer is open
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isCartOpen]);
+
   if (!isCartOpen) return null;
 
   const maxRedeemablePoints = Math.floor(userPoints / 100) * 100;
