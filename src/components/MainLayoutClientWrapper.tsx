@@ -31,7 +31,7 @@ export default function MainLayoutClientWrapper({ children }: { children: React.
     <>
       <AuthToastListener />
       <Header onOpenSearch={() => setIsSearchOpen(true)} />
-      <main className="flex-1 max-w-full w-full overflow-x-clip">
+      <main className="flex-1 max-w-full w-full overflow-x-hidden min-h-screen">
         {children}
       </main>
       <Footer />

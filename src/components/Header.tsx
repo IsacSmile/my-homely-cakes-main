@@ -122,11 +122,11 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full transition-all duration-500 ease-in-out">
+    <header className="sticky top-0 z-50 w-full transition-all duration-300 ease-out gpu-header">
       
       {/* Top Banner Notice - Smooth Height & Opacity Collapse */}
-      <div className={`bg-bakery-chocolate text-bakery-100 text-[11px] sm:text-xs text-center font-medium flex items-center justify-center gap-2 transition-all duration-500 cubic-bezier(0.4,0,0.2,1) origin-top ${
-        isScrolled ? 'max-h-0 opacity-0 py-0 overflow-hidden scale-y-95' : 'max-h-12 opacity-100 py-1.5 px-3 sm:px-4 scale-y-100'
+      <div className={`bg-bakery-chocolate text-bakery-100 text-[11px] sm:text-xs text-center font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-out origin-top gpu-header ${
+        isScrolled ? 'max-h-0 opacity-0 py-0 overflow-hidden' : 'max-h-12 opacity-100 py-1.5 px-3 sm:px-4'
       }`}>
         <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="truncate">Freshly Baked Home Cakes • Express Delivery Across Trivandrum</span>
@@ -135,11 +135,11 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
         </a>
       </div>
 
-      {/* TRANSFORMING HEADER BAR - Smooth Morphing between Full Bar and Floating Pill */}
-      <div className={`transition-all duration-500 cubic-bezier(0.4,0,0.2,1) transform-gpu ${
+      {/* TRANSFORMING HEADER BAR - Hardware Accelerated Mobile & Desktop Morphing */}
+      <div className={`transition-all duration-300 ease-out gpu-header ${
         isScrolled
-          ? 'mt-2 mx-auto w-[calc(100%-1rem)] max-w-5xl bg-white/95 backdrop-blur-md rounded-full border border-bakery-200/80 shadow-soft-lg px-2.5 sm:px-6 py-1.5 sm:py-2'
-          : 'mt-0 w-full max-w-full bg-white/80 backdrop-blur-md border-b border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3 rounded-none'
+          ? 'sm:mt-2 mx-auto w-full sm:w-[calc(100%-1rem)] max-w-5xl bg-white/95 backdrop-blur-md rounded-none sm:rounded-full border-b sm:border border-bakery-200/80 shadow-soft-lg px-3 sm:px-6 py-2 sm:py-2'
+          : 'mt-0 w-full max-w-full bg-white/90 backdrop-blur-md border-b border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3 rounded-none'
       }`}>
         <div className="flex items-center justify-between gap-1 max-w-full relative">
           

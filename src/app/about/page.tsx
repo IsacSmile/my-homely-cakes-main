@@ -65,16 +65,16 @@ export default async function AboutPage() {
     : rawPhotoUrl;
 
   return (
-    <div className="min-h-screen bg-[#FAF5EF] text-bakery-chocolate selection:bg-amber-200 selection:text-amber-900">
+    <div className="min-h-screen bg-[#FAF5EF] text-bakery-chocolate selection:bg-amber-200 selection:text-amber-900 relative">
       
-      {/* Subtle Background Ambience Glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+      {/* Subtle Background Ambience Glow - Hardware Accelerated */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10 gpu-composite">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-200/35 via-amber-100/15 to-transparent blur-3xl opacity-70" />
         <div className="absolute top-[40%] -right-40 w-96 h-96 bg-amber-100/40 rounded-full blur-3xl" />
         <div className="absolute top-[75%] -left-40 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-24 space-y-20 sm:space-y-32">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-24 space-y-20 sm:space-y-32 gpu-header">
         
         {/* ─── SECTION 1: HERO HEADER ─── */}
         <header className="relative text-center space-y-6 max-w-3xl mx-auto pt-4 pb-2">
@@ -105,7 +105,7 @@ export default async function AboutPage() {
         {/* ─── SECTION 2: ELEVATED FOUNDER STORY CARD ─── */}
         <section
           aria-labelledby="founder-section-heading"
-          className="relative bg-white/95 rounded-[2.5rem] p-6 sm:p-12 lg:p-14 border border-amber-200/70 shadow-[0_20px_50px_rgba(69,26,3,0.06)] overflow-hidden"
+          className="relative bg-white/95 rounded-[2.5rem] p-6 sm:p-12 lg:p-14 border border-amber-200/70 shadow-[0_20px_50px_rgba(69,26,3,0.06)] overflow-hidden gpu-header"
         >
           {/* Subtle Organic Ambient Blobs */}
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-amber-100/60 to-amber-200/20 rounded-full blur-3xl -z-0 pointer-events-none" />

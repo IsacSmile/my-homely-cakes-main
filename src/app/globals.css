@@ -7,13 +7,29 @@
   --foreground: #2C1A14;
 }
 
+/* GPU layer containment rules for hardware acceleration & smooth mobile scroll */
+.gpu-composite {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.gpu-header {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
 html, body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), system-ui, -apple-system, sans-serif;
-  max-width: 100vw;
+  max-width: 100%;
   width: 100%;
-  overflow-x: clip;
+  overflow-x: hidden;
   position: relative;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
