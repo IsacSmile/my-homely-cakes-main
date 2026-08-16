@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -311,10 +312,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
         </div>
       </div>
 
-      {/* Mobile Drawer Overlay Navigation */}
-      {mobileMenuOpen && (
+      {/* Mobile Drawer Overlay Navigation (Mounted to body via Portal to avoid header transform containing block issues) */}
+      {isMounted && mobileMenuOpen && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn md:hidden touch-none"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn md:hidden touch-none"
           onClick={(e) => {
             if (e.target === e.currentTarget) setMobileMenuOpen(false);
           }}
@@ -449,7 +450,8 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </header>
