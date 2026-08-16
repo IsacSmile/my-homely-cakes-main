@@ -1,20 +1,107 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw, Cake } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 import { AdminOrderRowSkeleton } from '@/components/ui/Skeletons';
 
+const formatDateInput = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const presets = [
+  {
+    label: 'Today',
+    getValue: () => {
+      const today = formatDateInput(new Date());
+      return { from: today, to: today };
+    },
+  },
+  {
+    label: 'Yesterday',
+    getValue: () => {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const yStr = formatDateInput(y);
+      return { from: yStr, to: yStr };
+    },
+  },
+  {
+    label: 'Last 7 Days',
+    getValue: () => {
+      const today = formatDateInput(new Date());
+      const past = new Date();
+      past.setDate(past.getDate() - 6);
+      return { from: formatDateInput(past), to: today };
+    },
+  },
+  {
+    label: 'Last 30 Days',
+    getValue: () => {
+      const today = formatDateInput(new Date());
+      const past = new Date();
+      past.setDate(past.getDate() - 29);
+      return { from: formatDateInput(past), to: today };
+    },
+  },
+  {
+    label: 'This Month',
+    getValue: () => {
+      const today = formatDateInput(new Date());
+      const first = new Date();
+      first.setDate(1);
+      return { from: formatDateInput(first), to: today };
+    },
+  },
+  {
+    label: 'All Time',
+    getValue: () => ({ from: '', to: '' }),
+  },
+];
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [activePreset, setActivePreset] = useState<string | null>('All Time');
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
 
-  const fetchOrders = () => {
-    fetch('/api/orders')
+  const fetchOrders = useCallback((overrideFrom?: string, overrideTo?: string, overrideStatus?: string) => {
+    const f = overrideFrom !== undefined ? overrideFrom : fromDate;
+    const t = overrideTo !== undefined ? overrideTo : toDate;
+    const st = overrideStatus !== undefined ? overrideStatus : filterStatus;
+
+    if (f && t && new Date(f) > new Date(t)) {
+      setDateValidationError('From date cannot be after To date.');
+      return;
+    }
+    setDateValidationError(null);
+
+    const params = new URLSearchParams();
+    if (f) params.set('from', f);
+    if (t) params.set('to', t);
+    if (st && st !== 'All') params.set('status', st);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+
+    if (typeof window !== 'undefined') {
+      const newUrl = `${window.location.pathname}${queryStr}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+
+    setIsLoading(true);
+    fetch(`/api/orders${queryStr}`)
       .then(res => {
         if (res.status === 401) {
           window.location.href = '/admin-manage';
@@ -25,19 +112,41 @@ export default function AdminOrdersPage() {
       .then(data => {
         if (data && Array.isArray(data?.orders)) {
           setOrders(data.orders);
+          setTotalRevenue(data.totalRevenue || 0);
         } else {
           setOrders([]);
+          setTotalRevenue(0);
         }
       })
       .catch(() => setOrders([]))
       .finally(() => setIsLoading(false));
-  };
+  }, [fromDate, toDate, filterStatus]);
 
-  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
-
+  // Read URL query params on initial mount
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Auto-refresh orders every 10s
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialFrom = urlParams.get('from') || '';
+      const initialTo = urlParams.get('to') || '';
+      const initialStatus = urlParams.get('status') || 'All';
+
+      if (initialFrom) setFromDate(initialFrom);
+      if (initialTo) setToDate(initialTo);
+      if (initialStatus) setFilterStatus(initialStatus);
+
+      if (!initialFrom && !initialTo) {
+        setActivePreset('All Time');
+      } else {
+        setActivePreset(null);
+      }
+
+      fetchOrders(initialFrom, initialTo, initialStatus);
+    }
+  }, [fetchOrders]);
+
+  // Real-time polling & websocket events
+  useEffect(() => {
+    const interval = setInterval(() => fetchOrders(), 10000);
 
     const handleNewOrder = (e: any) => {
       fetchOrders();
@@ -52,8 +161,39 @@ export default function AdminOrdersPage() {
       clearInterval(interval);
       window.removeEventListener('new-order-received', handleNewOrder);
     };
-  }, []);
+  }, [fetchOrders]);
 
+  const handleApplyPreset = (preset: typeof presets[0]) => {
+    const { from, to } = preset.getValue();
+    setFromDate(from);
+    setToDate(to);
+    setActivePreset(preset.label);
+    fetchOrders(from, to, filterStatus);
+  };
+
+  const handleFromDateChange = (val: string) => {
+    setFromDate(val);
+    setActivePreset(null);
+    fetchOrders(val, toDate, filterStatus);
+  };
+
+  const handleToDateChange = (val: string) => {
+    setToDate(val);
+    setActivePreset(null);
+    fetchOrders(fromDate, val, filterStatus);
+  };
+
+  const handleClearDateFilter = () => {
+    setFromDate('');
+    setToDate('');
+    setActivePreset('All Time');
+    fetchOrders('', '', filterStatus);
+  };
+
+  const handleStatusChangeFilter = (st: string) => {
+    setFilterStatus(st);
+    fetchOrders(fromDate, toDate, st);
+  };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -162,7 +302,7 @@ export default function AdminOrdersPage() {
             Order Management ({orders.length})
           </h1>
           <p className="text-xs text-bakery-600 mt-0.5">
-            View customer requests, update status, call customers, or remove completed/cancelled orders.
+            Filter orders by placement date range, status, view details, update progress, or export order records.
           </p>
         </div>
 
@@ -179,13 +319,118 @@ export default function AdminOrdersPage() {
           )}
 
           <button
-            onClick={fetchOrders}
+            onClick={() => fetchOrders()}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-full hover:bg-amber-100 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
           </button>
         </div>
+      </div>
+
+      {/* Summary Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-4.5 rounded-2xl border border-bakery-200/80 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold shrink-0">
+            <ShoppingCart className="w-5 h-5 text-amber-700" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-bakery-600 uppercase tracking-wider block">Orders in Range</span>
+            <span className="font-serif text-xl font-bold text-bakery-chocolate">{orders.length} Orders</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4.5 rounded-2xl border border-bakery-200/80 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold shrink-0">
+            <TrendingUp className="w-5 h-5 text-emerald-700" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-bakery-600 uppercase tracking-wider block">Total Revenue in Range</span>
+            <span className="font-serif text-xl font-bold text-emerald-800">{formatINR(totalRevenue)}</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4.5 rounded-2xl border border-bakery-200/80 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-900 flex items-center justify-center font-bold shrink-0">
+            <Calendar className="w-5 h-5 text-sky-700" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[11px] font-bold text-bakery-600 uppercase tracking-wider block">Active Date Range</span>
+            <span className="text-xs font-bold text-bakery-chocolate block truncate">
+              {fromDate || toDate ? `${fromDate || 'Start'} to ${toDate || 'Today'}` : 'All Time (No Filter)'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Range Filter Controls Container */}
+      <div className="bg-white p-5 rounded-3xl border border-bakery-200/80 shadow-soft space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-700" />
+            <span className="text-xs font-bold text-bakery-chocolate uppercase tracking-wider">Filter by Order Date</span>
+          </div>
+
+          {/* Presets Toolbar */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {presets.map(p => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => handleApplyPreset(p)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  activePreset === p.label
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : 'bg-bakery-50 text-bakery-700 border border-bakery-200/80 hover:bg-bakery-100'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Date Inputs + Clear Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 border-t border-bakery-100">
+          <div className="flex items-center gap-2 flex-1">
+            <label className="text-xs font-bold text-bakery-700 shrink-0">From:</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => handleFromDateChange(e.target.value)}
+              className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3 py-2 text-xs text-bakery-chocolate font-semibold focus:outline-none focus:border-amber-600"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-1">
+            <label className="text-xs font-bold text-bakery-700 shrink-0">To:</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => handleToDateChange(e.target.value)}
+              className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3 py-2 text-xs text-bakery-chocolate font-semibold focus:outline-none focus:border-amber-600"
+            />
+          </div>
+
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={handleClearDateFilter}
+              className="inline-flex items-center justify-center gap-1 bg-bakery-100 hover:bg-bakery-200 text-bakery-800 text-xs font-bold px-4 py-2 rounded-xl border border-bakery-200 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset Range</span>
+            </button>
+          )}
+        </div>
+
+        {/* Date Validation Alert */}
+        {dateValidationError && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-800 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{dateValidationError}</span>
+          </div>
+        )}
       </div>
 
       {/* Filter Tabs & Bulk Select Checkbox */}
@@ -197,7 +442,7 @@ export default function AdminOrdersPage() {
             return (
               <button
                 key={st}
-                onClick={() => setFilterStatus(st)}
+                onClick={() => handleStatusChangeFilter(st)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
                   isSelected
                     ? 'bg-amber-600 text-white shadow-soft'
@@ -214,7 +459,7 @@ export default function AdminOrdersPage() {
           <button
             type="button"
             onClick={toggleSelectAll}
-            className="text-xs font-semibold text-bakery- chocolate flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-bakery-200 hover:bg-bakery-50"
+            className="text-xs font-semibold text-bakery-chocolate flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-bakery-200 hover:bg-bakery-50"
           >
             {isAllSelected ? <CheckSquare className="w-4 h-4 text-amber-600" /> : <Square className="w-4 h-4 text-bakery-400" />}
             <span>Select All ({filteredOrders.length})</span>
@@ -231,8 +476,22 @@ export default function AdminOrdersPage() {
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-bakery-200 text-center space-y-3">
           <ShoppingCart className="w-10 h-10 text-bakery-300 mx-auto" />
-          <h3 className="font-serif text-base font-bold text-bakery-chocolate">No Orders in &quot;{filterStatus}&quot;</h3>
-          <p className="text-xs text-bakery-600">New customer orders will automatically appear here in real-time.</p>
+          <h3 className="font-serif text-base font-bold text-bakery-chocolate">
+            {fromDate || toDate ? 'No Orders Found in Selected Date Range' : `No Orders in "${filterStatus}"`}
+          </h3>
+          <p className="text-xs text-bakery-600 max-w-md mx-auto">
+            {fromDate || toDate
+              ? 'Try picking a broader date range or click "Reset Range" to view all recorded orders.'
+              : 'New customer orders will automatically appear here in real-time.'}
+          </p>
+          {(fromDate || toDate) && (
+            <button
+              onClick={handleClearDateFilter}
+              className="inline-flex items-center gap-1.5 bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-full shadow-xs hover:bg-amber-500 transition-colors mt-2"
+            >
+              <span>Reset Date Filter</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -256,7 +515,6 @@ export default function AdminOrdersPage() {
                     ? 'border-rose-300 ring-2 ring-rose-500/20'
                     : 'border-bakery-200'
                 } ${isChecked ? 'ring-2 ring-amber-500/40 bg-amber-50/20' : ''}`}
-
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bakery-100 pb-4">
                   <div className="flex items-center gap-3">
@@ -314,7 +572,7 @@ export default function AdminOrdersPage() {
                       <span>Call</span>
                     </a>
 
-                    {/* Consumer Status Update Dropdown (Minimal & Prominent) */}
+                    {/* Consumer Status Update Dropdown */}
                     <div className="flex items-center gap-1.5 bg-amber-50 p-1.5 rounded-2xl border border-amber-200 shadow-xs">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 px-1 hidden xl:inline">
                         Customer Status:
@@ -353,7 +611,7 @@ export default function AdminOrdersPage() {
                       </select>
                     </div>
 
-                    {/* Visually Muted Delete Order Action Button */}
+                    {/* Delete Order Action Button */}
                     <button
                       type="button"
                       onClick={() => handleDeleteSingleOrder(order.id, order.orderNumber, order.customerName)}
@@ -462,3 +720,4 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { orders, products, offers, settings, users, pointsTransactions } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, gte, lte, and } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
 import { parseProductVariants } from '@/lib/pricing';
@@ -16,9 +16,46 @@ export async function GET(request: Request) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const allOrders = (await db.select().from(orders).orderBy(desc(orders.createdAt)).all()) || [];
-    return NextResponse.json({ orders: allOrders });
+    const { searchParams } = new URL(request.url);
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+    const statusParam = searchParams.get('status');
+
+    const conditions = [];
+
+    if (fromParam) {
+      const fromDate = new Date(`${fromParam}T00:00:00`);
+      if (!isNaN(fromDate.getTime())) {
+        conditions.push(gte(orders.createdAt, fromDate.toISOString()));
+      }
+    }
+
+    if (toParam) {
+      const toDate = new Date(`${toParam}T23:59:59.999`);
+      if (!isNaN(toDate.getTime())) {
+        conditions.push(lte(orders.createdAt, toDate.toISOString()));
+      }
+    }
+
+    if (statusParam && statusParam.toLowerCase() !== 'all') {
+      conditions.push(eq(orders.status, statusParam.toLowerCase()));
+    }
+
+    let query = db.select().from(orders);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const allOrders = (await query.orderBy(desc(orders.createdAt)).all()) || [];
+    const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    return NextResponse.json({
+      orders: allOrders,
+      totalCount: allOrders.length,
+      totalRevenue,
+    });
   } catch (error) {
+    console.error('Error fetching orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }

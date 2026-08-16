@@ -612,22 +612,13 @@ function AdminProductCard({
           </div>
         </div>
 
-        <div className="pt-2 border-t border-bakery-100 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-bakery-600 font-medium block">
-              Default ({defaultVar.weightG >= 1000 ? `${defaultVar.weightG / 1000}kg` : `${defaultVar.weightG}g`})
-            </span>
-            <span className="font-serif text-lg font-extrabold text-amber-800 tracking-tight">
-              {formatINR(defaultVar.price)}
-            </span>
-          </div>
-
-          <div className="text-right">
-            <span className="text-[10px] text-bakery-600 font-medium block">Total Orders</span>
-            <span className="text-xs font-bold text-bakery-chocolate">
-              {product.orderCount || 0} orders
-            </span>
-          </div>
+        <div className="pt-2 border-t border-bakery-100">
+          <span className="text-[10px] text-bakery-600 font-medium block">
+            Default ({defaultVar.weightG >= 1000 ? `${defaultVar.weightG / 1000}kg` : `${defaultVar.weightG}g`})
+          </span>
+          <span className="font-serif text-lg font-extrabold text-amber-800 tracking-tight">
+            {formatINR(defaultVar.price)}
+          </span>
         </div>
 
         <div className="pt-2 flex items-center gap-2">

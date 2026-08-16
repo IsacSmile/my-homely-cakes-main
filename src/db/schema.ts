@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 
 export const categories = sqliteTable('categories', {
   id: text('id').primaryKey(),
@@ -67,7 +67,9 @@ export const orders = sqliteTable('orders', {
   status: text('status').notNull().default('new'),
   consumerStatus: text('consumer_status').notNull().default('received'),
   createdAt: text('created_at').notNull(),
-});
+}, (table) => ({
+  createdAtIdx: index('orders_created_at_idx').on(table.createdAt),
+}));
 
 export const pointsTransactions = sqliteTable('points_transactions', {
   id: text('id').primaryKey(),

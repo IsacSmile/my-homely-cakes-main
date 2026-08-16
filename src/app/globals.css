@@ -15,6 +15,7 @@ html, body {
   width: 100%;
   overflow-x: clip;
   position: relative;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -ms-overflow-style: none; /* IE and Edge */

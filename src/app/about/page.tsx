@@ -1,11 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Cake, Heart, MapPin, ShieldCheck, Award, PhoneCall, Sparkles, Star, CheckCircle2, ArrowRight } from 'lucide-react';
 import OutletsSection from '@/components/OutletsSection';
 import { db } from '@/db';
-import { settings } from '@/db/schema';
+import { settings, outlets as outletsTable } from '@/db/schema';
+import { asc } from 'drizzle-orm';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Cache statically with 1-hour ISR revalidation
 
 export const metadata = {
   title: 'About Us & Our Outlets | MyHomelyCake Trivandrum',
@@ -43,9 +45,24 @@ async function getFounderData() {
   }
 }
 
+async function getOutletsData() {
+  try {
+    const list = await db.select().from(outletsTable).orderBy(asc(outletsTable.sortOrder));
+    return list || [];
+  } catch (error) {
+    console.error('Error reading outlets for About page:', error);
+    return [];
+  }
+}
+
 export default async function AboutPage() {
-  const founder = await getFounderData();
+  const [founder, outlets] = await Promise.all([getFounderData(), getOutletsData()]);
   const bioParagraphs = (founder.bio || DEFAULT_FOUNDER.bio).split('\n\n').filter(Boolean);
+
+  const rawPhotoUrl = founder.photoUrl || DEFAULT_FOUNDER.photoUrl;
+  const optimizedFounderPhoto = rawPhotoUrl.includes('unsplash.com') && !rawPhotoUrl.includes('w=')
+    ? `${rawPhotoUrl}${rawPhotoUrl.includes('?') ? '&' : '?'}auto=format&fit=crop&w=800&q=80`
+    : rawPhotoUrl;
 
   return (
     <div className="min-h-screen bg-[#FAF5EF] text-bakery-chocolate selection:bg-amber-200 selection:text-amber-900">
@@ -105,17 +122,20 @@ export default async function AboutPage() {
 
                 {/* Main Photo Frame */}
                 <div className="relative h-80 sm:h-96 w-full rounded-[2.25rem] overflow-hidden border-4 border-white shadow-xl bg-bakery-100">
-                  <img
-                    src={founder.photoUrl || DEFAULT_FOUNDER.photoUrl}
+                  <Image
+                    src={optimizedFounderPhoto}
                     alt={`${founder.name} - ${founder.title} of MyHomelyCake Trivandrum`}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 400px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   
                   {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90 pointer-events-none" />
                   
                   {/* Clean Caption Overlay */}
-                  <div className="absolute bottom-5 left-5 right-5 text-white space-y-1">
+                  <div className="absolute bottom-5 left-5 right-5 text-white space-y-1 z-10">
                     <p className="font-serif font-bold text-2xl text-amber-100 tracking-wide">{founder.name}</p>
                     <p className="text-xs font-semibold text-amber-200/90 tracking-widest uppercase">{founder.title}</p>
                   </div>
@@ -181,7 +201,7 @@ export default async function AboutPage() {
 
 
         {/* ─── SECTION 3: DYNAMIC OUR OUTLETS ─── */}
-        <OutletsSection />
+        <OutletsSection initialOutlets={outlets} />
 
 
         {/* ─── SECTION 4: CORE VALUES / FEATURES ROW ─── */}

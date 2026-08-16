@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, ExternalLink, Store, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { MapPin, ExternalLink, Store } from 'lucide-react';
 
-interface OutletItem {
+export interface OutletItem {
   id: string;
   name: string;
   address: string;
@@ -13,11 +14,13 @@ interface OutletItem {
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80';
 
-export default function OutletsSection() {
-  const [outlets, setOutlets] = useState<OutletItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function OutletsSection({ initialOutlets }: { initialOutlets?: OutletItem[] }) {
+  const [outlets, setOutlets] = useState<OutletItem[]>(initialOutlets || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialOutlets);
 
   useEffect(() => {
+    if (initialOutlets && initialOutlets.length > 0) return;
+
     fetch('/api/outlets')
       .then((res) => res.json())
       .then((data) => {
@@ -29,7 +32,7 @@ export default function OutletsSection() {
       })
       .catch(() => setOutlets([]))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [initialOutlets]);
 
   // Skeleton loading state
   if (isLoading) {
@@ -125,6 +128,10 @@ export default function OutletsSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
         {outlets.map((outlet) => {
           const mapQueryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outlet.address)}`;
+          const rawUrl = outlet.imageUrl || FALLBACK_IMAGE;
+          const optimizedSrc = rawUrl.includes('unsplash.com') && !rawUrl.includes('w=')
+            ? `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}auto=format&fit=crop&w=800&q=80`
+            : rawUrl;
 
           return (
             <article
@@ -134,20 +141,19 @@ export default function OutletsSection() {
               <div>
                 {/* Storefront Image Container */}
                 <div className="relative h-52 sm:h-56 w-full bg-amber-100/50 overflow-hidden">
-                  <img
-                    src={outlet.imageUrl || FALLBACK_IMAGE}
+                  <Image
+                    src={optimizedSrc}
                     alt={`${outlet.name} storefront image in Trivandrum`}
-                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-108 transition-transform duration-700"
                     loading="lazy"
-                    onError={(e: any) => {
-                      e.target.src = FALLBACK_IMAGE;
-                    }}
                   />
                   
                   {/* Smooth Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-85 group-hover:opacity-60 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-85 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none" />
                   
-                  <span className="absolute top-3.5 right-3.5 bg-amber-900/80 text-amber-100 font-bold text-[10px] tracking-wider uppercase px-3 py-1 rounded-full backdrop-blur-xs shadow-xs border border-amber-700/50">
+                  <span className="absolute top-3.5 right-3.5 bg-amber-900/80 text-amber-100 font-bold text-[10px] tracking-wider uppercase px-3 py-1 rounded-full backdrop-blur-xs shadow-xs border border-amber-700/50 z-10">
                     Trivandrum Store
                   </span>
                 </div>
