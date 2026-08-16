@@ -27,6 +27,7 @@ import {
 import { formatINR } from '@/lib/pricing';
 import { useCart } from '@/context/CartContext';
 import { OrderCardSkeleton } from '@/components/ui/Skeletons';
+import { formatDisplay12 } from '@/components/ui/TimePicker';
 
 export default function CustomerOrdersPage() {
   const { data: session, status } = useSession();
@@ -530,7 +531,7 @@ export default function CustomerOrdersPage() {
                         {order.deliveryCity && <p className="text-bakery-700"><strong>City:</strong> {order.deliveryCity}</p>}
                         {(order.deliveryDate || order.deliveryTime) && (
                           <p className="text-bakery-700">
-                            <strong>Date/Time:</strong> {order.deliveryDate || ''} {order.deliveryTime || ''}
+                            <strong>Date/Time:</strong> {order.deliveryDate || ''} {order.deliveryTime ? formatDisplay12(order.deliveryTime) : ''}
                           </p>
                         )}
                       </div>

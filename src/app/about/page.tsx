@@ -80,11 +80,6 @@ export default async function AboutPage() {
         <header className="relative text-center space-y-6 max-w-3xl mx-auto pt-4 pb-2">
           {/* Subtle Decorative Background Flourish */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-amber-100/30 to-amber-200/10 rounded-full blur-2xl -z-10" />
-          
-          <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-extrabold text-amber-900 bg-gradient-to-r from-amber-100/90 via-amber-100/60 to-amber-50 px-4 py-2 rounded-full border border-amber-300/60 shadow-2xs tracking-[0.2em] uppercase">
-            <Cake className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span>Our Home Bakery Journey</span>
-          </div>
 
           <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
             Crafting Sweet{' '}
@@ -140,12 +135,6 @@ export default async function AboutPage() {
                     <p className="text-xs font-semibold text-amber-200/90 tracking-widest uppercase">{founder.title}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Experience Badge Below Frame */}
-              <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-amber-950 bg-amber-100/90 px-4 py-2 rounded-full border border-amber-300/80 shadow-xs">
-                <Award className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>{founder.experience || DEFAULT_FOUNDER.experience}</span>
               </div>
             </div>
 

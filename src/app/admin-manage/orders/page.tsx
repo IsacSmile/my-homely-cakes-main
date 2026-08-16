@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 import { AdminOrderRowSkeleton } from '@/components/ui/Skeletons';
+import { formatDisplay12 } from '@/components/ui/TimePicker';
 
 const formatDateInput = (d: Date) => {
   const year = d.getFullYear();
@@ -645,7 +646,7 @@ export default function AdminOrdersPage() {
                     {(order.deliveryDate || order.deliveryTime) && (
                       <p><strong>Delivery:</strong>{' '}
                         <span className="font-semibold text-amber-800">
-                          {order.deliveryDate || ''}{order.deliveryDate && order.deliveryTime ? ' • ' : ''}{order.deliveryTime || ''}
+                          {order.deliveryDate || ''}{order.deliveryDate && order.deliveryTime ? ' • ' : ''}{order.deliveryTime ? formatDisplay12(order.deliveryTime) : ''}
                         </span>
                       </p>
                     )}

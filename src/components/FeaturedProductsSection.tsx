@@ -20,17 +20,12 @@ export default function FeaturedProductsSection({
   }
 
   return (
-    <section className="py-12 sm:py-16 bg-gradient-to-b from-amber-50/60 via-amber-50/30 to-transparent border-y border-amber-200/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <section className="py-6 sm:py-10 bg-gradient-to-b from-amber-50/60 via-amber-50/30 to-transparent border-y border-amber-200/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
         
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full border border-amber-300/60 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
-              <span>Handpicked Favorites</span>
-            </div>
-            
             <h2 className="font-serif text-2xl sm:text-4xl font-extrabold text-bakery-chocolate tracking-tight">
               Featured Bakery Creations
             </h2>

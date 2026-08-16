@@ -116,11 +116,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
 
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-300 ease-out gpu-header">
-      
+
       {/* Top Banner Notice - Smooth Height & Opacity Collapse */}
-      <div className={`bg-bakery-chocolate text-bakery-100 text-[11px] sm:text-xs text-center font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-out origin-top gpu-header ${
-        isScrolled ? 'max-h-0 opacity-0 py-0 overflow-hidden' : 'max-h-12 opacity-100 py-1.5 px-3 sm:px-4'
-      }`}>
+      <div className={`bg-bakery-chocolate text-bakery-100 text-[11px] sm:text-xs text-center font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-out origin-top gpu-header ${isScrolled ? 'max-h-0 opacity-0 py-0 overflow-hidden' : 'max-h-12 opacity-100 py-1.5 px-3 sm:px-4'
+        }`}>
         <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="truncate">Freshly Baked Home Cakes • Express Delivery Across Trivandrum</span>
         <a href="tel:919947066011" className="hidden sm:inline-flex items-center gap-1 font-semibold text-amber-300 underline ml-2 shrink-0">
@@ -129,18 +128,16 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
       </div>
 
       {/* TRANSFORMING HEADER BAR - Hardware Accelerated Mobile & Desktop Morphing */}
-      <div className={`transition-all duration-300 ease-out gpu-header ${
-        isScrolled
-          ? 'sm:mt-2 mx-auto w-full sm:w-[calc(100%-1rem)] max-w-5xl bg-white/95 backdrop-blur-md rounded-none sm:rounded-full border-b sm:border border-bakery-200/80 shadow-soft-lg px-3 sm:px-6 py-2 sm:py-2'
-          : 'mt-0 w-full max-w-full bg-white/90 backdrop-blur-md border-b border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3 rounded-none'
-      }`}>
+      <div className={`transition-all duration-300 ease-out gpu-header ${isScrolled
+        ? 'sm:mt-2 mx-auto w-full sm:w-[calc(100%-1rem)] max-w-5xl bg-white/95 backdrop-blur-md rounded-none sm:rounded-full border-b sm:border border-bakery-200/80 shadow-soft-lg px-3 sm:px-6 py-2 sm:py-2'
+        : 'mt-0 w-full max-w-full bg-white/90 backdrop-blur-md border-b border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3 rounded-none'
+        }`}>
         <div className="flex items-center justify-between gap-1 max-w-full relative">
-          
+
           {/* Main Brand Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-h-[38px] sm:min-h-[44px] shrink-0 min-w-0">
-            <div className={`relative rounded-full overflow-hidden border border-amber-500/20 group-hover:scale-105 transition-all duration-500 ease-out shadow-xs shrink-0 bg-white p-0.5 ${
-              isScrolled ? 'w-8 h-8 sm:w-10 sm:h-10' : 'w-9 h-9 sm:w-11 sm:h-11'
-            }`}>
+            <div className={`relative rounded-full overflow-hidden border border-amber-500/20 group-hover:scale-105 transition-all duration-500 ease-out shadow-xs shrink-0 bg-white p-0.5 ${isScrolled ? 'w-8 h-8 sm:w-10 sm:h-10' : 'w-9 h-9 sm:w-11 sm:h-11'
+              }`}>
               <Image
                 src="/logo.png"
                 alt="MyHomelyCake Trivandrum Logo"
@@ -151,13 +148,12 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
               />
             </div>
             <div className="flex flex-col min-w-0 transition-all duration-500 ease-out">
-              <span className={`font-serif font-bold text-bakery-chocolate tracking-tight group-hover:text-amber-800 transition-colors leading-none truncate max-w-[105px] min-[360px]:max-w-[140px] sm:max-w-none ${
-                isScrolled ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'
-              }`}>
-                MyHomelyCake
+              <span className={`font-serif font-bold text-bakery-chocolate tracking-tight group-hover:text-amber-800 transition-colors leading-none truncate max-w-[105px] min-[360px]:max-w-[140px] sm:max-w-none ${isScrolled ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'
+                }`}>
+                My Homely Cake
               </span>
               <span className="text-[7px] sm:text-[10px] tracking-widest uppercase font-bold text-amber-700 mt-0.5 truncate hidden min-[360px]:block">
-                Trivandrum Bakery
+                We Deliver Your Delicious Dreams !!
               </span>
             </div>
           </Link>
@@ -170,9 +166,8 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-xs sm:text-sm font-semibold transition-colors hover:text-amber-700 relative py-1 min-h-[44px] flex items-center shrink-0 ${
-                    isActive ? 'text-amber-800 font-bold' : 'text-bakery-chocolate/85'
-                  }`}
+                  className={`text-xs sm:text-sm font-semibold transition-colors hover:text-amber-700 relative py-1 min-h-[44px] flex items-center shrink-0 ${isActive ? 'text-amber-800 font-bold' : 'text-bakery-chocolate/85'
+                    }`}
                 >
                   {link.name}
                   {isActive && (
@@ -185,7 +180,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2.5 shrink-0">
-            
+
             {/* Search Trigger */}
             <button
               onClick={onOpenSearch}
@@ -379,11 +374,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                       key={link.href}
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center px-4 py-3 rounded-2xl font-bold text-base transition-colors min-h-[48px] ${
-                        isActive
-                          ? 'bg-amber-50 text-amber-900 border border-amber-200/60'
-                          : 'text-bakery-chocolate hover:bg-bakery-50'
-                      }`}
+                      className={`flex items-center px-4 py-3 rounded-2xl font-bold text-base transition-colors min-h-[48px] ${isActive
+                        ? 'bg-amber-50 text-amber-900 border border-amber-200/60'
+                        : 'text-bakery-chocolate hover:bg-bakery-50'
+                        }`}
                     >
                       {link.name}
                     </Link>
@@ -394,11 +388,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                 <Link
                   href="/orders"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl font-bold text-base transition-colors min-h-[48px] ${
-                    pathname === '/orders'
-                      ? 'bg-amber-50 text-amber-900 border border-amber-200/60'
-                      : 'text-bakery-chocolate hover:bg-bakery-50'
-                  }`}
+                  className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl font-bold text-base transition-colors min-h-[48px] ${pathname === '/orders'
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200/60'
+                    : 'text-bakery-chocolate hover:bg-bakery-50'
+                    }`}
                 >
                   <Package className="w-5 h-5 text-amber-700" />
                   My Orders

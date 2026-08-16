@@ -84,16 +84,11 @@ export default function ShopClient({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       
       {/* Page Header & Wide Search Bar */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200">
-          <Cake className="w-4 h-4 text-amber-600" />
-          <span>Trivandrum Home Bakery Catalog</span>
-        </div>
-        
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-bakery-chocolate">
+      <div className="space-y-2.5 sm:space-y-3 text-center max-w-3xl mx-auto">
+        <h1 className="font-serif text-2xl sm:text-4xl font-bold text-bakery-chocolate tracking-tight">
           Browse Fresh Handcrafted Cakes
         </h1>
 

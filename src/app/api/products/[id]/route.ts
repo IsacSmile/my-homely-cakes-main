@@ -30,8 +30,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         imageUrl: mainImageUrl,
         images: JSON.stringify(galleryImages),
         category: category ? category.trim() : prod.category,
-        baseWeightG: baseWeightG ? parseInt(baseWeightG, 10) : prod.baseWeightG,
-        basePrice: basePrice ? parseInt(basePrice, 10) : prod.basePrice,
+        baseWeightG: baseWeightG !== undefined ? parseInt(baseWeightG, 10) : prod.baseWeightG,
+        basePrice: basePrice !== undefined ? parseInt(basePrice, 10) : prod.basePrice,
         variants: variants ? (typeof variants === 'string' ? variants : JSON.stringify(variants)) : prod.variants,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : prod.isAvailable,
         isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : prod.isFeatured,
@@ -43,7 +43,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     revalidatePath('/shop');
     revalidatePath('/');
 
-    return NextResponse.json({ success: true });
+    const updatedProduct = await db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
+
+    return NextResponse.json({ success: true, product: updatedProduct });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }

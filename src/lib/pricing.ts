@@ -36,14 +36,36 @@ export function parseProductVariants(product: any): WeightVariant[] {
               isDefault: idx === 0,
             };
           }
+
+          const hasExplicitDefault = typeof item.isDefault === 'boolean' || typeof item.is_default === 'boolean';
+          const explicitVal = typeof item.isDefault === 'boolean' ? item.isDefault : item.is_default;
+
           return {
             weightG: Number(item.weightG || item.weight_g || 500),
             price: Number(item.price || 650),
-            isDefault: Boolean(item.isDefault || item.is_default || idx === 0),
+            isDefault: hasExplicitDefault ? Boolean(explicitVal) : (idx === 0),
           };
         });
 
-        return formatted.sort((a, b) => a.weightG - b.weightG);
+        // Ensure at least one variant is default if none was explicitly marked default
+        if (!formatted.some(v => v.isDefault)) {
+          formatted[0].isDefault = true;
+        }
+
+        // If multiple variants are marked default, normalize so only the first marked default remains true
+        let defaultFound = false;
+        const normalized = formatted.map(v => {
+          if (v.isDefault) {
+            if (!defaultFound) {
+              defaultFound = true;
+              return v;
+            }
+            return { ...v, isDefault: false };
+          }
+          return v;
+        });
+
+        return normalized.sort((a, b) => a.weightG - b.weightG);
       }
     }
   } catch (e) {

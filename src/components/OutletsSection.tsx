@@ -39,10 +39,6 @@ export default function OutletsSection({ initialOutlets }: { initialOutlets?: Ou
     return (
       <section aria-labelledby="outlets-heading" className="space-y-10">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 text-[11px] font-extrabold text-amber-900 bg-amber-100/90 px-4 py-1.5 rounded-full border border-amber-300/60 uppercase tracking-[0.2em]">
-            <Store className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span>Store Locations</span>
-          </div>
           <h2 id="outlets-heading" className="font-serif text-2xl sm:text-4xl font-bold text-bakery-chocolate tracking-tight">
             Our Bakery Outlets
           </h2>
@@ -96,7 +92,7 @@ export default function OutletsSection({ initialOutlets }: { initialOutlets?: Ou
   };
 
   return (
-    <section aria-labelledby="outlets-heading" className="space-y-10">
+    <section aria-labelledby="outlets-heading" className="space-y-5 sm:space-y-7">
       {/* JSON-LD LocalBusiness SEO Schema */}
       <script
         type="application/ld+json"
@@ -104,12 +100,7 @@ export default function OutletsSection({ initialOutlets }: { initialOutlets?: Ou
       />
 
       {/* Section Header */}
-      <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-[11px] font-extrabold text-amber-900 bg-gradient-to-r from-amber-100/90 via-amber-100/60 to-amber-50 px-4 py-2 rounded-full border border-amber-300/60 shadow-2xs tracking-[0.2em] uppercase">
-          <Store className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-          <span>Physical Store Outlets</span>
-        </div>
-
+      <div className="text-center space-y-1.5 sm:space-y-2 max-w-2xl mx-auto">
         <h2
           id="outlets-heading"
           className="font-serif text-2xl sm:text-4xl font-bold text-bakery-chocolate tracking-tight"

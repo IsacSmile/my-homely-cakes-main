@@ -190,7 +190,7 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section className="py-16 sm:py-24 bg-[#FAF7F2] text-[#2C1A14] overflow-hidden border-t border-b border-[#EAD1B6]/50 relative">
+    <section className="py-8 sm:py-14 bg-[#FAF7F2] text-[#2C1A14] overflow-hidden border-t border-b border-[#EAD1B6]/50 relative">
       
       {/* Editorial Decorative Whisk / Bakery Line Motif */}
       <div className="absolute top-8 left-8 opacity-5 pointer-events-none hidden lg:block">
@@ -204,15 +204,10 @@ export default function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* SECTION HEADER — Dynamic settings with exact typography scale */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-14">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
           
           {/* Left Column: Typography Hierarchy */}
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">
-              <MessageSquareQuote className="w-4 h-4 text-amber-600" />
-              <span>{data.eyebrow}</span>
-            </div>
-
             <h2 className="font-serif text-3xl font-bold text-bakery-chocolate">
               {data.heading}
             </h2>

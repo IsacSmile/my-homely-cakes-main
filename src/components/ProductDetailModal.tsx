@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn } from '@/lib/auth-toast';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { DatePicker } from '@/components/ui/DatePicker';
+import { TimePicker, formatDisplay12 } from '@/components/ui/TimePicker';
 
 // ---------- IST Helpers ----------
 function getNowIST(): Date {
@@ -764,20 +766,14 @@ export default function ProductDetailModal() {
                         <label htmlFor="order-date" className="text-[11px] font-bold text-bakery-800 block mb-1.5">
                           Date <span className="text-rose-500">*</span>
                         </label>
-                        <div className="relative">
-                          <Calendar className="w-3.5 h-3.5 text-amber-700 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          <input
-                            id="order-date"
-                            type="date"
-                            required
-                            value={deliveryDate}
-                            min={todayStr}
-                            onChange={e => { setDeliveryDate(e.target.value); clearError('deliveryDate'); }}
-                            className={`${inputCls('deliveryDate')} pl-8 cursor-pointer min-h-[44px]`}
-                            suppressHydrationWarning
-                          />
-                        </div>
-                        {deliveryDate && <p className="text-[10px] text-amber-800 font-medium mt-0.5" suppressHydrationWarning>{formatDisplayDate(deliveryDate)}</p>}
+                        <DatePicker
+                          id="order-date"
+                          value={deliveryDate}
+                          minDate={todayStr}
+                          onChange={val => { setDeliveryDate(val); clearError('deliveryDate'); }}
+                          error={errors.deliveryDate}
+                        />
+                        {deliveryDate && <p className="text-[10px] text-amber-800 font-medium mt-1" suppressHydrationWarning>{formatDisplayDate(deliveryDate)}</p>}
                         {errors.deliveryDate && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.deliveryDate}</p>}
                       </div>
 
@@ -785,20 +781,13 @@ export default function ProductDetailModal() {
                         <label htmlFor="order-time" className="text-[11px] font-bold text-bakery-800 block mb-1.5">
                           Time <span className="text-rose-500">*</span>
                         </label>
-                        <div className="relative">
-                          <Clock className="w-3.5 h-3.5 text-amber-700 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          <input
-                            id="order-time"
-                            type="time"
-                            required
-                            value={deliveryTime}
-                            min={minTime}
-                            onChange={e => { setDeliveryTime(e.target.value); clearError('deliveryTime'); }}
-                            className={`${inputCls('deliveryTime')} pl-8 cursor-pointer min-h-[44px]`}
-                            suppressHydrationWarning
-                          />
-                        </div>
-                        {deliveryTime && <p className="text-[10px] text-amber-800 font-medium mt-0.5" suppressHydrationWarning>{formatDisplayTime(deliveryTime)}</p>}
+                        <TimePicker
+                          id="order-time"
+                          value={deliveryTime}
+                          onChange={val => { setDeliveryTime(val); clearError('deliveryTime'); }}
+                          error={errors.deliveryTime}
+                        />
+                        {deliveryTime && <p className="text-[10px] text-amber-800 font-medium mt-1" suppressHydrationWarning>{formatDisplay12(deliveryTime)}</p>}
                         {errors.deliveryTime && <p className="text-rose-500 text-[10px] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.deliveryTime}</p>}
                       </div>
                     </div>
@@ -810,7 +799,7 @@ export default function ProductDetailModal() {
 
                   {/* ── SECTION: Cake Message ── */}
                   <div className="space-y-3">
-                    <SectionLabel icon={<MessageSquare className="w-3.5 h-3.5" />} label="Cake Message (Optional)" />
+                    <SectionLabel icon={<MessageSquare className="w-3.5 h-3.5" />} label="Message on Cake" />
                     <textarea
                       rows={2}
                       value={cakeMessage}

@@ -90,14 +90,6 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
           
           {/* Left Content Column */}
           <div className="md:col-span-7 space-y-5 text-center md:text-left">
-            {/* Badge */}
-            {heroData.badge && (
-              <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-900 text-xs font-bold px-4 py-2 rounded-full border border-amber-500/30">
-                <Sparkles className="w-4 h-4 text-amber-700 animate-spin" />
-                <span>{heroData.badge}</span>
-              </div>
-            )}
-
             {/* Heading */}
             <h1 className="font-serif text-3xl sm:text-4xl md:text-4xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
               {heroData.heading}

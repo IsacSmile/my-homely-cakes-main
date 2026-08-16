@@ -327,17 +327,17 @@ export default function ProductModalLazy({
   };
 
   const handleUpdateVariant = (index: number, field: keyof WeightVariant, value: any) => {
-    setWeightVariants(prev => {
-      const copy = [...prev];
-      if (field === 'isDefault') {
-        copy.forEach((v, i) => {
-          v.isDefault = i === index;
-        });
-      } else {
-        (copy[index] as any)[field] = value;
-      }
-      return copy;
-    });
+    setWeightVariants(prev =>
+      prev.map((v, i) => {
+        if (field === 'isDefault') {
+          return { ...v, isDefault: i === index };
+        }
+        if (i === index) {
+          return { ...v, [field]: value };
+        }
+        return { ...v };
+      })
+    );
   };
 
   const isAnyUploading = uploadingSlots.some(Boolean);
