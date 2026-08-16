@@ -36,7 +36,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     fetchNewOrders();
     const interval = setInterval(fetchNewOrders, 15000);
-    return () => clearInterval(interval);
+
+    const handleNewOrder = () => {
+      fetchNewOrders();
+    };
+    window.addEventListener('new-order-received', handleNewOrder);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('new-order-received', handleNewOrder);
+    };
   }, [pathname]);
 
   if (pathname === '/admin-manage') {

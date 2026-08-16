@@ -77,7 +77,12 @@ export default function AdminOrdersPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
 
-  const fetchOrders = useCallback((overrideFrom?: string, overrideTo?: string, overrideStatus?: string) => {
+  const fetchOrders = useCallback((
+    showSkeleton: boolean = true,
+    overrideFrom?: string,
+    overrideTo?: string,
+    overrideStatus?: string
+  ) => {
     const f = overrideFrom !== undefined ? overrideFrom : fromDate;
     const t = overrideTo !== undefined ? overrideTo : toDate;
     const st = overrideStatus !== undefined ? overrideStatus : filterStatus;
@@ -100,7 +105,10 @@ export default function AdminOrdersPage() {
       window.history.replaceState(null, '', newUrl);
     }
 
-    setIsLoading(true);
+    if (showSkeleton) {
+      setIsLoading(true);
+    }
+
     fetch(`/api/orders${queryStr}`)
       .then(res => {
         if (res.status === 401) {
@@ -119,7 +127,11 @@ export default function AdminOrdersPage() {
         }
       })
       .catch(() => setOrders([]))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (showSkeleton) {
+          setIsLoading(false);
+        }
+      });
   }, [fromDate, toDate, filterStatus]);
 
   // Read URL query params on initial mount
@@ -140,16 +152,16 @@ export default function AdminOrdersPage() {
         setActivePreset(null);
       }
 
-      fetchOrders(initialFrom, initialTo, initialStatus);
+      fetchOrders(true, initialFrom, initialTo, initialStatus);
     }
-  }, [fetchOrders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Real-time polling & websocket events
+  // Listen for real-time new order events (dispatched by AdminSoundAlert)
   useEffect(() => {
-    const interval = setInterval(() => fetchOrders(), 10000);
-
     const handleNewOrder = (e: any) => {
-      fetchOrders();
+      // Quiet background fetch: update orders list smoothly without showing skeletons
+      fetchOrders(false);
       if (e.detail?.id) {
         setHighlightedOrderId(e.detail.id);
         setTimeout(() => setHighlightedOrderId(null), 6000);
@@ -158,7 +170,6 @@ export default function AdminOrdersPage() {
 
     window.addEventListener('new-order-received', handleNewOrder);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('new-order-received', handleNewOrder);
     };
   }, [fetchOrders]);
@@ -168,31 +179,31 @@ export default function AdminOrdersPage() {
     setFromDate(from);
     setToDate(to);
     setActivePreset(preset.label);
-    fetchOrders(from, to, filterStatus);
+    fetchOrders(true, from, to, filterStatus);
   };
 
   const handleFromDateChange = (val: string) => {
     setFromDate(val);
     setActivePreset(null);
-    fetchOrders(val, toDate, filterStatus);
+    fetchOrders(true, val, toDate, filterStatus);
   };
 
   const handleToDateChange = (val: string) => {
     setToDate(val);
     setActivePreset(null);
-    fetchOrders(fromDate, val, filterStatus);
+    fetchOrders(true, fromDate, val, filterStatus);
   };
 
   const handleClearDateFilter = () => {
     setFromDate('');
     setToDate('');
     setActivePreset('All Time');
-    fetchOrders('', '', filterStatus);
+    fetchOrders(true, '', '', filterStatus);
   };
 
   const handleStatusChangeFilter = (st: string) => {
     setFilterStatus(st);
-    fetchOrders(fromDate, toDate, st);
+    fetchOrders(true, fromDate, toDate, st);
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
