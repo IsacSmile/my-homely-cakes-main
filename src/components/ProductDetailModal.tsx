@@ -13,6 +13,7 @@ import { parseProductVariants, getDefaultVariant, getVariantPrice, formatINR, We
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn } from '@/lib/auth-toast';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 // ---------- IST Helpers ----------
 function getNowIST(): Date {
@@ -232,19 +233,7 @@ export default function ProductDetailModal() {
   }, [handleKeyDown]);
 
   // Prevent body scroll & touch-drag when modal open
-  useEffect(() => {
-    if (selectedModalProduct) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    };
-  }, [selectedModalProduct]);
+  useScrollLock(!!selectedModalProduct);
 
   if (!selectedModalProduct) return null;
 

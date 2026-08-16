@@ -8,6 +8,7 @@ import { ShoppingBag, Heart, Search, Menu, X, PhoneCall, Package, LogOut, Chevro
 import { useCart } from '@/context/CartContext';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn, handleGoogleSignOut } from '@/lib/auth-toast';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 function UserAvatar({ image, name, size = 32 }: { image?: string | null; name?: string | null; size?: number }) {
   const [imgError, setImgError] = useState(false);
@@ -84,16 +85,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
   }, [userMenuOpen]);
 
   // Lock body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [mobileMenuOpen]);
+  useScrollLock(mobileMenuOpen);
 
   // Track scroll position to trigger floating pill header transformation
   useEffect(() => {
@@ -322,12 +314,12 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
       {/* Mobile Drawer Overlay Navigation */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn md:hidden"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn md:hidden touch-none"
           onClick={(e) => {
             if (e.target === e.currentTarget) setMobileMenuOpen(false);
           }}
         >
-          <div className="w-full h-full bg-white shadow-2xl flex flex-col justify-between p-6 sm:p-8 animate-slideInRight">
+          <div className="w-full h-full bg-white shadow-2xl flex flex-col justify-between p-6 sm:p-8 animate-slideInRight touch-auto overflow-y-auto overscroll-contain">
             {/* Drawer Header */}
             <div>
               <div className="flex items-center justify-between pb-6 border-b border-bakery-100">

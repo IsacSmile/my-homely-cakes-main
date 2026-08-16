@@ -5,11 +5,15 @@ import { Search, X, Cake, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatINR } from '@/lib/pricing';
 
+import { useScrollLock } from '@/hooks/useScrollLock';
+
 export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { openProductModal } = useCart();
+
+  useScrollLock(isOpen);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -43,8 +47,11 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-bakery-200">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/60 backdrop-blur-xs animate-fadeIn touch-none"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-bakery-200 touch-auto">
         
         {/* Search Input Header */}
         <div className="p-4 bg-bakery-50 border-b border-bakery-200 flex items-center gap-3">
@@ -68,7 +75,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
         </div>
 
         {/* Results List */}
-        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+        <div className="p-4 max-h-[60vh] overflow-y-auto overscroll-contain space-y-2">
           {isLoading ? (
             <div className="py-8 text-center text-xs text-bakery-400">Searching fresh cakes...</div>
           ) : query && results.length === 0 ? (

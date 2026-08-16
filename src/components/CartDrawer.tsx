@@ -8,6 +8,8 @@ import { formatINR } from '@/lib/pricing';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn } from '@/lib/auth-toast';
 
+import { useScrollLock } from '@/hooks/useScrollLock';
+
 export default function CartDrawer() {
   const {
     cart,
@@ -28,6 +30,9 @@ export default function CartDrawer() {
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
   const [redeemPoints, setRedeemPoints] = useState<boolean>(false);
+
+  // Lock body scroll & touch-drag when cart drawer is open
+  useScrollLock(isCartOpen);
 
   useEffect(() => {
     if (session?.user?.name && !customerName) {
@@ -114,7 +119,7 @@ export default function CartDrawer() {
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn"
+      className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-fadeIn touch-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           setIsCartOpen(false);
@@ -122,7 +127,7 @@ export default function CartDrawer() {
         }
       }}
     >
-      <div className="w-full sm:max-w-lg bg-white shadow-2xl flex flex-col justify-between h-full animate-scaleIn">
+      <div className="w-full sm:max-w-lg bg-white shadow-2xl flex flex-col justify-between h-full animate-scaleIn touch-auto">
         
         {/* Drawer Header */}
         <div className="p-4 sm:p-5 bg-bakery-chocolate text-white flex items-center justify-between shrink-0">
@@ -146,7 +151,7 @@ export default function CartDrawer() {
         </div>
 
         {/* Drawer Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-6">
           {orderSuccess ? (
             /* Success confirmation view */
             <div className="text-center py-3 space-y-5">
