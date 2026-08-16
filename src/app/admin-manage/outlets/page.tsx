@@ -322,13 +322,12 @@ export default function AdminOutletsPage() {
                   <div className="space-y-3">
                     {/* Storefront Image */}
                     <div className="relative h-48 w-full bg-bakery-100 overflow-hidden">
-                      <img
+                      <Image
                         src={outlet.imageUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'}
                         alt={outlet.name}
+                        fill
+                        unoptimized
                         className="w-full h-full object-cover"
-                        onError={(e: any) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80';
-                        }}
                       />
                       <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
                         Order #{outlet.sortOrder || idx + 1}
@@ -509,7 +508,7 @@ export default function AdminOutletsPage() {
                 ) : founderPhotoUrl ? (
                   <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-amber-200">
                     <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-amber-400 shrink-0 bg-bakery-100">
-                      <img src={founderPhotoUrl} alt="Founder Preview" className="w-full h-full object-cover" />
+                      <Image src={founderPhotoUrl} alt="Founder Preview" fill unoptimized className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
@@ -658,7 +657,7 @@ export default function AdminOutletsPage() {
                 ) : imageUrl ? (
                   <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-amber-200">
                     <div className="relative w-16 h-12 rounded-lg overflow-hidden border border-amber-400 shrink-0 bg-bakery-100">
-                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <Image src={imageUrl} alt="Preview" fill unoptimized className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     }
 
     const allOrders = (await query.orderBy(desc(orders.createdAt)).all()) || [];
-    const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const totalRevenue = allOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0);
 
     return NextResponse.json({
       orders: allOrders,
