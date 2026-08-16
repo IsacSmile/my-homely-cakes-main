@@ -29,3 +29,7 @@ yarn-error.log*
 # system files
 .DS_Store
 Thumbs.db
+
+# pdf and scratch scripts
+*.pdf
+generate_handover_pdf.js
