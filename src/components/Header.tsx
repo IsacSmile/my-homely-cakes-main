@@ -140,13 +140,13 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
 
           {/* Main Brand Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-h-[38px] sm:min-h-[44px] shrink-0 min-w-0">
-            <div className={`relative rounded-full overflow-hidden border border-amber-500/20 group-hover:scale-105 transition-all duration-500 ease-out shadow-xs shrink-0 bg-white p-0.5 ${isScrolled ? 'w-8 h-8 sm:w-10 sm:h-10' : 'w-9 h-9 sm:w-11 sm:h-11'
+            <div className={`relative rounded-full overflow-hidden border border-amber-500/20 group-hover:scale-105 transition-all duration-500 ease-out shadow-xs shrink-0 bg-white p-0.5 ${isScrolled ? 'w-9 h-9 sm:w-11 sm:h-11' : 'w-11 h-11 sm:w-14 sm:h-14'
               }`}>
               <Image
                 src="/logo.png"
                 alt="MyHomelyCake Trivandrum Logo"
                 fill
-                sizes="(max-width: 640px) 36px, 44px"
+                sizes="(max-width: 640px) 44px, 56px"
                 priority
                 className="object-contain"
               />
@@ -154,7 +154,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             <div className="flex flex-col min-w-0 transition-all duration-500 ease-out">
               <span className={`font-serif font-bold text-bakery-chocolate tracking-tight group-hover:text-amber-800 transition-colors leading-none truncate max-w-[105px] min-[360px]:max-w-[140px] sm:max-w-none ${isScrolled ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'
                 }`}>
-                My Homely Cake
+                Cakes
               </span>
               <span className="text-[7px] sm:text-[10px] tracking-widest uppercase font-bold text-amber-700 mt-0.5 truncate hidden min-[360px]:block">
                 We Deliver Your Delicious Dreams !!
@@ -324,10 +324,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             <div>
               <div className="flex items-center justify-between pb-6 border-b border-bakery-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden border border-amber-500/20 bg-white p-0.5 shrink-0">
+                  <div className="relative w-11 h-11 rounded-full overflow-hidden border border-amber-500/20 bg-white p-0.5 shrink-0">
                     <Image src="/logo.png" alt="Logo" fill className="object-contain" />
                   </div>
-                  <span className="font-serif text-lg font-bold text-bakery-chocolate">MyHomelyCake</span>
+                  <span className="font-serif text-lg font-bold text-bakery-chocolate">Cakes</span>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}

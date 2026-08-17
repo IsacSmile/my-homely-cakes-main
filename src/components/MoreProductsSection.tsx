@@ -27,7 +27,7 @@ export default function MoreProductsSection({
     setIsLoadingMore(true);
 
     try {
-      const res = await fetch(`/api/products?limit=12&offset=${productList.length}`);
+      const res = await fetch(`/api/products?limit=12&offset=${productList.length}&excludeFeatured=true`);
       const data = await res.json();
 
       if (data && Array.isArray(data.products) && data.products.length > 0) {
@@ -84,6 +84,7 @@ export default function MoreProductsSection({
             product={product}
             discountPercent={discountPercent}
             priority={idx < 4}
+            hidePopularTag={true}
           />
         ))}
       </div>

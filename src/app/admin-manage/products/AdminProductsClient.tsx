@@ -337,6 +337,7 @@ export default function AdminProductsClient({
           onClose={() => setIsModalOpen(false)}
           editingProduct={editingProduct}
           categoriesList={categoriesList}
+          allProductsList={productsList}
           onSaved={handleProductSaved}
         />
       )}

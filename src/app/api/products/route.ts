@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const featured = searchParams.get('featured') === 'true';
+    const excludeFeatured = searchParams.get('excludeFeatured') === 'true';
 
     let allProducts = (await db.select().from(products)) || [];
 
@@ -30,11 +31,36 @@ export async function GET(request: Request) {
       );
     }
 
+    const isProductFeatured = (p: any): boolean => {
+      if (!p) return false;
+      const val = p.isFeatured;
+      return val === true || val === 1 || val === '1' || val === 'true';
+    };
+
+    const isProductAvailable = (p: any): boolean => {
+      if (!p) return false;
+      const val = p.isAvailable;
+      return val === true || val === 1 || val === '1' || val === 'true' || val === undefined;
+    };
+
     if (featured) {
-      allProducts.sort((a: any, b: any) => b.orderCount - a.orderCount);
+      allProducts = allProducts.filter((p: any) => isProductAvailable(p) && isProductFeatured(p));
+      allProducts.sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else {
-      allProducts = allProducts.filter((p: any) => Boolean(p.isAvailable));
+      allProducts = allProducts.filter((p: any) => isProductAvailable(p));
+      if (excludeFeatured) {
+        allProducts = allProducts.filter((p: any) => !isProductFeatured(p));
+      }
       allProducts.sort((a: any, b: any) => {
+        const orderA = Number(a.homeSectionOrder || 0);
+        const orderB = Number(b.homeSectionOrder || 0);
+        if (orderA > 0 && orderB > 0) {
+          if (orderA !== orderB) return orderA - orderB;
+        } else if (orderA > 0) {
+          return -1;
+        } else if (orderB > 0) {
+          return 1;
+        }
         const numA = parseInt(a.id.replace(/\D/g, '') || '0', 10);
         const numB = parseInt(b.id.replace(/\D/g, '') || '0', 10);
         return numB - numA || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -61,7 +87,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder } = body;
 
     if (!name || !description || (!imageUrl && (!images || images.length === 0)) || !category || !basePrice) {
       return NextResponse.json({ error: 'Missing required product fields (Name, Description, Image, Category, Base Price)' }, { status: 400 });
@@ -87,6 +113,7 @@ export async function POST(request: Request) {
       isAvailable: isAvailable !== false,
       isFeatured: Boolean(isFeatured),
       featuredOrder: Number(featuredOrder) || 0,
+      homeSectionOrder: Number(homeSectionOrder) || 0,
       orderCount: 0,
       createdAt: new Date().toISOString(),
     };

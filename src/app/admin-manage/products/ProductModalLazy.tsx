@@ -13,6 +13,7 @@ interface ProductModalLazyProps {
   onClose: () => void;
   editingProduct: any | null;
   categoriesList: any[];
+  allProductsList?: any[];
   onSaved: (product: any, isEdit: boolean) => void;
 }
 
@@ -21,6 +22,7 @@ export default function ProductModalLazy({
   onClose,
   editingProduct,
   categoriesList,
+  allProductsList = [],
   onSaved,
 }: ProductModalLazyProps) {
   const [name, setName] = useState('');
@@ -29,6 +31,7 @@ export default function ProductModalLazy({
   const [isAvailable, setIsAvailable] = useState(true);
   const [isFeatured, setIsFeatured] = useState(false);
   const [featuredOrder, setFeaturedOrder] = useState(0);
+  const [homeSectionOrder, setHomeSectionOrder] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -48,6 +51,80 @@ export default function ProductModalLazy({
 
   const globalFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Map of currently used sort orders among other featured products
+  const usedSortOrdersMap = React.useMemo(() => {
+    const map = new Map<number, string>();
+    if (!allProductsList || !Array.isArray(allProductsList)) return map;
+
+    for (const p of allProductsList) {
+      if (editingProduct && (p.id === editingProduct.id || (p.slug && p.slug === editingProduct.slug))) {
+        continue;
+      }
+      const isPFeatured = p.isFeatured === true || p.isFeatured === 1 || p.isFeatured === '1' || p.isFeatured === 'true';
+      const pOrder = Number(p.featuredOrder || 0);
+      if (isPFeatured && pOrder > 0) {
+        map.set(pOrder, p.name);
+      }
+    }
+    return map;
+  }, [allProductsList, editingProduct]);
+
+  const usedOrderNumbers = React.useMemo(() => {
+    return Array.from(usedSortOrdersMap.keys()).sort((a, b) => a - b);
+  }, [usedSortOrdersMap]);
+
+  const nextAvailableOrder = React.useMemo(() => {
+    let candidate = 1;
+    while (usedSortOrdersMap.has(candidate)) {
+      candidate++;
+    }
+    return candidate;
+  }, [usedSortOrdersMap]);
+
+  // Map of currently used positions among non-featured products in "More From Our Oven"
+  const usedHomeSectionOrdersMap = React.useMemo(() => {
+    const map = new Map<number, string>();
+    if (!allProductsList || !Array.isArray(allProductsList)) return map;
+
+    for (const p of allProductsList) {
+      if (editingProduct && (p.id === editingProduct.id || (p.slug && p.slug === editingProduct.slug))) {
+        continue;
+      }
+      const isPFeatured = p.isFeatured === true || p.isFeatured === 1 || p.isFeatured === '1' || p.isFeatured === 'true';
+      const pHomeOrder = Number(p.homeSectionOrder || 0);
+      if (!isPFeatured && pHomeOrder > 0) {
+        map.set(pHomeOrder, p.name);
+      }
+    }
+    return map;
+  }, [allProductsList, editingProduct]);
+
+  const usedHomeOrderNumbers = React.useMemo(() => {
+    return Array.from(usedHomeSectionOrdersMap.keys()).sort((a, b) => a - b);
+  }, [usedHomeSectionOrdersMap]);
+
+  const nextAvailableHomeOrder = React.useMemo(() => {
+    let candidate = 1;
+    while (usedHomeSectionOrdersMap.has(candidate)) {
+      candidate++;
+    }
+    return candidate;
+  }, [usedHomeSectionOrdersMap]);
+
+  const handleToggleFeaturedCheck = (checked: boolean) => {
+    setIsFeatured(checked);
+    setValidationError(null);
+    if (checked) {
+      if (!featuredOrder || featuredOrder <= 0) {
+        setFeaturedOrder(nextAvailableOrder);
+      }
+    } else {
+      if (!homeSectionOrder || homeSectionOrder <= 0) {
+        setHomeSectionOrder(nextAvailableHomeOrder);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     setValidationError(null);
@@ -57,6 +134,8 @@ export default function ProductModalLazy({
       setDescription(editingProduct.description || '');
       setIsFeatured(Boolean(editingProduct.isFeatured));
       setFeaturedOrder(Number(editingProduct.featuredOrder || 0));
+      const existingHomeOrder = Number(editingProduct.homeSectionOrder || 0);
+      setHomeSectionOrder(existingHomeOrder > 0 ? existingHomeOrder : nextAvailableHomeOrder);
       
       let loadedPhotos: string[] = ['', '', '', ''];
       try {
@@ -91,6 +170,9 @@ export default function ProductModalLazy({
     } else {
       setName('');
       setDescription('');
+      setIsFeatured(false);
+      setFeaturedOrder(0);
+      setHomeSectionOrder(nextAvailableHomeOrder);
       setPhotos([
         '',
         '',
@@ -383,6 +465,29 @@ export default function ProductModalLazy({
       weightSet.add(v.weightG);
     }
 
+    if (isFeatured) {
+      if (!featuredOrder || featuredOrder <= 0) {
+        setValidationError(`Please enter a valid positive Sort Order number (e.g. ${nextAvailableOrder}) for featured products.`);
+        return;
+      }
+
+      if (usedSortOrdersMap.has(featuredOrder)) {
+        const conflictName = usedSortOrdersMap.get(featuredOrder);
+        setValidationError(
+          `Sort Order ${featuredOrder} is already used by "${conflictName}". Next available: ${nextAvailableOrder}.`
+        );
+        return;
+      }
+    } else {
+      if (homeSectionOrder > 0 && usedHomeSectionOrdersMap.has(homeSectionOrder)) {
+        const conflictName = usedHomeSectionOrdersMap.get(homeSectionOrder);
+        setValidationError(
+          `Position #${homeSectionOrder} in 'More From Our Oven' is already used by "${conflictName}". Please choose a different number.`
+        );
+        return;
+      }
+    }
+
     let finalVariants = [...weightVariants];
     if (!finalVariants.some(v => v.isDefault)) {
       finalVariants[0].isDefault = true;
@@ -407,7 +512,8 @@ export default function ProductModalLazy({
       variants: finalVariants,
       isAvailable,
       isFeatured,
-      featuredOrder,
+      featuredOrder: isFeatured ? featuredOrder : 0,
+      homeSectionOrder: !isFeatured ? homeSectionOrder : 0,
     };
 
     try {
@@ -455,9 +561,18 @@ export default function ProductModalLazy({
 
         {/* Global Validation Error Banner */}
         {validationError && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-semibold text-rose-800 flex items-center gap-2 animate-fadeIn">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{validationError}</span>
+          <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs font-semibold text-amber-900 flex items-center justify-between gap-2 shadow-xs animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setValidationError(null)}
+              className="text-amber-700 hover:text-amber-900 p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -695,28 +810,73 @@ export default function ProductModalLazy({
                   type="checkbox"
                   id="featuredCheck"
                   checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="rounded text-amber-600 h-4 w-4"
+                  onChange={(e) => handleToggleFeaturedCheck(e.target.checked)}
+                  className="rounded text-amber-600 h-4 w-4 cursor-pointer"
                 />
-                <label htmlFor="featuredCheck" className="text-xs font-bold text-amber-900 flex items-center gap-1">
-                  ⭐ Feature this cake on Home Page (&quot;Handpicked Favorites&quot;)
+                <label htmlFor="featuredCheck" className="text-xs font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
+                  ⭐ Feature this cake on Home Page (&quot;Featured Bakery Creations&quot;)
                 </label>
               </div>
 
-              {isFeatured && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <label htmlFor="featuredOrderInput" className="text-[11px] font-bold text-amber-800">
-                    Sort Order:
-                  </label>
-                  <input
-                    id="featuredOrderInput"
-                    type="number"
-                    min={0}
-                    value={featuredOrder}
-                    onChange={(e) => setFeaturedOrder(Number(e.target.value))}
-                    className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none"
-                    placeholder="0"
-                  />
+              {isFeatured ? (
+                <div className="flex flex-col items-start sm:items-end gap-1 shrink-0 animate-fadeIn">
+                  <div className="flex items-center gap-1.5">
+                    <label htmlFor="featuredOrderInput" className="text-[11px] font-bold text-amber-800" title="Determines display position in Featured section">
+                      Sort Order:
+                    </label>
+                    <input
+                      id="featuredOrderInput"
+                      type="number"
+                      min={1}
+                      value={featuredOrder || ''}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setFeaturedOrder(val);
+                        setValidationError(null);
+                      }}
+                      className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                      placeholder={`${nextAvailableOrder}`}
+                    />
+                  </div>
+                  <p className="text-[10px] text-amber-800/90 font-medium">
+                    {usedOrderNumbers.length > 0 ? (
+                      <>Currently used: <span className="font-bold text-amber-900">{usedOrderNumbers.join(', ')}</span> (Next available: <span className="font-bold text-emerald-700">{nextAvailableOrder}</span>)</>
+                    ) : (
+                      <>Next available: <span className="font-bold text-emerald-700">1</span></>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-start sm:items-end gap-1 shrink-0 animate-fadeIn">
+                  <div className="flex items-center gap-1.5">
+                    <label
+                      htmlFor="homeSectionOrderInput"
+                      className="text-[11px] font-bold text-amber-800 cursor-help"
+                      title="Controls this cake's position in the homepage 'More From Our Oven' section only. Only applies if the cake is NOT featured."
+                    >
+                      More From Our Oven — Position Number:
+                    </label>
+                    <input
+                      id="homeSectionOrderInput"
+                      type="number"
+                      min={0}
+                      value={homeSectionOrder || ''}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setHomeSectionOrder(val);
+                        setValidationError(null);
+                      }}
+                      className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                      placeholder="0"
+                    />
+                  </div>
+                  <p className="text-[10px] text-amber-800/90 font-medium">
+                    {usedHomeOrderNumbers.length > 0 ? (
+                      <>Currently used positions: <span className="font-bold text-amber-900">{usedHomeOrderNumbers.join(', ')}</span> (Next available: <span className="font-bold text-emerald-700">{nextAvailableHomeOrder}</span>)</>
+                    ) : (
+                      <>Next available: <span className="font-bold text-emerald-700">1</span></>
+                    )}
+                  </p>
                 </div>
               )}
             </div>

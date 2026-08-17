@@ -23,6 +23,7 @@ export interface ProductCardProps {
   };
   discountPercent?: number;
   priority?: boolean;
+  hidePopularTag?: boolean;
 }
 
 function getOptimizedImageUrl(url?: string): string {
@@ -34,7 +35,7 @@ function getOptimizedImageUrl(url?: string): string {
   return url;
 }
 
-export default function ProductCard({ product, discountPercent = 0, priority = false }: ProductCardProps) {
+export default function ProductCard({ product, discountPercent = 0, priority = false, hidePopularTag = false }: ProductCardProps) {
   const { addToCart, toggleWishlist, isInWishlist, openProductModal } = useCart();
   const isWishlisted = isInWishlist(product.id);
   const [imgSrc, setImgSrc] = useState<string>(
@@ -106,7 +107,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
         </button>
 
         {/* Popular Badge */}
-        {product.orderCount > 50 && (
+        {!hidePopularTag && product.orderCount > 50 && (
           <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-amber-500/90 text-white text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
             <Award className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Popular
           </span>

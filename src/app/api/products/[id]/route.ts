@@ -12,7 +12,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const resolvedParams = await params;
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder } = body;
 
     const prod = await db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
     if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -36,6 +36,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : prod.isAvailable,
         isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : prod.isFeatured,
         featuredOrder: featuredOrder !== undefined ? Number(featuredOrder) : prod.featuredOrder,
+        homeSectionOrder: homeSectionOrder !== undefined ? Number(homeSectionOrder) : prod.homeSectionOrder,
       })
       .where(eq(products.id, resolvedParams.id))
       .run();
@@ -64,6 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const updates: Partial<typeof prod> = {};
     if (body.isFeatured !== undefined) updates.isFeatured = Boolean(body.isFeatured);
     if (body.featuredOrder !== undefined) updates.featuredOrder = Number(body.featuredOrder);
+    if (body.homeSectionOrder !== undefined) updates.homeSectionOrder = Number(body.homeSectionOrder);
     if (body.isAvailable !== undefined) updates.isAvailable = Boolean(body.isAvailable);
 
     await db.update(products)

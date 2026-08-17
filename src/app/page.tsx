@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Cake, Award, PhoneCall, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { db } from '@/db';
 import { products, offers, orders, settings } from '@/db/schema';
@@ -13,11 +13,11 @@ import FeaturedProductsSection from '@/components/FeaturedProductsSection';
 import MoreProductsSection from '@/components/MoreProductsSection';
 
 // Dynamic below-the-fold components
-const OccasionOffersBanner = dynamic(() => import('@/components/OccasionOffersBanner'));
-const MeetTheTeamSection = dynamic(() => import('@/components/MeetTheTeamSection'));
-const TestimonialsSection = dynamic(() => import('@/components/TestimonialsSection'));
+const OccasionOffersBanner = nextDynamic(() => import('@/components/OccasionOffersBanner'));
+const MeetTheTeamSection = nextDynamic(() => import('@/components/MeetTheTeamSection'));
+const TestimonialsSection = nextDynamic(() => import('@/components/TestimonialsSection'));
 
-export const revalidate = 60; // Revalidate dynamic content every 60 seconds
+export const dynamic = 'force-dynamic';
 
 const DEFAULT_SLIDES = [
   {
@@ -46,30 +46,52 @@ const DEFAULT_SLIDES = [
   },
 ];
 
+const isProductFeatured = (p: any): boolean => {
+  if (!p) return false;
+  const val = p.isFeatured;
+  return val === true || val === 1 || val === '1' || val === 'true';
+};
+
+const isProductAvailable = (p: any): boolean => {
+  if (!p) return false;
+  const val = p.isAvailable;
+  return val === true || val === 1 || val === '1' || val === 'true' || val === undefined;
+};
+
 export default async function HomePage() {
   // Fetch active products server-side
   const allProducts = (await db.select().from(products)) || [];
 
-  // Filter & sort all available active products
-  const availableProducts = allProducts
-    .filter((p: any) => Boolean(p.isAvailable))
+  // 1. Featured Products (Curated by admin, ordered by featuredOrder or recency)
+  const featuredProducts = allProducts
+    .filter((p: any) => isProductAvailable(p) && isProductFeatured(p))
+    .sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // 2. Non-Featured Products for "Fresh From The Oven / More From Our Oven" Section
+  const nonFeaturedAvailableProducts = allProducts
+    .filter((p: any) => isProductAvailable(p) && !isProductFeatured(p))
     .sort((a: any, b: any) => {
+      const orderA = Number(a.homeSectionOrder || 0);
+      const orderB = Number(b.homeSectionOrder || 0);
+      if (orderA > 0 && orderB > 0) {
+        if (orderA !== orderB) return orderA - orderB;
+      } else if (orderA > 0) {
+        return -1;
+      } else if (orderB > 0) {
+        return 1;
+      }
       const numA = parseInt(a.id.replace(/\D/g, '') || '0', 10);
       const numB = parseInt(b.id.replace(/\D/g, '') || '0', 10);
       return numB - numA || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  // 1. Top Promoted Product Section: Initial 20 products
-  const initialTopProducts = availableProducts.slice(0, 20);
-  const totalProductCount = availableProducts.length;
-
-  // 2. Featured Products (Curated by admin, ordered by featuredOrder or recency)
-  const featuredProducts = availableProducts
-    .filter((p: any) => Boolean(p.isFeatured))
-    .sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Top Promoted Product Section: Initial 20 non-featured products
+  const initialTopProducts = nonFeaturedAvailableProducts.slice(0, 20);
+  const totalProductCount = nonFeaturedAvailableProducts.length;
 
   // 3. Most Ordered This Week (ranked list of top products by orderCount)
-  const mostOrderedThisWeek = [...availableProducts]
+  const mostOrderedThisWeek = [...allProducts]
+    .filter((p: any) => Boolean(p.isAvailable))
     .sort((a: any, b: any) => b.orderCount - a.orderCount)
     .slice(0, 6);
 
