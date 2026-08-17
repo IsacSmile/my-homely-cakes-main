@@ -88,14 +88,18 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
   // Lock body scroll when mobile menu is open
   useScrollLock(mobileMenuOpen);
 
-  // Track scroll position to trigger floating pill header transformation
+  // Track scroll position with hysteresis to trigger header transformation
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      const currentScrollY = window.scrollY;
+      setIsScrolled((prev) => {
+        if (!prev && currentScrollY > 60) {
+          return true;
+        } else if (prev && currentScrollY < 30) {
+          return false;
+        }
+        return prev;
+      });
     };
 
     handleScroll();
@@ -127,10 +131,10 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
         </a>
       </div>
 
-      {/* TRANSFORMING HEADER BAR - Hardware Accelerated Mobile & Desktop Morphing */}
-      <div className={`transition-all duration-300 ease-out gpu-header ${isScrolled
-        ? 'sm:mt-2 mx-auto w-full sm:w-[calc(100%-1rem)] max-w-5xl bg-white/95 backdrop-blur-md rounded-none sm:rounded-full border-b sm:border border-bakery-200/80 shadow-soft-lg px-3 sm:px-6 py-2 sm:py-2'
-        : 'mt-0 w-full max-w-full bg-white/90 backdrop-blur-md border-b border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3 rounded-none'
+      {/* TRANSFORMING HEADER BAR - Full Width, Symmetric Transition */}
+      <div className={`w-full transition-all duration-300 ease-out gpu-header border-b ${isScrolled
+        ? 'bg-white/95 backdrop-blur-md border-bakery-200/80 shadow-soft-lg px-3 sm:px-6 py-1.5 sm:py-2'
+        : 'bg-white/90 backdrop-blur-md border-bakery-200/50 shadow-xs px-3 sm:px-8 py-2.5 sm:py-3'
         }`}>
         <div className="flex items-center justify-between gap-1 max-w-full relative">
 
