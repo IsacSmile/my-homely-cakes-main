@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -9,44 +9,14 @@ import {
   MessageSquareQuote, MapPin, Store,
 } from 'lucide-react';
 
-
 import AdminSoundAlert from '@/components/AdminSoundAlert';
+import { AdminOrderProvider, useAdminOrders } from '@/context/AdminOrderContext';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const { newOrdersCount } = useAdminOrders();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (pathname === '/admin-manage') return;
-
-    const fetchNewOrders = () => {
-      fetch('/api/orders')
-        .then(res => res.json())
-        .then(data => {
-          if (data.orders) {
-            const count = data.orders.filter((o: any) => o.status === 'new').length;
-            setNewOrdersCount(count);
-          }
-        })
-        .catch(() => {});
-    };
-
-    fetchNewOrders();
-    const interval = setInterval(fetchNewOrders, 15000);
-
-    const handleNewOrder = () => {
-      fetchNewOrders();
-    };
-    window.addEventListener('new-order-received', handleNewOrder);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('new-order-received', handleNewOrder);
-    };
-  }, [pathname]);
 
   if (pathname === '/admin-manage') {
     return <>{children}</>;
@@ -65,7 +35,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Occasion Offers', href: '/admin-manage/offers', icon: Tag },
     { name: 'Delivery Cities', href: '/admin-manage/cities', icon: MapPin },
     { name: 'Our Outlets', href: '/admin-manage/outlets', icon: Store },
-
     { name: 'Customer Reviews', href: '/admin-manage/testimonials', icon: MessageSquareQuote },
     { name: 'Team & Bakers', href: '/admin-manage/team', icon: Users },
     { name: 'Subscribers', href: '/admin-manage/subscribers', icon: Mail },
@@ -73,12 +42,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    // Root: full viewport height, white background content area
     <div className="min-h-screen bg-gray-50 flex">
-
       {/* ─── FIXED SIDEBAR (desktop) ─── */}
       <aside className="hidden md:flex fixed top-0 left-0 h-screen w-60 bg-[#0f0f0f] text-white flex-col z-30 border-r border-white/5">
-
         {/* Logo / Brand & Sound Alert Toggle */}
         <div className="px-4 pt-6 pb-4 border-b border-white/10 flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -94,11 +60,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminSoundAlert />
         </div>
 
-
-
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             return (
@@ -112,15 +76,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`w-[15px] h-[15px] shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                  <Icon
+                    className={`w-[15px] h-[15px] shrink-0 ${
+                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'
+                    }`}
+                  />
                   <span>{item.name}</span>
                 </div>
                 {item.badge && item.badge > 0 ? (
-                  <span className="bg-rose-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
+                  <span className="bg-rose-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none animate-pulse">
                     {item.badge}
                   </span>
                 ) : (
-                  <ChevronRight className={`w-3 h-3 opacity-0 group-hover:opacity-30 transition-opacity ${isActive ? 'opacity-40' : ''}`} />
+                  <ChevronRight
+                    className={`w-3 h-3 opacity-0 group-hover:opacity-30 transition-opacity ${
+                      isActive ? 'opacity-40' : ''
+                    }`}
+                  />
                 )}
               </Link>
             );
@@ -129,9 +101,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* New orders notification pill */}
         {newOrdersCount > 0 && (
-          <div className="mx-3 mb-2 bg-rose-500/15 border border-rose-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
-            <Bell className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-pulse" />
-            <span className="text-[11px] font-bold text-rose-300">{newOrdersCount} new order{newOrdersCount > 1 ? 's' : ''}</span>
+          <div className="mx-3 mb-2 bg-rose-500/20 border border-rose-500/40 rounded-xl px-3 py-2 flex items-center justify-between shadow-lg animate-pulse">
+            <div className="flex items-center gap-2">
+              <Bell className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-bounce" />
+              <span className="text-[11px] font-bold text-rose-200">
+                {newOrdersCount} unacknowledged order{newOrdersCount > 1 ? 's' : ''}
+              </span>
+            </div>
+            <Link
+              href="/admin-manage/orders"
+              className="text-[10px] font-extrabold text-amber-300 hover:underline uppercase"
+            >
+              View
+            </Link>
           </div>
         )}
 
@@ -158,8 +140,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-2">
           <AdminSoundAlert />
           {newOrdersCount > 0 && (
-            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Bell className="w-2.5 h-2.5" /> {newOrdersCount}
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+              <Bell className="w-2.5 h-2.5 animate-bounce" /> {newOrdersCount}
             </span>
           )}
           <button
@@ -172,7 +154,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
 
-
       {/* ─── MOBILE: SLIDE-DOWN DRAWER ─── */}
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-30 pt-14" onClick={() => setSidebarOpen(false)}>
@@ -180,7 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="bg-[#111111] border-b border-white/10 px-3 py-3 space-y-0.5 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            {navItems.map((item) => {
+            {navItems.map(item => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               return (
@@ -189,9 +170,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-amber-500 text-white'
-                      : 'text-gray-400 hover:bg-white/8 hover:text-white'
+                    isActive ? 'bg-amber-500 text-white' : 'text-gray-400 hover:bg-white/8 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -199,7 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span>{item.name}</span>
                   </div>
                   {item.badge && item.badge > 0 && (
-                    <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                    <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
                       {item.badge}
                     </span>
                   )}
@@ -219,13 +198,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      {/* ─── MAIN CONTENT (offset by sidebar width on desktop) ─── */}
+      {/* ─── MAIN CONTENT ─── */}
       <main className="flex-1 md:ml-60 pt-14 md:pt-0 min-h-screen bg-gray-50">
-        <div className="p-5 md:p-8 max-w-7xl">
-          {children}
-        </div>
+        <div className="p-5 md:p-8 max-w-7xl">{children}</div>
       </main>
-
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminOrderProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </AdminOrderProvider>
   );
 }

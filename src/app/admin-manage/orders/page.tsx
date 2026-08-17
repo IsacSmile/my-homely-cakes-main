@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2, CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X } from 'lucide-react';
+import {
+  ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2,
+  CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X, MessageSquare, ArrowRight
+} from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 import { AdminOrderRowSkeleton } from '@/components/ui/Skeletons';
 import { formatDisplay12 } from '@/components/ui/TimePicker';
+import { useAdminOrders } from '@/context/AdminOrderContext';
 
 const formatDateInput = (d: Date) => {
   const year = d.getFullYear();
@@ -63,85 +67,46 @@ const presets = [
   },
 ];
 
+const statusTabs = [
+  { key: 'all', label: 'ALL' },
+  { key: 'new', label: 'NEW' },
+  { key: 'contacted', label: 'CONTACTED' },
+  { key: 'confirmed', label: 'CONFIRMED' },
+  { key: 'completed', label: 'COMPLETED' },
+  { key: 'cancelled', label: 'CANCELLED' },
+];
+
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState<number>(0);
-  const [filterStatus, setFilterStatus] = useState<string>('All');
+  const {
+    orders,
+    statusCounts,
+    totalRevenue,
+    isLoading,
+    fetchOrders,
+    updateOrderStatus,
+    updateConsumerStatus,
+    deleteSingleOrder,
+    deleteBulkOrders,
+    highlightedOrderId,
+  } = useAdminOrders();
+
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [activePreset, setActivePreset] = useState<string | null>('All Time');
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
 
-  const fetchOrders = useCallback((
-    showSkeleton: boolean = true,
-    overrideFrom?: string,
-    overrideTo?: string,
-    overrideStatus?: string
-  ) => {
-    const f = overrideFrom !== undefined ? overrideFrom : fromDate;
-    const t = overrideTo !== undefined ? overrideTo : toDate;
-    const st = overrideStatus !== undefined ? overrideStatus : filterStatus;
-
-    if (f && t && new Date(f) > new Date(t)) {
-      setDateValidationError('From date cannot be after To date.');
-      return;
-    }
-    setDateValidationError(null);
-
-    const params = new URLSearchParams();
-    if (f) params.set('from', f);
-    if (t) params.set('to', t);
-    if (st && st !== 'All') params.set('status', st);
-
-    const queryStr = params.toString() ? `?${params.toString()}` : '';
-
-    if (typeof window !== 'undefined') {
-      const newUrl = `${window.location.pathname}${queryStr}`;
-      window.history.replaceState(null, '', newUrl);
-    }
-
-    if (showSkeleton) {
-      setIsLoading(true);
-    }
-
-    fetch(`/api/orders${queryStr}`)
-      .then(res => {
-        if (res.status === 401) {
-          window.location.href = '/admin-manage';
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (data && Array.isArray(data?.orders)) {
-          setOrders(data.orders);
-          setTotalRevenue(data.totalRevenue || 0);
-        } else {
-          setOrders([]);
-          setTotalRevenue(0);
-        }
-      })
-      .catch(() => setOrders([]))
-      .finally(() => {
-        if (showSkeleton) {
-          setIsLoading(false);
-        }
-      });
-  }, [fromDate, toDate, filterStatus]);
-
-  // Read URL query params on initial mount
+  // Read initial query params from URL on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const initialFrom = urlParams.get('from') || '';
       const initialTo = urlParams.get('to') || '';
-      const initialStatus = urlParams.get('status') || 'All';
+      const initialStatus = (urlParams.get('status') || 'all').toLowerCase();
 
       if (initialFrom) setFromDate(initialFrom);
       if (initialTo) setToDate(initialTo);
@@ -155,138 +120,119 @@ export default function AdminOrdersPage() {
 
       fetchOrders(true, initialFrom, initialTo, initialStatus);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Listen for real-time new order events (dispatched by AdminSoundAlert)
-  useEffect(() => {
-    const handleNewOrder = (e: any) => {
-      // Quiet background fetch: update orders list smoothly without showing skeletons
-      fetchOrders(false);
-      if (e.detail?.id) {
-        setHighlightedOrderId(e.detail.id);
-        setTimeout(() => setHighlightedOrderId(null), 6000);
-      }
-    };
-
-    window.addEventListener('new-order-received', handleNewOrder);
-    return () => {
-      window.removeEventListener('new-order-received', handleNewOrder);
-    };
   }, [fetchOrders]);
+
+  const handleFetchWithFilters = (f?: string, t?: string, st?: string, showSkeleton: boolean = false) => {
+    const fromVal = f !== undefined ? f : fromDate;
+    const toVal = t !== undefined ? t : toDate;
+    const statusVal = st !== undefined ? st : filterStatus;
+
+    if (fromVal && toVal && new Date(fromVal) > new Date(toVal)) {
+      setDateValidationError('From date cannot be after To date.');
+      return;
+    }
+    setDateValidationError(null);
+
+    const params = new URLSearchParams();
+    if (fromVal) params.set('from', fromVal);
+    if (toVal) params.set('to', toVal);
+    if (statusVal && statusVal !== 'all') params.set('status', statusVal);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    if (typeof window !== 'undefined') {
+      const newUrl = `${window.location.pathname}${queryStr}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+
+    fetchOrders(showSkeleton, fromVal, toVal, statusVal);
+  };
 
   const handleApplyPreset = (preset: typeof presets[0]) => {
     const { from, to } = preset.getValue();
     setFromDate(from);
     setToDate(to);
     setActivePreset(preset.label);
-    fetchOrders(true, from, to, filterStatus);
+    handleFetchWithFilters(from, to, filterStatus, true);
   };
 
   const handleFromDateChange = (val: string) => {
     setFromDate(val);
     setActivePreset(null);
-    fetchOrders(true, val, toDate, filterStatus);
+    handleFetchWithFilters(val, toDate, filterStatus, true);
   };
 
   const handleToDateChange = (val: string) => {
     setToDate(val);
     setActivePreset(null);
-    fetchOrders(true, fromDate, val, filterStatus);
+    handleFetchWithFilters(fromDate, val, filterStatus, true);
   };
 
   const handleClearDateFilter = () => {
     setFromDate('');
     setToDate('');
     setActivePreset('All Time');
-    fetchOrders(true, '', '', filterStatus);
+    handleFetchWithFilters('', '', filterStatus, true);
   };
 
-  const handleStatusChangeFilter = (st: string) => {
-    setFilterStatus(st);
-    fetchOrders(true, fromDate, toDate, st);
+  const handleStatusTabClick = (stKey: string) => {
+    setFilterStatus(stKey);
+    handleFetchWithFilters(fromDate, toDate, stKey, false);
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (res.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-      }
-    } catch (e) {
-      alert('Failed to update status');
+      await updateOrderStatus(orderId, newStatus);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const handleConsumerStatusChange = async (orderId: string, newConsumerStatus: string) => {
+  const handleConsumerStatusUpdate = async (orderId: string, newConsumerStatus: string) => {
     setUpdatingId(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consumerStatus: newConsumerStatus }),
-      });
-      if (res.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, consumerStatus: newConsumerStatus } : o));
-      }
-    } catch (e) {
-      alert('Failed to update consumer status');
+      await updateConsumerStatus(orderId, newConsumerStatus);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const handleDeleteSingleOrder = async (orderId: string, orderNum: string, custName: string) => {
+  const handleDeleteSingle = async (orderId: string, orderNum: string, custName: string) => {
     if (!confirm(`Delete order ${orderNum} from ${custName}? This action cannot be undone.`)) return;
 
+    setUpdatingId(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setOrders(prev => prev.filter(o => o.id !== orderId));
+      const success = await deleteSingleOrder(orderId);
+      if (success) {
         setSelectedIds(prev => prev.filter(id => id !== orderId));
       } else {
         alert('Failed to delete order.');
       }
-    } catch (e) {
-      alert('Error deleting order.');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDeleteAction = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Are you sure you want to permanently delete ${selectedIds.length} selected order(s)? This action cannot be undone.`)) return;
+    if (!confirm(`Permanently delete ${selectedIds.length} selected order(s)? This action cannot be undone.`)) return;
 
     setIsBulkDeleting(true);
     try {
-      const res = await fetch('/api/orders', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderIds: selectedIds }),
-      });
-
-      if (res.ok) {
-        setOrders(prev => prev.filter(o => !selectedIds.includes(o.id)));
+      const success = await deleteBulkOrders(selectedIds);
+      if (success) {
         setSelectedIds([]);
       } else {
         alert('Failed to delete selected orders.');
       }
-    } catch (e) {
-      alert('Error performing bulk order deletion.');
     } finally {
       setIsBulkDeleting(false);
     }
   };
 
-  const filteredOrders = filterStatus === 'All'
+  const filteredOrders = filterStatus === 'all'
     ? orders
-    : orders.filter(o => o.status.toLowerCase() === filterStatus.toLowerCase());
+    : orders.filter(o => (o.status || 'new').toLowerCase() === filterStatus.toLowerCase());
 
   const isAllSelected = filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.includes(o.id));
 
@@ -302,11 +248,8 @@ export default function AdminOrdersPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const statuses = ['All', 'new', 'contacted', 'confirmed', 'completed', 'cancelled'];
-
   return (
     <div className="space-y-6">
-      
       {/* Header & Bulk Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-bakery-200/80 shadow-soft">
         <div>
@@ -314,14 +257,14 @@ export default function AdminOrdersPage() {
             Order Management ({orders.length})
           </h1>
           <p className="text-xs text-bakery-600 mt-0.5">
-            Filter orders by placement date range, status, view details, update progress, or export order records.
+            Manage customer order workflow stages, continuous audio notifications, and delivery progress.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {selectedIds.length > 0 && (
             <button
-              onClick={handleBulkDelete}
+              onClick={handleBulkDeleteAction}
               disabled={isBulkDeleting}
               className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-soft transition-all active:scale-95 disabled:opacity-50"
             >
@@ -331,7 +274,7 @@ export default function AdminOrdersPage() {
           )}
 
           <button
-            onClick={() => fetchOrders()}
+            onClick={() => handleFetchWithFilters(fromDate, toDate, filterStatus, true)}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-full hover:bg-amber-100 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -448,20 +391,29 @@ export default function AdminOrdersPage() {
       {/* Filter Tabs & Bulk Select Checkbox */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {statuses.map(st => {
-            const count = st === 'All' ? orders.length : orders.filter(o => o.status === st).length;
-            const isSelected = filterStatus === st;
+          {statusTabs.map(tab => {
+            const count = statusCounts[tab.key] || 0;
+            const isSelected = filterStatus === tab.key;
             return (
               <button
-                key={st}
-                onClick={() => handleStatusChangeFilter(st)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                key={tab.key}
+                onClick={() => handleStatusTabClick(tab.key)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-amber-600 text-white shadow-soft'
+                    ? 'bg-amber-600 text-white shadow-soft font-bold'
                     : 'bg-white text-bakery-chocolate border border-bakery-200 hover:bg-bakery-100'
                 }`}
               >
-                {st} ({count})
+                <span>{tab.label}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  isSelected
+                    ? 'bg-white/20 text-white'
+                    : tab.key === 'new' && count > 0
+                    ? 'bg-rose-500 text-white animate-pulse'
+                    : 'bg-bakery-100 text-bakery-800'
+                }`}>
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -489,12 +441,14 @@ export default function AdminOrdersPage() {
         <div className="bg-white p-12 rounded-3xl border border-bakery-200 text-center space-y-3">
           <ShoppingCart className="w-10 h-10 text-bakery-300 mx-auto" />
           <h3 className="font-serif text-base font-bold text-bakery-chocolate">
-            {fromDate || toDate ? 'No Orders Found in Selected Date Range' : `No Orders in "${filterStatus}"`}
+            {fromDate || toDate
+              ? 'No Orders Found in Selected Date Range'
+              : `No Orders in "${filterStatus.toUpperCase()}" Status`}
           </h3>
           <p className="text-xs text-bakery-600 max-w-md mx-auto">
             {fromDate || toDate
               ? 'Try picking a broader date range or click "Reset Range" to view all recorded orders.'
-              : 'New customer orders will automatically appear here in real-time.'}
+              : 'New customer orders will automatically appear here in real-time with looping sound alerts.'}
           </p>
           {(fromDate || toDate) && (
             <button
@@ -516,6 +470,8 @@ export default function AdminOrdersPage() {
             }
 
             const isChecked = selectedIds.includes(order.id);
+            const currentStatus = (order.status || 'new').toLowerCase();
+            const isUpdatingThis = updatingId === order.id;
 
             return (
               <div
@@ -523,12 +479,13 @@ export default function AdminOrdersPage() {
                 className={`bg-white rounded-3xl p-5 md:p-6 border shadow-soft transition-all ${
                   highlightedOrderId === order.id
                     ? 'border-amber-500 ring-4 ring-amber-400/80 bg-amber-100/60 animate-pulse'
-                    : order.status === 'new'
-                    ? 'border-rose-300 ring-2 ring-rose-500/20'
+                    : currentStatus === 'new'
+                    ? 'border-rose-400 ring-2 ring-rose-500/20 bg-rose-50/10'
                     : 'border-bakery-200'
                 } ${isChecked ? 'ring-2 ring-amber-500/40 bg-amber-50/20' : ''}`}
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bakery-100 pb-4">
+                {/* Row Top Header */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-bakery-100 pb-4">
                   <div className="flex items-center gap-3">
                     {/* Select Checkbox */}
                     <button
@@ -544,27 +501,42 @@ export default function AdminOrdersPage() {
                         <span className="font-mono font-extrabold text-amber-800 text-base">
                           {order.orderNumber}
                         </span>
+
                         {/* Internal Admin Status Badge */}
-                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                          order.status === 'new' ? 'bg-rose-100 text-rose-800 animate-pulse' :
-                          order.status === 'contacted' ? 'bg-amber-100 text-amber-900' :
-                          order.status === 'confirmed' ? 'bg-emerald-100 text-emerald-900' :
-                          order.status === 'completed' ? 'bg-blue-100 text-blue-900' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          Admin: {order.status}
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                            currentStatus === 'new'
+                              ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
+                              : currentStatus === 'contacted'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : currentStatus === 'confirmed'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                              : currentStatus === 'completed'
+                              ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                              : 'bg-gray-100 text-gray-800 border border-gray-300'
+                          }`}
+                        >
+                          Status: {currentStatus}
                         </span>
 
                         {/* Consumer Facing Status Badge */}
-                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase border ${
-                          (order.consumerStatus || 'received') === 'received' ? 'bg-amber-50 text-amber-900 border-amber-300' :
-                          order.consumerStatus === 'processing' ? 'bg-sky-50 text-sky-900 border-sky-300' :
-                          order.consumerStatus === 'baking' ? 'bg-orange-50 text-orange-900 border-orange-300' :
-                          order.consumerStatus === 'packed' ? 'bg-purple-50 text-purple-900 border-purple-300' :
-                          order.consumerStatus === 'dispatched' ? 'bg-indigo-50 text-indigo-900 border-indigo-300' :
-                          order.consumerStatus === 'delivered' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' :
-                          'bg-rose-50 text-rose-900 border-rose-300'
-                        }`}>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase border ${
+                            (order.consumerStatus || 'received') === 'received'
+                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                              : order.consumerStatus === 'processing'
+                              ? 'bg-sky-50 text-sky-900 border-sky-300'
+                              : order.consumerStatus === 'baking'
+                              ? 'bg-orange-50 text-orange-900 border-orange-300'
+                              : order.consumerStatus === 'packed'
+                              ? 'bg-purple-50 text-purple-900 border-purple-300'
+                              : order.consumerStatus === 'dispatched'
+                              ? 'bg-indigo-50 text-indigo-900 border-indigo-300'
+                              : order.consumerStatus === 'delivered'
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                              : 'bg-rose-50 text-rose-900 border-rose-300'
+                          }`}
+                        >
                           Customer: {order.consumerStatus || 'received'}
                         </span>
                       </div>
@@ -574,60 +546,110 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions & Status Selectors */}
-                  <div className="flex flex-wrap items-center gap-3">
+                  {/* Actions & Status Workflow Controls */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Call Customer Button */}
                     <a
                       href={`tel:${order.mobile}`}
-                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-sm"
+                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       <span>Call</span>
                     </a>
 
-                    {/* Consumer Status Update Dropdown */}
-                    <div className="flex items-center gap-1.5 bg-amber-50 p-1.5 rounded-2xl border border-amber-200 shadow-xs">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 px-1 hidden xl:inline">
-                        Customer Status:
-                      </span>
-                      <select
-                        value={order.consumerStatus || 'received'}
-                        onChange={(e) => handleConsumerStatusChange(order.id, e.target.value)}
-                        disabled={updatingId === order.id}
-                        className="bg-white border border-amber-300 text-amber-950 text-xs font-bold rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs cursor-pointer"
-                        title="Update status visible to consumer on /orders"
-                      >
-                        <option value="received">Order Received</option>
-                        <option value="processing">Processing</option>
-                        <option value="baking">Baking Cake</option>
-                        <option value="packed">Packed & Ready</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
+                    {/* Standard Workflow Quick Action Buttons */}
+                    {currentStatus === 'new' && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={isUpdatingThis}
+                          onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                          className="inline-flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all disabled:opacity-50"
+                          title="Acknowledge order and mark Confirmed (stops audio loop)"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Mark Confirmed</span>
+                        </button>
 
-                    {/* Internal Status Update Dropdown */}
+                        <button
+                          type="button"
+                          disabled={isUpdatingThis}
+                          onClick={() => handleStatusUpdate(order.id, 'contacted')}
+                          className="inline-flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all disabled:opacity-50"
+                          title="Mark order Contacted (stops audio loop for this order)"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Mark Contacted</span>
+                        </button>
+                      </>
+                    )}
+
+                    {currentStatus === 'contacted' && (
+                      <button
+                        type="button"
+                        disabled={isUpdatingThis}
+                        onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                        className="inline-flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Mark Confirmed</span>
+                      </button>
+                    )}
+
+                    {currentStatus === 'confirmed' && (
+                      <button
+                        type="button"
+                        disabled={isUpdatingThis}
+                        onClick={() => handleStatusUpdate(order.id, 'completed')}
+                        className="inline-flex items-center gap-1 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all disabled:opacity-50"
+                        title="Mark Completed and credit loyalty points to customer"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span>Mark Completed</span>
+                      </button>
+                    )}
+
+                    {/* Manual Status Override Select Dropdown */}
                     <div className="relative">
                       <select
-                        value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                        disabled={updatingId === order.id}
-                        className="bg-bakery-50 border border-bakery-300 text-bakery-chocolate text-xs font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-600 cursor-pointer"
-                        title="Internal admin order status"
+                        value={currentStatus}
+                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                        disabled={isUpdatingThis}
+                        className="bg-bakery-50 border border-bakery-300 text-bakery-chocolate text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-600 cursor-pointer"
+                        title="Manual internal order status override"
                       >
-                        <option value="new">Internal: New</option>
-                        <option value="contacted">Internal: Contacted</option>
-                        <option value="confirmed">Internal: Confirmed</option>
-                        <option value="completed">Internal: Completed</option>
-                        <option value="cancelled">Internal: Cancelled</option>
+                        <option value="new">Status: NEW</option>
+                        <option value="contacted">Status: CONTACTED</option>
+                        <option value="confirmed">Status: CONFIRMED</option>
+                        <option value="completed">Status: COMPLETED</option>
+                        <option value="cancelled">Status: CANCELLED</option>
                       </select>
                     </div>
 
-                    {/* Delete Order Action Button */}
+                    {/* Consumer Status Update Dropdown */}
+                    <div className="flex items-center gap-1 bg-amber-50 p-1 rounded-xl border border-amber-200">
+                      <select
+                        value={order.consumerStatus || 'received'}
+                        onChange={(e) => handleConsumerStatusUpdate(order.id, e.target.value)}
+                        disabled={isUpdatingThis}
+                        className="bg-white border border-amber-300 text-amber-950 text-xs font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                        title="Update status visible to customer on order tracking"
+                      >
+                        <option value="received">Customer: Received</option>
+                        <option value="processing">Customer: Processing</option>
+                        <option value="baking">Customer: Baking</option>
+                        <option value="packed">Customer: Packed</option>
+                        <option value="dispatched">Customer: Dispatched</option>
+                        <option value="delivered">Customer: Delivered</option>
+                        <option value="cancelled">Customer: Cancelled</option>
+                      </select>
+                    </div>
+
+                    {/* Delete Order Button */}
                     <button
                       type="button"
-                      onClick={() => handleDeleteSingleOrder(order.id, order.orderNumber, order.customerName)}
-                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-full border border-rose-200/60 transition-colors"
+                      onClick={() => handleDeleteSingle(order.id, order.orderNumber, order.customerName)}
+                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200 transition-colors"
                       title="Delete Order"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -637,26 +659,45 @@ export default function AdminOrdersPage() {
 
                 {/* Customer Details & Items Breakdown */}
                 <div className="pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 text-xs">
-                  
                   {/* Customer info */}
                   <div className="md:col-span-4 space-y-1.5 border-r border-bakery-100 pr-4">
-                    <p><strong>Customer:</strong> {order.customerName}</p>
-                    <p><strong>Mobile:</strong> <a href={`tel:${order.mobile}`} className="text-blue-700 underline font-semibold">{order.mobile}</a></p>
-                    {order.deliveryCity && <p><strong>City:</strong> {order.deliveryCity}</p>}
+                    <p>
+                      <strong>Customer:</strong> {order.customerName}
+                    </p>
+                    <p>
+                      <strong>Mobile:</strong>{' '}
+                      <a href={`tel:${order.mobile}`} className="text-blue-700 underline font-semibold">
+                        {order.mobile}
+                      </a>
+                    </p>
+                    {order.deliveryCity && (
+                      <p>
+                        <strong>City:</strong> {order.deliveryCity}
+                      </p>
+                    )}
                     {(order.deliveryDate || order.deliveryTime) && (
-                      <p><strong>Delivery:</strong>{' '}
+                      <p>
+                        <strong>Delivery:</strong>{' '}
                         <span className="font-semibold text-amber-800">
-                          {order.deliveryDate || ''}{order.deliveryDate && order.deliveryTime ? ' • ' : ''}{order.deliveryTime ? formatDisplay12(order.deliveryTime) : ''}
+                          {order.deliveryDate || ''}
+                          {order.deliveryDate && order.deliveryTime ? ' • ' : ''}
+                          {order.deliveryTime ? formatDisplay12(order.deliveryTime) : ''}
                         </span>
                       </p>
                     )}
                     {order.cakeMessage && (
                       <p className="text-amber-900 font-medium italic flex items-start gap-1">
                         <Cake className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <span><strong className="not-italic">Cake Message:</strong> &ldquo;{order.cakeMessage}&rdquo;</span>
+                        <span>
+                          <strong className="not-italic">Cake Message:</strong> &ldquo;{order.cakeMessage}&rdquo;
+                        </span>
                       </p>
                     )}
-                    {order.notes && <p className="text-amber-800 font-medium"><strong>Notes:</strong> {order.notes}</p>}
+                    {order.notes && (
+                      <p className="text-amber-800 font-medium">
+                        <strong>Notes:</strong> {order.notes}
+                      </p>
+                    )}
                   </div>
 
                   {/* Items list */}
@@ -670,14 +711,15 @@ export default function AdminOrdersPage() {
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-bold text-bakery-chocolate flex items-center gap-1.5">
                               <Cake className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                              <span>{it.name} ({it.weightG >= 1000 ? `${it.weightG / 1000}kg` : `${it.weightG}g`}) × {it.qty}</span>
+                              <span>
+                                {it.name} ({it.weightG >= 1000 ? `${it.weightG / 1000}kg` : `${it.weightG}g`}) × {it.qty}
+                              </span>
                             </span>
                             <span className="font-price font-bold text-amber-800">
-                              {formatINR(it.lineTotal || (it.calculatedPrice * it.qty))}
+                              {formatINR(it.lineTotal || it.calculatedPrice * it.qty)}
                             </span>
                           </div>
 
-                          {/* Per-Item Cake Message */}
                           {it.cakeMessage ? (
                             <div className="bg-amber-50/90 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/80 text-[11px] font-medium">
                               <span className="font-extrabold text-amber-800">Cake Message:</span> &ldquo;{it.cakeMessage}&rdquo;
@@ -686,43 +728,44 @@ export default function AdminOrdersPage() {
                             <div className="text-[10px] text-bakery-400 italic">No message requested for this cake</div>
                           )}
 
-                          {/* Per-Item Special Notes / Instructions */}
                           {it.specialNotes && (
                             <div className="bg-blue-50/80 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-200/70 text-[11px] font-medium">
-                              <span className="font-extrabold text-blue-800">Item Notes / Instructions:</span> &ldquo;{it.specialNotes}&rdquo;
+                              <span className="font-extrabold text-blue-800">Item Notes / Instructions:</span> &ldquo;
+                              {it.specialNotes}&rdquo;
                             </div>
                           )}
                         </div>
                       ))}
                     </div>
-                    
+
                     <div className="pt-2 space-y-1 text-xs">
-                      {order.discountAmount > 0 && (
+                      {Boolean(order.discountAmount && order.discountAmount > 0) && (
                         <div className="flex justify-between text-emerald-700 font-semibold">
                           <span>Offer Discount:</span>
                           <span>-₹{order.discountAmount}</span>
                         </div>
                       )}
-                      {order.pointsDiscountAmount > 0 && (
+                      {Boolean(order.pointsDiscountAmount && order.pointsDiscountAmount > 0) && (
                         <div className="flex justify-between text-amber-800 font-semibold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                          <span>Points Redeemed ({order.pointsRedeemed} pts):</span>
+                          <span>Points Redeemed ({order.pointsRedeemed || 0} pts):</span>
                           <span>-₹{order.pointsDiscountAmount}</span>
                         </div>
                       )}
                       <div className="flex justify-between items-center font-bold text-sm text-bakery-chocolate pt-1 border-t border-bakery-200">
                         <span>Total Amount to Collect:</span>
-                        <span className="font-price text-lg font-medium text-amber-800 tracking-tight">{formatINR(order.totalAmount)}</span>
+                        <span className="font-price text-lg font-medium text-amber-800 tracking-tight">
+                          {formatINR(order.totalAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-[11px] text-amber-700 font-medium pt-1">
                         <span>Points Earned on Order:</span>
                         <span className="font-bold">
-                          +{order.pointsCredited ? order.pointsEarned : Math.floor(order.totalAmount / 100) * 5} pts
-                          {order.pointsCredited ? ' (Credited)' : ' (Pending Delivery)'}
+                          +{order.pointsCredited ? (order.pointsEarned || 0) : Math.floor(order.totalAmount / 100) * 5} pts
+                          {order.pointsCredited ? ' (Credited)' : ' (Credited on Completion)'}
                         </span>
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             );
@@ -732,4 +775,3 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
-
