@@ -92,7 +92,7 @@ export default function ProductModalLazy({
       setName('');
       setDescription('');
       setPhotos([
-        'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80',
+        '',
         '',
         '',
         ''
@@ -791,6 +791,11 @@ function ImageUploadSlot({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imgErr, setImgErr] = useState(false);
 
+  // Automatically reset image error state whenever the image URL changes
+  useEffect(() => {
+    setImgErr(false);
+  }, [imageUrl]);
+
   const slotTitle = slotIndex === 0 ? 'Main Cover *' : `Photo ${slotIndex + 1}`;
 
   const handleDrop = (e: React.DragEvent) => {
@@ -894,7 +899,10 @@ function ImageUploadSlot({
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                setImgErr(false);
+                fileInputRef.current?.click();
+              }}
               className="bg-white/90 hover:bg-white text-bakery-chocolate text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3 text-amber-700" />
@@ -911,11 +919,38 @@ function ImageUploadSlot({
             </button>
           </div>
         </div>
+      ) : imageUrl && imgErr ? (
+        <div className="h-32 rounded-xl bg-rose-50 border border-rose-200 flex flex-col items-center justify-center p-2 text-center space-y-1">
+          <AlertTriangle className="w-5 h-5 text-rose-500" />
+          <span className="text-[10px] font-bold text-rose-800">Preview Failed</span>
+          <div className="flex items-center gap-1 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setImgErr(false);
+                fileInputRef.current?.click();
+              }}
+              className="bg-white border border-rose-300 text-rose-800 text-[9px] font-bold px-2 py-0.5 rounded shadow-xs"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-xs"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
       ) : (
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            setImgErr(false);
+            fileInputRef.current?.click();
+          }}
           className={`h-32 rounded-xl bg-bakery-50 hover:bg-amber-50/80 border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center p-2 space-y-1.5 group ${
             uploadError ? 'border-rose-400 bg-rose-50/40' : 'border-bakery-300/80 hover:border-amber-500'
           }`}
