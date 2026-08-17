@@ -52,14 +52,14 @@ export default function Footer() {
               <div className="relative w-12 h-12 rounded-full overflow-hidden border border-amber-500/30 bg-white p-0.5 shrink-0">
                 <Image
                   src="/logo.png"
-                  alt="MyHomelyCake Logo"
+                  alt="Cakes Logo"
                   fill
                   sizes="48px"
                   className="object-contain"
                 />
               </div>
               <span className="font-serif text-2xl font-bold text-white tracking-tight">
-                MyHomelyCake
+                Cakes
               </span>
             </div>
             <p className="text-sm text-bakery-300/90 leading-relaxed">
@@ -205,7 +205,7 @@ export default function Footer() {
 
         <div className="pt-8 border-t border-amber-900/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-bakery-400">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-            <p>© {new Date().getFullYear()} MyHomelyCake Trivandrum. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Cakes Trivandrum. All rights reserved.</p>
             <span className="hidden sm:inline text-amber-900/60">•</span>
             <p className="text-bakery-300">
               Engineered by{' '}
