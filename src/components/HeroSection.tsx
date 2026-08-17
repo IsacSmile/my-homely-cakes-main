@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles, ArrowRight, PhoneCall, Check, Award } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { HeroSlide } from '@/app/api/hero/route';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -35,6 +36,7 @@ const FALLBACK_SLIDES: HeroSlide[] = [
 ];
 
 export default function HeroSection({ initialHeroData }: { initialHeroData?: any }) {
+  const { data: session, status } = useSession();
   const [heroData, setHeroData] = useState<any>(initialHeroData || {
     badge: "Trivandrum's Most Loved Home Bakery",
     heading: "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
@@ -83,13 +85,31 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
 
   const activeSlide = slides[activeImgIdx % slides.length] || slides[0];
 
+  // Extract first name safely for logged-in user
+  const rawName = session?.user?.name || '';
+  const firstName = rawName.split(' ')[0]?.trim();
+  const formattedFirstName = firstName
+    ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+    : '';
+
+  const welcomeGreeting = (status === 'authenticated' && formattedFirstName)
+    ? `Welcome back, ${formattedFirstName}`
+    : 'Welcome to MyHomelyCake';
+
   return (
     <section className="relative overflow-hidden py-10 sm:py-14 bg-gradient-to-b from-amber-500/10 via-bakery-100/60 to-amber-500/5 rounded-3xl border border-amber-200/60 shadow-soft">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 lg:gap-12 items-center">
           
           {/* Left Content Column */}
-          <div className="md:col-span-7 space-y-5 text-center md:text-left">
+          <div className="md:col-span-7 space-y-4 text-center md:text-left">
+            
+            {/* Short Personalized Eyebrow Welcome Line */}
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-widest">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>{welcomeGreeting}</span>
+            </div>
+
             {/* Heading */}
             <h2 className="font-serif text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
               {heroData.heading}

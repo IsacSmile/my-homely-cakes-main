@@ -59,7 +59,7 @@ export default function MoreProductsSection({
           </div>
 
           <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-bakery-chocolate tracking-tight">
-            More From Our Bakery
+            More From Our Oven
           </h2>
 
           <p className="text-xs sm:text-sm text-bakery-800/80 max-w-2xl leading-relaxed">

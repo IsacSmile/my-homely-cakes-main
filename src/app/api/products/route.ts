@@ -33,7 +33,12 @@ export async function GET(request: Request) {
     if (featured) {
       allProducts.sort((a: any, b: any) => b.orderCount - a.orderCount);
     } else {
-      allProducts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      allProducts = allProducts.filter((p: any) => Boolean(p.isAvailable));
+      allProducts.sort((a: any, b: any) => {
+        const numA = parseInt(a.id.replace(/\D/g, '') || '0', 10);
+        const numB = parseInt(b.id.replace(/\D/g, '') || '0', 10);
+        return numB - numA || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
     }
 
     const totalCount = allProducts.length;
