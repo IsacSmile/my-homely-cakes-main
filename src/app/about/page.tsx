@@ -74,15 +74,15 @@ export default async function AboutPage() {
         <div className="absolute top-[75%] -left-40 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20 space-y-8 sm:space-y-12 lg:space-y-14 gpu-header">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-12 sm:pt-4 sm:pb-16 lg:pt-6 lg:pb-20 space-y-5 sm:space-y-7 lg:space-y-8 gpu-header">
         
         {/* ─── SECTION 1: HERO HEADER ─── */}
-        <header className="relative text-center space-y-3 sm:space-y-4 max-w-3xl mx-auto pt-1 pb-1">
+        <header className="relative text-center space-y-2.5 sm:space-y-3 max-w-3xl mx-auto pt-0 pb-0">
           {/* Subtle Decorative Background Flourish */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-amber-100/30 to-amber-200/10 rounded-full blur-2xl -z-10" />
 
           {/* Eyebrow Label */}
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 uppercase tracking-widest bg-amber-500/10 px-3.5 py-1 rounded-full border border-amber-300/40 shadow-xs mb-0.5">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 uppercase tracking-widest bg-amber-500/10 px-3.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs mb-0">
             <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span>Our Story & Heritage</span>
           </div>
@@ -98,8 +98,6 @@ export default async function AboutPage() {
           <p className="text-xs sm:text-sm lg:text-base text-bakery-800/80 leading-relaxed max-w-xl mx-auto font-normal">
             From our modest home kitchen in Kowdiar to bringing fresh, handcrafted cakes to celebrations across Thiruvananthapuram.
           </p>
-
-          <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto rounded-full opacity-80 mt-1" />
         </header>
 
 
