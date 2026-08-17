@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, ArrowRight, PhoneCall, Check } from 'lucide-react';
+import { Sparkles, ArrowRight, PhoneCall, Check, Award } from 'lucide-react';
 import { HeroSlide } from '@/app/api/hero/route';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -84,16 +84,16 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
   const activeSlide = slides[activeImgIdx % slides.length] || slides[0];
 
   return (
-    <section className="relative overflow-hidden pt-8 pb-14 md:pt-14 md:pb-20 bg-gradient-to-b from-bakery-softBg via-bakery-100/50 to-bakery-softBg">
+    <section className="relative overflow-hidden py-10 sm:py-14 bg-gradient-to-b from-amber-500/10 via-bakery-100/60 to-amber-500/5 rounded-3xl border border-amber-200/60 shadow-soft">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 lg:gap-12 items-center">
           
           {/* Left Content Column */}
           <div className="md:col-span-7 space-y-5 text-center md:text-left">
             {/* Heading */}
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-4xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
               {heroData.heading}
-            </h1>
+            </h2>
 
             {/* Subheading */}
             <p className="text-xs sm:text-sm md:text-base text-bakery-800/80 max-w-xl mx-auto md:mx-0 leading-relaxed font-sans">
@@ -178,8 +178,8 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
                   className="absolute bottom-5 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-20 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-bakery-200 shadow-xl flex items-center justify-between group/card hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold text-sm sm:text-base shrink-0 group-hover/card:scale-110 transition-transform">
-                      🏆
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold shrink-0 group-hover/card:scale-110 transition-transform">
+                      <Award className="w-5 h-5 text-amber-700" />
                     </div>
                     <div>
                       <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-bakery-600 font-bold block">
