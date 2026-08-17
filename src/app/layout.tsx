@@ -45,6 +45,7 @@ export const metadata: Metadata = {
 };
 
 import SessionProviderWrapper from '@/components/SessionProviderWrapper';
+import Script from 'next/script';
 
 export default function RootLayout({
   children,
@@ -88,6 +89,23 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
+        />
+        {/* Google Analytics Tag (gtag.js) */}
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-JK37B6Z11K"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-JK37B6Z11K');
+            `,
+          }}
         />
       </head>
 
