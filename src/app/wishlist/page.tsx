@@ -19,6 +19,10 @@ export default function WishlistPage() {
   const [addedAllToCart, setAddedAllToCart] = useState(false);
 
   useEffect(() => {
+    document.title = 'My Homely Cakes | Wishlist';
+  }, []);
+
+  useEffect(() => {
     setIsLoading(true);
     fetch('/api/products?limit=100')
       .then(res => res.json())

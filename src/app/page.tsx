@@ -19,6 +19,10 @@ const TestimonialsSection = nextDynamic(() => import('@/components/TestimonialsS
 
 export const dynamic = 'force-dynamic';
 
+export const metadata = {
+  title: 'My Homely Cakes | Home',
+};
+
 const DEFAULT_SLIDES = [
   {
     id: 'hs_1',

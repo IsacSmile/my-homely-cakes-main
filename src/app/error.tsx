@@ -12,6 +12,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    document.title = 'My Homely Cakes | Page Not Found';
     console.error('App error boundary caught:', error);
   }, [error]);
 

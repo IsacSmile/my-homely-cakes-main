@@ -53,6 +53,21 @@ export default function CartDrawer() {
     }
   }, [session]);
 
+  // Dynamic page title update for Cart & Checkout
+  useEffect(() => {
+    if (isCartOpen) {
+      const prevTitle = document.title;
+      if (isSubmitting || orderSuccess) {
+        document.title = 'My Homely Cakes | Checkout';
+      } else {
+        document.title = 'My Homely Cakes | Cart';
+      }
+      return () => {
+        document.title = prevTitle;
+      };
+    }
+  }, [isCartOpen, isSubmitting, orderSuccess]);
+
   // Lock body scroll & touch-drag when cart drawer is open
   useEffect(() => {
     if (isCartOpen) {

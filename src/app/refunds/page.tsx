@@ -1,4 +1,6 @@
-import React from 'react';
+export const metadata = {
+  title: 'Refund Policy',
+};
 
 export default function RefundsPage() {
   return (

@@ -18,6 +18,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { newOrdersCount } = useAdminOrders();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  React.useEffect(() => {
+    if (pathname !== '/admin-manage') {
+      document.title = 'My Homely Cakes | Admin';
+    }
+  }, [pathname]);
+
   if (pathname === '/admin-manage') {
     return <>{children}</>;
   }

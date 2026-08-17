@@ -6,6 +6,10 @@ import ShopClient from './ShopClient';
 
 export const revalidate = 60;
 
+export const metadata = {
+  title: 'Shop',
+};
+
 export default async function ShopPage() {
   // Execute initial products and categories queries in parallel for fast loading
   const [initialProducts, initialCategories] = await Promise.all([

@@ -2,6 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { Cake, ArrowLeft } from 'lucide-react';
 
+export const metadata = {
+  title: 'Page Not Found',
+};
+
 export default function NotFound() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">

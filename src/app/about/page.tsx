@@ -10,7 +10,7 @@ import { asc } from 'drizzle-orm';
 export const revalidate = 3600; // Cache statically with 1-hour ISR revalidation
 
 export const metadata = {
-  title: 'About Us & Our Outlets | MyHomelyCake Trivandrum',
+  title: 'About Us',
   description: 'Learn about our story, meet our head baker, and visit our fresh bakery outlets across Trivandrum including Kowdiar, Pattom, Kazhakkoottam, and Vellayambalam.',
 };
 

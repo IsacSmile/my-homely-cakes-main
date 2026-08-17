@@ -154,7 +154,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
             <div className="flex flex-col min-w-0 transition-all duration-500 ease-out">
               <span className={`font-serif font-bold text-bakery-chocolate tracking-tight group-hover:text-amber-800 transition-colors leading-none truncate max-w-[105px] min-[360px]:max-w-[140px] sm:max-w-none ${isScrolled ? 'text-xs sm:text-lg' : 'text-sm sm:text-xl'
                 }`}>
-                Cakes
+                My Homely Cakes
               </span>
               <span className="text-[7px] sm:text-[10px] tracking-widest uppercase font-bold text-amber-700 mt-0.5 truncate hidden min-[360px]:block">
                 We Deliver Your Delicious Dreams !!

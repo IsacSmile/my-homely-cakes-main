@@ -32,12 +32,15 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
 
-  title: 'MyHomelyCake Trivandrum | Fresh Home Bakery Cakes Order Online',
+  title: {
+    default: 'My Homely Cakes | Home',
+    template: 'My Homely Cakes | %s',
+  },
   description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes. Direct phone call confirmation.',
   keywords: ['Cakes Trivandrum', 'Home Bakery Trivandrum', 'Cake Delivery Trivandrum', 'Tender Coconut Cake', 'Birthday Cake Trivandrum', 'MyHomelyCake'],
-  authors: [{ name: 'MyHomelyCake Trivandrum' }],
+  authors: [{ name: 'My Homely Cakes' }],
   openGraph: {
-    title: 'MyHomelyCake Trivandrum | Premium Home Baked Cakes',
+    title: 'My Homely Cakes | Home',
     description: 'Freshly baked homemade cakes delivered across Trivandrum. No login or online payment required - order in 1 tap!',
     locale: 'en_IN',
     type: 'website',

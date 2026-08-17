@@ -41,6 +41,10 @@ export default function CustomerOrdersPage() {
   });
 
   useEffect(() => {
+    document.title = 'My Homely Cakes | My Orders';
+  }, []);
+
+  useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/customer/orders')
         .then((res) => res.json())

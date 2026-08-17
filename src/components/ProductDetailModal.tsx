@@ -157,6 +157,17 @@ export default function ProductDetailModal() {
     }
   }, [session]);
 
+  // Dynamic page title update for Product Detail Modal
+  useEffect(() => {
+    if (selectedModalProduct?.name) {
+      const prevTitle = document.title;
+      document.title = `My Homely Cakes | ${selectedModalProduct.name}`;
+      return () => {
+        document.title = prevTitle;
+      };
+    }
+  }, [selectedModalProduct?.name]);
+
   // Set defaults when modal opens
   useEffect(() => {
     if (!selectedModalProduct) return;
