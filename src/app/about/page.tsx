@@ -74,14 +74,20 @@ export default async function AboutPage() {
         <div className="absolute top-[75%] -left-40 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-24 space-y-20 sm:space-y-32 gpu-header">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20 space-y-8 sm:space-y-12 lg:space-y-14 gpu-header">
         
         {/* ─── SECTION 1: HERO HEADER ─── */}
-        <header className="relative text-center space-y-6 max-w-3xl mx-auto pt-4 pb-2">
+        <header className="relative text-center space-y-3 sm:space-y-4 max-w-3xl mx-auto pt-1 pb-1">
           {/* Subtle Decorative Background Flourish */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-amber-100/30 to-amber-200/10 rounded-full blur-2xl -z-10" />
 
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
+          {/* Eyebrow Label */}
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 uppercase tracking-widest bg-amber-500/10 px-3.5 py-1 rounded-full border border-amber-300/40 shadow-xs mb-0.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Our Story & Heritage</span>
+          </div>
+
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-bakery-chocolate tracking-tight leading-[1.15]">
             Crafting Sweet{' '}
             <span className="italic font-serif text-amber-700 font-normal underline decoration-amber-300/60 underline-offset-8">
               Memories
@@ -89,18 +95,18 @@ export default async function AboutPage() {
             in Trivandrum
           </h1>
 
-          <p className="text-sm sm:text-base lg:text-lg text-bakery-800/80 leading-relaxed max-w-2xl mx-auto font-normal">
+          <p className="text-xs sm:text-sm lg:text-base text-bakery-800/80 leading-relaxed max-w-xl mx-auto font-normal">
             From our modest home kitchen in Kowdiar to bringing fresh, handcrafted cakes to celebrations across Thiruvananthapuram.
           </p>
 
-          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto rounded-full opacity-80 pt-2" />
+          <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto rounded-full opacity-80 mt-1" />
         </header>
 
 
         {/* ─── SECTION 2: ELEVATED FOUNDER STORY CARD ─── */}
         <section
           aria-labelledby="founder-section-heading"
-          className="relative bg-white/95 rounded-[2.5rem] p-6 sm:p-12 lg:p-14 border border-amber-200/70 shadow-[0_20px_50px_rgba(69,26,3,0.06)] overflow-hidden gpu-header"
+          className="relative bg-white/95 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-10 lg:p-12 border border-amber-200/70 shadow-[0_15px_40px_rgba(69,26,3,0.05)] overflow-hidden gpu-header"
         >
           {/* Subtle Organic Ambient Blobs */}
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-amber-100/60 to-amber-200/20 rounded-full blur-3xl -z-0 pointer-events-none" />
