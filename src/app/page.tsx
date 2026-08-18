@@ -17,7 +17,7 @@ const OccasionOffersBanner = nextDynamic(() => import('@/components/OccasionOffe
 const MeetTheTeamSection = nextDynamic(() => import('@/components/MeetTheTeamSection'));
 const TestimonialsSection = nextDynamic(() => import('@/components/TestimonialsSection'));
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export const metadata = {
   title: 'My Homely Cakes | Home',
@@ -63,8 +63,13 @@ const isProductAvailable = (p: any): boolean => {
 };
 
 export default async function HomePage() {
-  // Fetch active products server-side
-  const allProducts = (await db.select().from(products)) || [];
+  // Execute all server-side database queries concurrently in parallel for maximum speed
+  const [allProducts, activeOffers, ordersList, allSettings] = await Promise.all([
+    db.select().from(products).then((res: any[]) => res || []).catch(() => []),
+    db.select().from(offers).where(eq(offers.isActive, true)).all().then((res: any[]) => res || []).catch(() => []),
+    db.select({ id: orders.id }).from(orders).then((res: any[]) => res || []).catch(() => []),
+    db.select().from(settings).all().then((res: any[]) => res || []).catch(() => []),
+  ]);
 
   // 1. Featured Products (Curated by admin, ordered by featuredOrder or recency)
   const featuredProducts = allProducts
@@ -100,18 +105,15 @@ export default async function HomePage() {
     .slice(0, 6);
 
   // 4. Active Occasion Offers
-  const activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true)).all()) || [];
   const topDiscount = activeOffers.length > 0
     ? Math.max(...activeOffers.map((o: any) => o.discountPercent))
     : 0;
 
   // 5. Monthly Orders Counter
-  const allOrdersList = (await db.select().from(orders).all()) || [];
-  const totalOrdersCount = allOrdersList.length;
+  const totalOrdersCount = ordersList.length;
   const displayMonthlyCount = Math.max(500, 500 + totalOrdersCount * 8);
 
   // 6. Server-side fetch Hero Settings
-  const allSettings = (await db.select().from(settings).all()) || [];
   const settingsMap = allSettings.reduce((acc: Record<string, string>, item: any) => {
     acc[item.key] = item.value;
     return acc;
