@@ -59,7 +59,7 @@ export default function OccasionOffersBanner({ offers }: { offers?: Offer[] }) {
           {isMounted && currentOffer.endDate && (
             <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium pt-1">
               <Clock className="w-3.5 h-3.5" />
-              <span>Offer Valid Until: {new Date(currentOffer.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span suppressHydrationWarning>Offer Valid Until: {new Date(currentOffer.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           )}
         </div>
