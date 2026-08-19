@@ -73,13 +73,25 @@ export default function ProductModalLazy({
     return Array.from(usedSortOrdersMap.keys()).sort((a, b) => a - b);
   }, [usedSortOrdersMap]);
 
-  const nextAvailableOrder = React.useMemo(() => {
+  const defaultNextAvailableOrder = React.useMemo(() => {
     let candidate = 1;
     while (usedSortOrdersMap.has(candidate)) {
       candidate++;
     }
     return candidate;
   }, [usedSortOrdersMap]);
+
+  const nextAvailableOrder = React.useMemo(() => {
+    let candidate = 1;
+    const taken = new Set(usedSortOrdersMap.keys());
+    if (featuredOrder > 0 && !usedSortOrdersMap.has(featuredOrder)) {
+      taken.add(featuredOrder);
+    }
+    while (taken.has(candidate)) {
+      candidate++;
+    }
+    return candidate;
+  }, [usedSortOrdersMap, featuredOrder]);
 
   // Map of currently used positions among non-featured products in "More From Our Oven"
   const usedHomeSectionOrdersMap = React.useMemo(() => {
@@ -103,7 +115,7 @@ export default function ProductModalLazy({
     return Array.from(usedHomeSectionOrdersMap.keys()).sort((a, b) => a - b);
   }, [usedHomeSectionOrdersMap]);
 
-  const nextAvailableHomeOrder = React.useMemo(() => {
+  const defaultNextAvailableHomeOrder = React.useMemo(() => {
     let candidate = 1;
     while (usedHomeSectionOrdersMap.has(candidate)) {
       candidate++;
@@ -111,16 +123,28 @@ export default function ProductModalLazy({
     return candidate;
   }, [usedHomeSectionOrdersMap]);
 
+  const nextAvailableHomeOrder = React.useMemo(() => {
+    let candidate = 1;
+    const taken = new Set(usedHomeSectionOrdersMap.keys());
+    if (homeSectionOrder > 0 && !usedHomeSectionOrdersMap.has(homeSectionOrder)) {
+      taken.add(homeSectionOrder);
+    }
+    while (taken.has(candidate)) {
+      candidate++;
+    }
+    return candidate;
+  }, [usedHomeSectionOrdersMap, homeSectionOrder]);
+
   const handleToggleFeaturedCheck = (checked: boolean) => {
     setIsFeatured(checked);
     setValidationError(null);
     if (checked) {
       if (!featuredOrder || featuredOrder <= 0) {
-        setFeaturedOrder(nextAvailableOrder);
+        setFeaturedOrder(defaultNextAvailableOrder);
       }
     } else {
       if (!homeSectionOrder || homeSectionOrder <= 0) {
-        setHomeSectionOrder(nextAvailableHomeOrder);
+        setHomeSectionOrder(defaultNextAvailableHomeOrder);
       }
     }
   };
@@ -135,7 +159,7 @@ export default function ProductModalLazy({
       setIsFeatured(Boolean(editingProduct.isFeatured));
       setFeaturedOrder(Number(editingProduct.featuredOrder || 0));
       const existingHomeOrder = Number(editingProduct.homeSectionOrder || 0);
-      setHomeSectionOrder(existingHomeOrder > 0 ? existingHomeOrder : nextAvailableHomeOrder);
+      setHomeSectionOrder(existingHomeOrder > 0 ? existingHomeOrder : defaultNextAvailableHomeOrder);
       
       let loadedPhotos: string[] = ['', '', '', ''];
       try {
@@ -172,7 +196,7 @@ export default function ProductModalLazy({
       setDescription('');
       setIsFeatured(false);
       setFeaturedOrder(0);
-      setHomeSectionOrder(nextAvailableHomeOrder);
+      setHomeSectionOrder(defaultNextAvailableHomeOrder);
       setPhotos([
         '',
         '',
