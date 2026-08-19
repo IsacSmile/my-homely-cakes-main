@@ -38,12 +38,10 @@ export const metadata = {
 
 export default async function ShopPage() {
   // Execute initial products and categories queries in parallel for fast loading
-  const [initialProducts, initialCategories] = await Promise.all([
+  const [allProductsRaw, initialCategories] = await Promise.all([
     db
       .select()
       .from(products)
-      .orderBy(desc(products.createdAt))
-      .limit(20)
       .then((res: any[]) => res || []),
     db
       .select()
@@ -51,6 +49,18 @@ export default async function ShopPage() {
       .orderBy(asc(categories.displayOrder))
       .then((res: any[]) => res || []),
   ]);
+
+  const initialProducts = allProductsRaw
+    .filter((p: any) => p.isAvailable !== false)
+    .sort((a: any, b: any) => {
+      const orderA = Number(a.displayPosition || a.homeSectionOrder || 0);
+      const orderB = Number(b.displayPosition || b.homeSectionOrder || 0);
+      if (orderA > 0 && orderB > 0) return orderA - orderB;
+      if (orderA > 0) return -1;
+      if (orderB > 0) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    })
+    .slice(0, 20);
 
   const initialHasMore = initialProducts.length >= 20;
 
