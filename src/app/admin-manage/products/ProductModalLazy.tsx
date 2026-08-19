@@ -14,7 +14,7 @@ interface ProductModalLazyProps {
   editingProduct: any | null;
   categoriesList: any[];
   allProductsList?: any[];
-  onSaved: (product: any, isEdit: boolean) => void;
+  onSaved: (product: any, isEdit: boolean, allProducts?: any[]) => void;
 }
 
 export default function ProductModalLazy({
@@ -489,29 +489,6 @@ export default function ProductModalLazy({
       weightSet.add(v.weightG);
     }
 
-    if (isFeatured) {
-      if (!featuredOrder || featuredOrder <= 0) {
-        setValidationError(`Please enter a valid positive Sort Order number (e.g. ${nextAvailableOrder}) for featured products.`);
-        return;
-      }
-
-      if (usedSortOrdersMap.has(featuredOrder)) {
-        const conflictName = usedSortOrdersMap.get(featuredOrder);
-        setValidationError(
-          `Sort Order ${featuredOrder} is already used by "${conflictName}". Next available: ${nextAvailableOrder}.`
-        );
-        return;
-      }
-    } else {
-      if (homeSectionOrder > 0 && usedHomeSectionOrdersMap.has(homeSectionOrder)) {
-        const conflictName = usedHomeSectionOrdersMap.get(homeSectionOrder);
-        setValidationError(
-          `Position #${homeSectionOrder} in 'More From Our Oven' is already used by "${conflictName}". Please choose a different number.`
-        );
-        return;
-      }
-    }
-
     let finalVariants = [...weightVariants];
     if (!finalVariants.some(v => v.isDefault)) {
       finalVariants[0].isDefault = true;
@@ -536,8 +513,9 @@ export default function ProductModalLazy({
       variants: finalVariants,
       isAvailable,
       isFeatured,
-      featuredOrder: isFeatured ? featuredOrder : 0,
-      homeSectionOrder: !isFeatured ? homeSectionOrder : 0,
+      featuredOrder: isFeatured ? (featuredOrder || Date.now()) : 0,
+      homeSectionOrder,
+      displayPosition: homeSectionOrder,
     };
 
     try {
@@ -552,7 +530,7 @@ export default function ProductModalLazy({
 
       const data = await res.json();
       if (res.ok) {
-        onSaved(data.product || { ...payload, id: editingProduct?.id || ('prod_' + Date.now()) }, !!editingProduct);
+        onSaved(data.product || { ...payload, id: editingProduct?.id || ('prod_' + Date.now()) }, !!editingProduct, data.allProducts);
         onClose();
       } else {
         setValidationError(data.error || 'Failed to save product.');
@@ -828,81 +806,61 @@ export default function ProductModalLazy({
               </label>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-amber-200/50">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="featuredCheck"
-                  checked={isFeatured}
-                  onChange={(e) => handleToggleFeaturedCheck(e.target.checked)}
-                  className="rounded text-amber-600 h-4 w-4 cursor-pointer"
-                />
-                <label htmlFor="featuredCheck" className="text-xs font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
-                  ⭐ Feature this cake on Home Page (&quot;Featured Bakery Creations&quot;)
-                </label>
+            <div className="flex flex-col gap-3 pt-3 border-t border-amber-200/50">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="featuredCheck"
+                    checked={isFeatured}
+                    onChange={(e) => {
+                      setIsFeatured(e.target.checked);
+                      if (e.target.checked && (!featuredOrder || featuredOrder === 0)) {
+                        setFeaturedOrder(Date.now());
+                      }
+                      setValidationError(null);
+                    }}
+                    className="rounded text-amber-600 h-4 w-4 cursor-pointer"
+                  />
+                  <label htmlFor="featuredCheck" className="text-xs font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
+                    ⭐ Feature this cake on Home Page (&quot;Featured Bakery Creations&quot;)
+                  </label>
+                </div>
               </div>
 
-              {isFeatured ? (
-                <div className="flex flex-col items-start sm:items-end gap-1 shrink-0 animate-fadeIn">
-                  <div className="flex items-center gap-1.5">
-                    <label htmlFor="featuredOrderInput" className="text-[11px] font-bold text-amber-800" title="Determines display position in Featured section">
-                      Sort Order:
-                    </label>
-                    <input
-                      id="featuredOrderInput"
-                      type="number"
-                      min={1}
-                      value={featuredOrder || ''}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setFeaturedOrder(val);
-                        setValidationError(null);
-                      }}
-                      className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                      placeholder={`${nextAvailableOrder}`}
-                    />
-                  </div>
-                  <p className="text-[10px] text-amber-800/90 font-medium">
-                    {usedOrderNumbers.length > 0 ? (
-                      <>Currently used: <span className="font-bold text-amber-900">{usedOrderNumbers.join(', ')}</span> (Next available: <span className="font-bold text-emerald-700">{nextAvailableOrder}</span>)</>
-                    ) : (
-                      <>Next available: <span className="font-bold text-emerald-700">1</span></>
-                    )}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-start sm:items-end gap-1 shrink-0 animate-fadeIn">
-                  <div className="flex items-center gap-1.5">
-                    <label
-                      htmlFor="homeSectionOrderInput"
-                      className="text-[11px] font-bold text-amber-800 cursor-help"
-                      title="Controls this cake's position in the homepage 'More From Our Oven' section only. Only applies if the cake is NOT featured."
-                    >
-                      More From Our Oven — Position Number:
-                    </label>
-                    <input
-                      id="homeSectionOrderInput"
-                      type="number"
-                      min={0}
-                      value={homeSectionOrder || ''}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setHomeSectionOrder(val);
-                        setValidationError(null);
-                      }}
-                      className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600"
-                      placeholder="0"
-                    />
-                  </div>
+              <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <label
+                    htmlFor="homeSectionOrderInput"
+                    className="text-xs font-bold text-amber-900 block"
+                  >
+                    More From Our Oven — Position Number:
+                  </label>
                   <p className="text-[10px] text-amber-800/90 font-medium">
                     {usedHomeOrderNumbers.length > 0 ? (
-                      <>Currently used positions: <span className="font-bold text-amber-900">{usedHomeOrderNumbers.join(', ')}</span> (Next available: <span className="font-bold text-emerald-700">{nextAvailableHomeOrder}</span>)</>
+                      <>Used positions: <span className="font-bold text-amber-900">{usedHomeOrderNumbers.join(', ')}</span> (Next available: <span className="font-bold text-emerald-700">{nextAvailableHomeOrder}</span>)</>
                     ) : (
                       <>Next available: <span className="font-bold text-emerald-700">1</span></>
                     )}
                   </p>
                 </div>
-              )}
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    id="homeSectionOrderInput"
+                    type="number"
+                    min={0}
+                    value={homeSectionOrder || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setHomeSectionOrder(val);
+                      setValidationError(null);
+                    }}
+                    className="w-20 bg-white border border-amber-300 rounded-xl px-3 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600 shadow-xs"
+                    placeholder={`${nextAvailableHomeOrder}`}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

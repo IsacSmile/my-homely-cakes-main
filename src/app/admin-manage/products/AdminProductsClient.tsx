@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Search } from 'lucide-react';
@@ -38,9 +38,9 @@ export default function AdminProductsClient({
   const [editingCatName, setEditingCatName] = useState('');
   const [catFeedbackMsg, setCatFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Filter products by search and category
+  // Filter and auto-sort products by displayPosition
   const filteredProducts = useMemo(() => {
-    return productsList.filter((p) => {
+    const filtered = productsList.filter((p) => {
       const matchesSearch = !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCat = selectedCategory === 'all'
         ? true
@@ -48,6 +48,17 @@ export default function AdminProductsClient({
           ? Boolean(p.isFeatured)
           : p.category === selectedCategory;
       return matchesSearch && matchesCat;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const posA = Number(a.displayPosition || a.homeSectionOrder || 0);
+      const posB = Number(b.displayPosition || b.homeSectionOrder || 0);
+
+      if (posA > 0 && posB > 0) return posA - posB;
+      if (posA > 0) return -1;
+      if (posB > 0) return 1;
+
+      return (b.id || '').localeCompare(a.id || '');
     });
   }, [productsList, searchQuery, selectedCategory]);
 
@@ -61,11 +72,28 @@ export default function AdminProductsClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFeatured: newFeatured }),
       });
-      if (!res.ok) {
-        setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, isFeatured: !newFeatured } : p));
+      const data = await res.json();
+      if (res.ok && data.allProducts) {
+        setProductsList(data.allProducts);
       }
     } catch {
       setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, isFeatured: !newFeatured } : p));
+    }
+  };
+
+  const handleUpdatePosition = async (productId: string, newPos: number) => {
+    try {
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayPosition: newPos }),
+      });
+      const data = await res.json();
+      if (res.ok && data.allProducts) {
+        setProductsList(data.allProducts);
+      }
+    } catch (e) {
+      console.error('Failed to update position', e);
     }
   };
 
@@ -87,8 +115,10 @@ export default function AdminProductsClient({
   };
 
   // Surgical state update when saved
-  const handleProductSaved = (savedProduct: any, isEdit: boolean) => {
-    if (isEdit) {
+  const handleProductSaved = (savedProduct: any, isEdit: boolean, allProducts?: any[]) => {
+    if (allProducts && Array.isArray(allProducts)) {
+      setProductsList(allProducts);
+    } else if (isEdit) {
       setProductsList(prev => prev.map(p => p.id === savedProduct.id ? { ...p, ...savedProduct } : p));
     } else {
       setProductsList(prev => [savedProduct, ...prev]);
@@ -100,8 +130,13 @@ export default function AdminProductsClient({
     if (!confirm(`Are you sure you want to delete "${prodName}"? This action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const data = await res.json();
       if (res.ok) {
-        setProductsList(prev => prev.filter(p => p.id !== id));
+        if (data.allProducts) {
+          setProductsList(data.allProducts);
+        } else {
+          setProductsList(prev => prev.filter(p => p.id !== id));
+        }
       }
     } catch (e) {
       alert('Failed to delete product');
@@ -210,7 +245,7 @@ export default function AdminProductsClient({
             Products & Categories ({productsList.length})
           </h1>
           <p className="text-xs text-bakery-800/70 mt-1">
-            Manage bakery menu items, custom weight prices, live category pills, and stock availability.
+            Manage bakery menu items, custom weight prices, position numbers, and stock availability.
           </p>
         </div>
 
@@ -281,6 +316,7 @@ export default function AdminProductsClient({
                 onEdit={() => openEditModal(product)}
                 onDelete={() => handleDeleteProduct(product.id, product.name)}
                 onToggleFeatured={() => handleToggleFeatured(product)}
+                onUpdatePosition={(pos) => handleUpdatePosition(product.id, pos)}
               />
             ))}
           </div>
@@ -503,13 +539,28 @@ function AdminProductCard({
   onEdit,
   onDelete,
   onToggleFeatured,
+  onUpdatePosition,
 }: {
   product: any;
   onEdit: () => void;
   onDelete: () => void;
   onToggleFeatured: () => void;
+  onUpdatePosition: (newPos: number) => void;
 }) {
   const [imgSrc, setImgSrc] = useState<string>(product.imageUrl || '/cake-placeholder.svg');
+  const posVal = Number(product.displayPosition || product.homeSectionOrder || 0);
+  const [inputPos, setInputPos] = useState<string>(posVal > 0 ? String(posVal) : '');
+
+  useEffect(() => {
+    setInputPos(posVal > 0 ? String(posVal) : '');
+  }, [posVal]);
+
+  const handleApplyPosition = () => {
+    const newPos = Math.max(0, parseInt(inputPos, 10) || 0);
+    if (newPos !== posVal) {
+      onUpdatePosition(newPos);
+    }
+  };
 
   const variantsList: WeightVariant[] = parseProductVariants(product);
   const defaultVar = variantsList.find(v => v.isDefault) || variantsList[0];
@@ -539,12 +590,19 @@ function AdminProductCard({
           loading="lazy"
         />
 
-        {/* Featured Badge */}
-        {product.isFeatured && (
-          <span className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
-            ⭐ Featured
+        {/* Position Badge & Featured Badge */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
+          {product.isFeatured && (
+            <span className="bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+              ⭐ Featured
+            </span>
+          )}
+          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs ${
+            posVal > 0 ? 'bg-amber-700 text-white' : 'bg-black/60 text-white/90 backdrop-blur-xs font-semibold'
+          }`}>
+            {posVal > 0 ? `Pos: #${posVal}` : 'Pos: Unassigned'}
           </span>
-        )}
+        </div>
 
         <span
           className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-xs ${
@@ -590,6 +648,37 @@ function AdminProductCard({
           <p className="text-xs text-bakery-800/70 line-clamp-2 leading-relaxed mt-1">
             {product.description}
           </p>
+        </div>
+
+        {/* Quick Inline Position Input */}
+        <div className="bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80 flex items-center justify-between gap-2">
+          <label className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+            <span>Position #</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              value={inputPos}
+              onChange={(e) => setInputPos(e.target.value)}
+              onBlur={handleApplyPosition}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="0"
+              className="w-16 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center text-bakery-chocolate focus:outline-none focus:border-amber-600 shadow-xs"
+              title="Set position number (auto-shifts existing cards if occupied)"
+            />
+            <button
+              type="button"
+              onClick={handleApplyPosition}
+              className="bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-md transition-colors shadow-2xs"
+            >
+              Set
+            </button>
+          </div>
         </div>
 
         <div className="space-y-2 pt-2 border-t border-bakery-100">

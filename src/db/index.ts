@@ -157,7 +157,8 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
       await client.execute(`ALTER TABLE orders ADD COLUMN points_redeemed INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`ALTER TABLE orders ADD COLUMN points_discount_amount INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
-      await client.execute(`ALTER TABLE orders ADD COLUMN points_credited INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE products ADD COLUMN home_section_order INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE products ADD COLUMN display_position INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`
         CREATE TABLE IF NOT EXISTS points_transactions (
           id TEXT PRIMARY KEY,
@@ -307,6 +308,9 @@ const initDb = () => {
     }
     if (!productCols.some((col: any) => col.name === 'home_section_order')) {
       sqliteInstance.exec(`ALTER TABLE products ADD COLUMN home_section_order INTEGER NOT NULL DEFAULT 0`);
+    }
+    if (!productCols.some((col: any) => col.name === 'display_position')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN display_position INTEGER NOT NULL DEFAULT 0`);
     }
   } catch (e) {
     console.error('Migration notice (products new columns):', e);

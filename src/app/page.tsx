@@ -91,17 +91,17 @@ export default async function HomePage() {
     db.select().from(settings).all().then((res: any[]) => res || []).catch(() => []),
   ]);
 
-  // 1. Featured Products (Curated by admin, ordered by featuredOrder or recency)
+  // 1. Featured Products (Curated by admin, ordered by featured click sequence)
   const featuredProducts = allProducts
     .filter((p: any) => isProductAvailable(p) && isProductFeatured(p))
     .sort((a: any, b: any) => (a.featuredOrder || 0) - (b.featuredOrder || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // 2. Non-Featured Products for "Fresh From The Oven / More From Our Oven" Section
+  // 2. All Available Products for "More From Our Oven" Section (Popular, Featured, or Normal)
   const nonFeaturedAvailableProducts = allProducts
-    .filter((p: any) => isProductAvailable(p) && !isProductFeatured(p))
+    .filter((p: any) => isProductAvailable(p))
     .sort((a: any, b: any) => {
-      const orderA = Number(a.homeSectionOrder || 0);
-      const orderB = Number(b.homeSectionOrder || 0);
+      const orderA = Number(a.displayPosition || a.homeSectionOrder || 0);
+      const orderB = Number(b.displayPosition || b.homeSectionOrder || 0);
       if (orderA > 0 && orderB > 0) {
         if (orderA !== orderB) return orderA - orderB;
       } else if (orderA > 0) {
