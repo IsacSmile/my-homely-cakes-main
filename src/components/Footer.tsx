@@ -205,7 +205,7 @@ export default function Footer() {
 
         <div className="pt-8 border-t border-amber-900/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-bakery-400">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-            <p>© {new Date().getFullYear()} Cakes Trivandrum. All rights reserved.</p>
+            <p suppressHydrationWarning>© {new Date().getFullYear()} Cakes Trivandrum. All rights reserved.</p>
             <span className="hidden sm:inline text-amber-900/60">•</span>
             <p className="text-bakery-300">
               Engineered by{' '}

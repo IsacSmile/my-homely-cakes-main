@@ -120,6 +120,9 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBakerySchema) }}
         />
+      </head>
+
+      <body className="min-h-screen max-w-full w-full overflow-x-clip relative flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
         {/* Google Analytics Tag (gtag.js) */}
         <Script
           strategy="afterInteractive"
@@ -137,9 +140,6 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-
-      <body className="min-h-screen max-w-full w-full overflow-x-clip relative flex flex-col justify-between antialiased font-sans bg-bakery-bg text-bakery-chocolate" suppressHydrationWarning>
         <SessionProviderWrapper>
           <CartProvider>
             <MainLayoutClientWrapper>

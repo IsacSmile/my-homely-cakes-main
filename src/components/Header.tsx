@@ -418,7 +418,7 @@ export default function Header({ onOpenSearch }: { onOpenSearch?: () => void }) 
                 </Link>
 
                 {/* Sign Out button (If logged in) */}
-                {status === 'authenticated' && (
+                {isMounted && status === 'authenticated' && (
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

@@ -50,6 +50,11 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!initialHeroData) {
@@ -92,7 +97,7 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
     ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
     : '';
 
-  const welcomeGreeting = (status === 'authenticated' && formattedFirstName)
+  const welcomeGreeting = (isMounted && status === 'authenticated' && formattedFirstName)
     ? `Welcome back, ${formattedFirstName}`
     : 'Welcome to MyHomelyCake';
 
