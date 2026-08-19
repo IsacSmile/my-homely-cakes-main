@@ -5,11 +5,8 @@ export interface WeightVariant {
 }
 
 export function formatINR(amount: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  if (typeof amount !== 'number' || isNaN(amount)) return '₹0';
+  return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
 /**
