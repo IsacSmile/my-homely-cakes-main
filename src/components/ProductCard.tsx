@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Zap, Award } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { formatINR, getLowestVariant } from '@/lib/pricing';
+import { formatINR, getDefaultVariant } from '@/lib/pricing';
 
 export interface ProductCardProps {
   product: {
@@ -42,10 +42,10 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
     getOptimizedImageUrl(product.imageUrl)
   );
 
-  const lowestVariant = getLowestVariant(product);
+  const selectedVariant = getDefaultVariant(product);
   const finalBasePrice = discountPercent > 0
-    ? Math.round(lowestVariant.price * (1 - discountPercent / 100))
-    : lowestVariant.price;
+    ? Math.round(selectedVariant.price * (1 - discountPercent / 100))
+    : selectedVariant.price;
 
   // Track product click analytics silently
   const handleCardClick = () => {
@@ -132,7 +132,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
         <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between gap-1">
           <div className="min-w-0">
             <span className="text-[8px] sm:text-[10px] text-bakery-600 block font-medium truncate">
-              Starts at ({lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`})
+              Starts at ({selectedVariant.weightG >= 1000 ? `${selectedVariant.weightG / 1000}kg` : `${selectedVariant.weightG}g`})
             </span>
             <div className="flex items-baseline gap-1">
               <span className="font-price text-sm sm:text-xl font-medium text-amber-800 tracking-tight">
@@ -140,14 +140,14 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
               </span>
               {discountPercent > 0 && (
                 <span className="font-price text-[9px] sm:text-xs text-bakery-400 font-medium line-through">
-                  {formatINR(lowestVariant.price)}
+                  {formatINR(selectedVariant.price)}
                 </span>
               )}
             </div>
           </div>
 
           <span className="text-[8px] sm:text-[9px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-price shrink-0">
-            {lowestVariant.weightG >= 1000 ? `${lowestVariant.weightG / 1000}kg` : `${lowestVariant.weightG}g`}
+            {selectedVariant.weightG >= 1000 ? `${selectedVariant.weightG / 1000}kg` : `${selectedVariant.weightG}g`}
           </span>
         </div>
 
@@ -155,7 +155,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
         <div className="grid grid-cols-2 gap-1.5 pt-0.5">
           <button
             type="button"
-            onClick={() => addToCart(product, lowestVariant.weightG, 1)}
+            onClick={() => addToCart(product, selectedVariant.weightG, 1)}
             className="flex items-center justify-center gap-1 bg-bakery-50 hover:bg-bakery-100 text-bakery-chocolate border border-bakery-200 font-semibold text-[11px] sm:text-xs py-2 px-1 rounded-xl transition-colors active:scale-95 min-h-[42px] sm:min-h-[44px]"
             title="Add to Cart"
           >
