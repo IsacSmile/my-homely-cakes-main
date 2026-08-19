@@ -1,5 +1,15 @@
 export const metadata = {
-  title: 'Refund Policy',
+  title: 'Return & Refund Policy',
+  description: 'Return and refund policy for fresh, custom home-baked cakes at My Homely Cakes Trivandrum.',
+  alternates: {
+    canonical: 'https://www.myhomelycakes.com/refunds',
+  },
+  openGraph: {
+    title: 'Return & Refund Policy | My Homely Cakes Trivandrum',
+    description: 'Return and refund policy for fresh home-baked cakes.',
+    url: 'https://www.myhomelycakes.com/refunds',
+    siteName: 'My Homely Cakes',
+  },
 };
 
 export default function RefundsPage() {

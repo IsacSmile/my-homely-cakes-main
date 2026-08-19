@@ -10,8 +10,33 @@ import { asc } from 'drizzle-orm';
 export const revalidate = 3600; // Cache statically with 1-hour ISR revalidation
 
 export const metadata = {
-  title: 'About Us',
-  description: 'Learn about our story, meet our head baker, and visit our fresh bakery outlets across Trivandrum including Kowdiar, Pattom, Kazhakkoottam, and Vellayambalam.',
+  title: 'About Us & Outlets',
+  description: 'Learn about our story, meet head baker Aswathy S., and visit our fresh home bakery outlets across Trivandrum including Kowdiar, Pattom, Kazhakkoottam, and Vellayambalam.',
+  alternates: {
+    canonical: 'https://www.myhomelycakes.com/about',
+  },
+  openGraph: {
+    title: 'About Us & Outlets | My Homely Cakes Trivandrum',
+    description: 'Learn about our story, meet head baker Aswathy S., and visit our fresh home bakery outlets across Trivandrum.',
+    url: 'https://www.myhomelycakes.com/about',
+    siteName: 'My Homely Cakes',
+    images: [
+      {
+        url: '/icon.png',
+        width: 512,
+        height: 512,
+        alt: 'About My Homely Cakes Trivandrum',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About Us & Outlets | My Homely Cakes Trivandrum',
+    description: 'Learn about our story, meet head baker Aswathy S., and visit our fresh home bakery outlets across Trivandrum.',
+    images: ['/icon.png'],
+  },
 };
 
 const DEFAULT_FOUNDER = {

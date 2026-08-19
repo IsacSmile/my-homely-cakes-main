@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { products } from '@/db/schema';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://myhomelycakes.com';
+  const baseUrl = 'https://www.myhomelycakes.com';
 
   let productUrls: any[] = [];
   try {

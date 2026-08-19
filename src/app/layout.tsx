@@ -31,19 +31,42 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-
+  metadataBase: new URL('https://www.myhomelycakes.com'),
   title: {
-    default: 'My Homely Cakes | Home',
+    default: 'My Homely Cakes | Fresh Home Baked Cakes in Trivandrum',
     template: 'My Homely Cakes | %s',
   },
-  description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes. Direct phone call confirmation.',
-  keywords: ['Cakes Trivandrum', 'Home Bakery Trivandrum', 'Cake Delivery Trivandrum', 'Tender Coconut Cake', 'Birthday Cake Trivandrum', 'MyHomelyCake'],
+  description: 'Order fresh, 100% preservative-free home baked cakes in Trivandrum. Tender Coconut, Belgian Truffle, Red Velvet, Cheesecakes & Custom Birthday Cakes with doorstep delivery across Thiruvananthapuram.',
+  keywords: ['My Homely Cakes', 'MyHomelyCake', 'Cakes Trivandrum', 'Home Bakery Trivandrum', 'Cake Delivery Trivandrum', 'Tender Coconut Cake', 'Birthday Cake Trivandrum', 'Preservative Free Cakes Trivandrum', 'Custom Cakes Kowdiar Pattom Kazhakkoottam'],
   authors: [{ name: 'My Homely Cakes' }],
+  alternates: {
+    canonical: 'https://www.myhomelycakes.com',
+  },
   openGraph: {
-    title: 'My Homely Cakes | Home',
-    description: 'Freshly baked homemade cakes delivered across Trivandrum. No login or online payment required - order in 1 tap!',
+    title: 'My Homely Cakes | Fresh Home Baked Cakes in Trivandrum',
+    description: 'Freshly baked homemade cakes delivered across Trivandrum. Handcrafted with pure natural butter & zero preservatives.',
+    url: 'https://www.myhomelycakes.com',
+    siteName: 'My Homely Cakes',
+    images: [
+      {
+        url: '/icon.png',
+        width: 512,
+        height: 512,
+        alt: 'My Homely Cakes Trivandrum Logo',
+      },
+    ],
     locale: 'en_IN',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'My Homely Cakes | Fresh Home Baked Cakes in Trivandrum',
+    description: 'Freshly baked homemade cakes delivered across Trivandrum. Order in 1 tap!',
+    images: ['/icon.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
@@ -59,6 +82,10 @@ export default function RootLayout({
     '@context': 'https://schema.org',
     '@type': 'Bakery',
     name: 'MyHomelyCake Trivandrum',
+    url: 'https://www.myhomelycakes.com',
+    sameAs: [
+      'https://www.instagram.com/myhomelycakes/',
+    ],
     image: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136',
     telephone: '+919947066011',
     email: 'myhomelycakes@gmail.com',

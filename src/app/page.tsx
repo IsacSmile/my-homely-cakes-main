@@ -20,7 +20,27 @@ const TestimonialsSection = nextDynamic(() => import('@/components/TestimonialsS
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'My Homely Cakes | Home',
+  title: 'Home',
+  description: 'Order 100% fresh, preservative-free home-baked cakes in Trivandrum. Handcrafted Tender Coconut, Belgian Chocolate Truffle, Red Velvet & Custom Birthday Cakes delivered to your doorstep.',
+  alternates: {
+    canonical: 'https://www.myhomelycakes.com',
+  },
+  openGraph: {
+    title: 'My Homely Cakes | Fresh Home Baked Cakes in Trivandrum',
+    description: 'Order 100% fresh, preservative-free home-baked cakes in Trivandrum with doorstep delivery.',
+    url: 'https://www.myhomelycakes.com',
+    siteName: 'My Homely Cakes',
+    images: [
+      {
+        url: '/icon.png',
+        width: 512,
+        height: 512,
+        alt: 'My Homely Cakes Trivandrum',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
 };
 
 const DEFAULT_SLIDES = [

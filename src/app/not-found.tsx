@@ -3,7 +3,12 @@ import Link from 'next/link';
 import { Cake, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Page Not Found',
+  title: '404 - Page Not Found',
+  description: 'The requested page or cake could not be found.',
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function NotFound() {

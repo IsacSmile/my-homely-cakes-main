@@ -1,5 +1,15 @@
 export const metadata = {
   title: 'Privacy Policy',
+  description: 'Privacy Policy for My Homely Cakes Trivandrum. Details on how we collect and process customer contact and order information.',
+  alternates: {
+    canonical: 'https://www.myhomelycakes.com/privacy',
+  },
+  openGraph: {
+    title: 'Privacy Policy | My Homely Cakes Trivandrum',
+    description: 'Privacy Policy for My Homely Cakes Trivandrum.',
+    url: 'https://www.myhomelycakes.com/privacy',
+    siteName: 'My Homely Cakes',
+  },
 };
 
 export default function PrivacyPage() {
