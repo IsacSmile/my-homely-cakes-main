@@ -1,31 +1,100 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Cake, Search, MousePointer, Mail, TrendingUp, Bell, Calendar, ArrowUpRight } from 'lucide-react';
+import { ShoppingCart, Cake, Search, MousePointer, Mail, TrendingUp, Calendar, ArrowUpRight, RotateCcw, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { formatINR } from '@/lib/pricing';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminStatCardSkeleton } from '@/components/ui/Skeletons';
 
+type ResetScope = 'top_orders' | 'searched_terms' | 'most_clicked' | 'all_three';
+
+interface ResetTarget {
+  scope: ResetScope;
+  name: string;
+}
+
 export default function AdminOverviewPage() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Reset Modal & Toast States
+  const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      const res = await fetch('/api/admin/dashboard');
+      if (res.status === 401) {
+        window.location.href = '/admin-manage';
+        return;
+      }
+      const json = await res.json();
+      if (json) setData(json);
+    } catch (e) {
+      console.error('Failed to load dashboard:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch('/api/admin/dashboard')
-      .then(res => {
-        if (res.status === 401) {
-          window.location.href = '/admin-manage';
-          return null;
-        }
-        return res.json();
-      })
-      .then(json => {
-        if (json) setData(json);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
+    fetchDashboardData();
   }, []);
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
+  const handleConfirmReset = async () => {
+    if (!resetTarget) return;
+    setIsResetting(true);
+
+    try {
+      const res = await fetch('/api/admin/analytics/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: resetTarget.scope }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to reset analytics');
+      }
+
+      // Dynamically update local state immediately without full page refresh
+      setData((prevData: any) => {
+        if (!prevData) return prevData;
+        const updated = { ...prevData };
+
+        if (resetTarget.scope === 'top_orders' || resetTarget.scope === 'all_three') {
+          updated.topProducts = [];
+        }
+        if (resetTarget.scope === 'searched_terms' || resetTarget.scope === 'all_three') {
+          updated.topSearches = [];
+        }
+        if (resetTarget.scope === 'most_clicked' || resetTarget.scope === 'all_three') {
+          updated.topClicks = [];
+        }
+
+        return updated;
+      });
+
+      triggerToast(`${resetTarget.name} analytics cleared successfully.`);
+      setResetTarget(null);
+
+      // Background sync with database
+      fetchDashboardData();
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while resetting analytics.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -55,7 +124,15 @@ export default function AdminOverviewPage() {
   const recentOrders = Array.isArray(data.recentOrders) ? data.recentOrders : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -138,35 +215,75 @@ export default function AdminOverviewPage() {
 
       </div>
 
+      {/* Analytics Section Header with Bulk Reset Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        <h2 className="font-serif text-xl font-bold text-bakery-chocolate">
+          Product & Engagement Analytics
+        </h2>
+        <button
+          type="button"
+          onClick={() =>
+            setResetTarget({
+              scope: 'all_three',
+              name: 'All Product Analytics (Orders, Searches, Clicks)',
+            })
+          }
+          className="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold px-3.5 py-1.5 rounded-full border border-rose-200 shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+          title="Reset section data for all three analytics cards"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+          <span>Reset Product Analytics</span>
+        </button>
+      </div>
+
       {/* Analytics Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Most Ordered Products (Weekly Leaderboard) */}
+        {/* Top Ordered Cakes */}
         <div className="bg-white p-6 rounded-3xl border border-bakery-200 shadow-soft space-y-4">
           <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
             <div className="flex items-center gap-2">
               <Cake className="w-5 h-5 text-amber-700" />
               <h3 className="font-serif text-lg font-bold text-bakery-chocolate">Top Ordered Cakes</h3>
             </div>
-            <span className="text-[10px] uppercase font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded">Weekly</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded">Weekly</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setResetTarget({
+                    scope: 'top_orders',
+                    name: 'Top Ordered Cakes',
+                  })
+                }
+                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                title="Reset section data"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="divide-y divide-bakery-100">
-            {topProducts.map((p: any, idx: number) => (
-              <div key={p.id} className="py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-xs text-amber-700 w-4">#{idx + 1}</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-bakery-chocolate line-clamp-1">{p.name}</h4>
-                    <span className="text-[10px] text-bakery-600">{p.category}</span>
+            {topProducts.length === 0 ? (
+              <p className="py-6 text-xs text-bakery-400 text-center">No order metrics logged yet.</p>
+            ) : (
+              topProducts.map((p: any, idx: number) => (
+                <div key={p.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-xs text-amber-700 w-4">#{idx + 1}</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-bakery-chocolate line-clamp-1">{p.name}</h4>
+                      <span className="text-[10px] text-bakery-600">{p.category}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-serif text-xs font-bold text-bakery-chocolate block">{p.orderCount} orders</span>
+                    <span className="text-[10px] text-amber-800 font-semibold">{formatINR(p.price)}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-serif text-xs font-bold text-bakery-chocolate block">{p.orderCount} orders</span>
-                  <span className="text-[10px] text-amber-800 font-semibold">{formatINR(p.price)}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -177,12 +294,27 @@ export default function AdminOverviewPage() {
               <Search className="w-5 h-5 text-blue-700" />
               <h3 className="font-serif text-lg font-bold text-bakery-chocolate">Most Searched Terms</h3>
             </div>
-            <span className="text-[10px] uppercase font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded">Analytics</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded">Analytics</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setResetTarget({
+                    scope: 'searched_terms',
+                    name: 'Most Searched Terms',
+                  })
+                }
+                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                title="Reset section data"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="divide-y divide-bakery-100">
             {topSearches.length === 0 ? (
-              <p className="py-4 text-xs text-bakery-400 text-center">No search queries logged yet.</p>
+              <p className="py-6 text-xs text-bakery-400 text-center">No search queries logged yet.</p>
             ) : (
               topSearches.map((s: any) => (
                 <div key={s.query} className="py-3 flex items-center justify-between">
@@ -196,19 +328,34 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-        {/* Most Clicked Products */}
+        {/* Most Clicked Cakes */}
         <div className="bg-white p-6 rounded-3xl border border-bakery-200 shadow-soft space-y-4">
           <div className="flex items-center justify-between border-b border-bakery-100 pb-3">
             <div className="flex items-center gap-2">
               <MousePointer className="w-5 h-5 text-purple-700" />
               <h3 className="font-serif text-lg font-bold text-bakery-chocolate">Most Clicked Cakes</h3>
             </div>
-            <span className="text-[10px] uppercase font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded">Engagement</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded">Engagement</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setResetTarget({
+                    scope: 'most_clicked',
+                    name: 'Most Clicked Cakes',
+                  })
+                }
+                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                title="Reset section data"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="divide-y divide-bakery-100">
             {topClicks.length === 0 ? (
-              <p className="py-4 text-xs text-bakery-400 text-center">No click events logged yet.</p>
+              <p className="py-6 text-xs text-bakery-400 text-center">No click events logged yet.</p>
             ) : (
               topClicks.map((c: any) => (
                 <div key={c.productId} className="py-3 flex items-center justify-between">
@@ -275,6 +422,65 @@ export default function AdminOverviewPage() {
           </table>
         </div>
       </div>
+
+      {/* Confirmation & Safety Modal */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-slate-900">
+                  Reset Analytics Data
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Confirmation required for target scope
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-700 space-y-2">
+              <p className="font-medium">
+                Are you sure you want to reset <span className="font-bold text-rose-700">{resetTarget.name}</span> analytics? This action cannot be undone.
+              </p>
+              <p className="text-[11px] text-slate-500 italic">
+                Note: Core orders, customer data, and sales revenue will remain completely unaffected.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={() => setResetTarget(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={handleConfirmReset}
+                className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-soft transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {isResetting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Resetting...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Confirm Reset</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
