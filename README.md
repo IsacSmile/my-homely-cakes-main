@@ -1,5 +1,7 @@
 # 🎂 MyHomelyCake — Handcrafted Bakery Web Application
 
+> **"Me and God only know how this website works, and now welcome you to wasting your hours on this website."**
+
 A modern, fast, and mobile-optimized e-commerce web platform for **MyHomelyCake**, a premier artisanal home bakery operating in Thiruvananthapuram (Trivandrum), Kerala. Built with Next.js 15 (App Router), TypeScript, Tailwind CSS, Drizzle ORM, Turso LibSQL, and Cloudinary.
 
 ---

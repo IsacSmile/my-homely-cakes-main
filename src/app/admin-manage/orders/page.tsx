@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ShoppingCart, Phone, Clock, CheckCircle2, AlertCircle, Filter, Loader2, Trash2,
-  CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X, MessageSquare, ArrowRight
+  CheckSquare, Square, RefreshCw, Cake, Calendar, TrendingUp, X, MessageSquare, ArrowRight, Printer
 } from 'lucide-react';
 import { formatINR } from '@/lib/pricing';
 import { AdminOrderRowSkeleton } from '@/components/ui/Skeletons';
 import { formatDisplay12 } from '@/components/ui/TimePicker';
 import { useAdminOrders } from '@/context/AdminOrderContext';
+import ThermalReceiptModal from '@/components/ThermalReceiptModal';
 
 const formatDateInput = (d: Date) => {
   const year = d.getFullYear();
@@ -99,6 +100,7 @@ export default function AdminOrdersPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
+  const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<any | null>(null);
 
   // Read initial query params from URL on mount
   useEffect(() => {
@@ -548,6 +550,17 @@ export default function AdminOrdersPage() {
 
                   {/* Actions & Status Workflow Controls */}
                   <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Print Thermal Receipt Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrderForPrint(order)}
+                      className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+                      title="Print 80mm thermal receipt / tax invoice"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Print Receipt</span>
+                    </button>
+
                     {/* Call Customer Button */}
                     <a
                       href={`tel:${order.mobile}`}
@@ -772,6 +785,13 @@ export default function AdminOrdersPage() {
           })}
         </div>
       )}
+
+      {/* Thermal Receipt Print Modal */}
+      <ThermalReceiptModal
+        order={selectedOrderForPrint}
+        isOpen={Boolean(selectedOrderForPrint)}
+        onClose={() => setSelectedOrderForPrint(null)}
+      />
     </div>
   );
 }
