@@ -101,6 +101,7 @@ export default function AdminOrdersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
   const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<any | null>(null);
+  const [ordersForPrint, setOrdersForPrint] = useState<any[] | null>(null);
 
   // Read initial query params from URL on mount
   useEffect(() => {
@@ -265,14 +266,28 @@ export default function AdminOrdersPage() {
 
         <div className="flex items-center gap-3">
           {selectedIds.length > 0 && (
-            <button
-              onClick={handleBulkDeleteAction}
-              disabled={isBulkDeleting}
-              className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-soft transition-all active:scale-95 disabled:opacity-50"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Selected ({selectedIds.length})</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const selectedList = orders.filter(o => selectedIds.includes(o.id));
+                  setOrdersForPrint(selectedList);
+                }}
+                className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-soft transition-all active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-amber-400" />
+                <span>Print Selected ({selectedIds.length})</span>
+              </button>
+
+              <button
+                onClick={handleBulkDeleteAction}
+                disabled={isBulkDeleting}
+                className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-soft transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Selected ({selectedIds.length})</span>
+              </button>
+            </>
           )}
 
           <button
@@ -786,11 +801,15 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* Thermal Receipt Print Modal */}
+      {/* Thermal Receipt Print Modal (Single or Multi-Select Batch) */}
       <ThermalReceiptModal
         order={selectedOrderForPrint}
-        isOpen={Boolean(selectedOrderForPrint)}
-        onClose={() => setSelectedOrderForPrint(null)}
+        orders={ordersForPrint}
+        isOpen={Boolean(selectedOrderForPrint || (ordersForPrint && ordersForPrint.length > 0))}
+        onClose={() => {
+          setSelectedOrderForPrint(null);
+          setOrdersForPrint(null);
+        }}
       />
     </div>
   );
