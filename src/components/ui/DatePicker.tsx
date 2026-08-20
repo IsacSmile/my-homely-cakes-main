@@ -115,14 +115,21 @@ export function DatePicker({
   // Formatted label for display
   const getFormattedLabel = () => {
     if (!value) return 'Select Date';
-    const d = new Date(value + 'T00:00:00');
-    if (isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('en-IN', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    const parts = value.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dateObj = new Date(y, m, d);
+      const dayName = isNaN(dateObj.getTime()) ? '' : days[dateObj.getDay()];
+      return `${dayName ? `${dayName}, ` : ''}${d} ${months[m] || ''} ${y}`;
+    }
+    return value;
   };
 
   const monthNames = [

@@ -43,12 +43,23 @@ function formatTimeHHMM(d: Date): string {
 }
 
 function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return '';
   const today = formatDateISO(getNowIST());
   const tomorrow = formatDateISO(addMinutes(getNowIST(), 1440));
   if (dateStr === today) return 'Today';
   if (dateStr === tomorrow) return 'Tomorrow';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dateObj = new Date(y, m, d);
+    const dayName = isNaN(dateObj.getTime()) ? '' : days[dateObj.getDay()];
+    return `${dayName ? `${dayName}, ` : ''}${d} ${months[m] || ''}`;
+  }
+  return dateStr;
 }
 
 function formatDisplayTime(timeStr: string): string {
@@ -114,6 +125,11 @@ export default function ProductDetailModal() {
   };
 
   // Delivery state
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [cities, setCities] = useState<{ id: string; name: string }[]>([
     { id: 'city_trivandrum', name: 'Trivandrum' }
   ]);
@@ -248,7 +264,7 @@ export default function ProductDetailModal() {
   // Prevent body scroll & touch-drag when modal open
   useScrollLock(!!selectedModalProduct);
 
-  if (!selectedModalProduct) return null;
+  if (!isMounted || !selectedModalProduct) return null;
 
   const variantsList: WeightVariant[] = parseProductVariants(selectedModalProduct);
   const discountPercentage = (selectedModalProduct?.discountPercentage !== undefined && selectedModalProduct?.discountPercentage !== null)
