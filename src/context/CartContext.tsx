@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, ShoppingBag, X, AlertCircle, LogOut } from 'lucide-react';
-import { calculateWeightPrice, formatINR } from '@/lib/pricing';
+import { calculateWeightPrice, formatINR, getVariantPrice, getDiscountedPrice } from '@/lib/pricing';
 
 export interface CartItem {
   productId: string;
@@ -117,14 +117,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const addToCart = (
-    product: { id: string; name: string; imageUrl: string; basePrice: number; baseWeightG: number },
+    product: any,
     weightG?: number,
     qty: number = 1,
     cakeMessage?: string,
     specialNotes?: string
   ) => {
     const selectedWeight = weightG || product.baseWeightG || 500;
-    const itemPrice = calculateWeightPrice(product.basePrice, product.baseWeightG || 500, selectedWeight);
+    const rawPrice = getVariantPrice(product, selectedWeight);
+    const discPct = (product.discountPercentage !== undefined && product.discountPercentage !== null)
+      ? Number(product.discountPercentage)
+      : 0;
+    const itemPrice = getDiscountedPrice(rawPrice, discPct);
     const msg = cakeMessage ? cakeMessage.trim() : '';
     const notes = specialNotes ? specialNotes.trim() : '';
 

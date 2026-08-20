@@ -93,16 +93,27 @@ export function getDefaultVariant(product: any): WeightVariant {
 }
 
 /**
- * Get exact admin price for selected weight option.
+ * Calculate discounted price from original price and discount percentage.
  */
-export function getVariantPrice(product: any, selectedWeightG: number): number {
+export function getDiscountedPrice(originalPrice: number, discountPercentage?: number | null): number {
+  if (!discountPercentage || discountPercentage <= 0) return Math.round(originalPrice);
+  const discounted = originalPrice * (1 - discountPercentage / 100);
+  return Math.max(0, Math.round(discounted));
+}
+
+/**
+ * Get exact admin price for selected weight option.
+ * If applyDiscount is true, returns the price after applying product.discountPercentage.
+ */
+export function getVariantPrice(product: any, selectedWeightG: number, applyDiscount: boolean = false): number {
   const list = parseProductVariants(product);
   const exact = list.find(v => v.weightG === selectedWeightG);
-  if (exact) return exact.price;
-
-  // Fallback to default or lowest if exact weight is missing
-  const def = getDefaultVariant(product);
-  return def.price;
+  const rawPrice = exact ? exact.price : getDefaultVariant(product).price;
+  
+  if (applyDiscount && product?.discountPercentage) {
+    return getDiscountedPrice(rawPrice, Number(product.discountPercentage));
+  }
+  return rawPrice;
 }
 
 /**

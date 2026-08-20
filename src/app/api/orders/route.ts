@@ -4,7 +4,7 @@ import { orders, products, offers, settings, users, pointsTransactions } from '@
 import { eq, desc, gte, lte, and } from 'drizzle-orm';
 import { sendAdminOrderEmail } from '@/lib/notifications';
 import { getAdminFromCookies } from '@/lib/auth';
-import { parseProductVariants } from '@/lib/pricing';
+import { parseProductVariants, getDiscountedPrice } from '@/lib/pricing';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -145,12 +145,16 @@ export async function POST(request: Request) {
       const qty = Math.max(1, item.qty || 1);
       const weightG = item.weightG || (prod ? prod.baseWeightG : 500);
 
-      // Look up exact admin-set variant price
+      // Look up exact admin-set variant price & apply product discount if present
       let calculatedPrice = item.calculatedPrice;
       if (prod) {
         const variantsList = parseProductVariants(prod);
         const exactVar = variantsList.find(v => v.weightG === weightG);
-        calculatedPrice = exactVar ? exactVar.price : (item.calculatedPrice || prod.basePrice);
+        const rawPrice = exactVar ? exactVar.price : (item.calculatedPrice || prod.basePrice);
+        const discPct = (prod.discountPercentage !== undefined && prod.discountPercentage !== null)
+          ? Number(prod.discountPercentage)
+          : 0;
+        calculatedPrice = discPct > 0 ? getDiscountedPrice(rawPrice, discPct) : rawPrice;
       } else {
         calculatedPrice = item.calculatedPrice || 500;
       }

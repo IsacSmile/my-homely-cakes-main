@@ -32,6 +32,8 @@ export default function ProductModalLazy({
   const [isFeatured, setIsFeatured] = useState(false);
   const [featuredOrder, setFeaturedOrder] = useState(0);
   const [homeSectionOrder, setHomeSectionOrder] = useState(0);
+  const [promoBadge, setPromoBadge] = useState('');
+  const [discountPercentage, setDiscountPercentage] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -191,6 +193,8 @@ export default function ProductModalLazy({
       setCategory(editingProduct.category || categoriesList[0]?.name || 'Signature Cakes');
       setWeightVariants(parseProductVariants(editingProduct));
       setIsAvailable(editingProduct.isAvailable !== false);
+      setPromoBadge(editingProduct.promoBadge || '');
+      setDiscountPercentage(editingProduct.discountPercentage !== null && editingProduct.discountPercentage !== undefined ? String(editingProduct.discountPercentage) : '');
     } else {
       setName('');
       setDescription('');
@@ -215,6 +219,8 @@ export default function ProductModalLazy({
         { weightG: 2000, price: 2250, isDefault: false },
       ]);
       setIsAvailable(true);
+      setPromoBadge('');
+      setDiscountPercentage('');
     }
   }, [isOpen, editingProduct, categoriesList]);
 
@@ -516,6 +522,8 @@ export default function ProductModalLazy({
       featuredOrder: isFeatured ? (featuredOrder || Date.now()) : 0,
       homeSectionOrder,
       displayPosition: homeSectionOrder,
+      promoBadge: promoBadge.trim() || null,
+      discountPercentage: discountPercentage.trim() ? parseInt(discountPercentage, 10) : null,
     };
 
     try {
@@ -790,6 +798,39 @@ export default function ProductModalLazy({
               placeholder="Fresh layers of soft sponge infused with..."
               className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
             />
+          </div>
+
+          {/* Promotional Badge & Optional Discount Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-200/70">
+            <div>
+              <label className="text-xs font-bold text-bakery-chocolate block mb-1">
+                Standalone Promo Badge <span className="text-[10px] font-normal text-bakery-600">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={promoBadge}
+                onChange={(e) => setPromoBadge(e.target.value)}
+                placeholder="e.g. Free Delivery, Bestseller, Fresh Baked"
+                className="w-full bg-white border border-amber-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+              />
+              <p className="text-[10px] text-bakery-600 mt-1">Badge rendered on storefront cards without requiring a discount.</p>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-bakery-chocolate block mb-1">
+                Discount Percentage (%) <span className="text-[10px] font-normal text-bakery-600">(Optional)</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={discountPercentage}
+                onChange={(e) => setDiscountPercentage(e.target.value)}
+                placeholder="e.g. 10 or 15 (Leave empty for regular price)"
+                className="w-full bg-white border border-amber-200 rounded-xl px-3.5 py-2 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+              />
+              <p className="text-[10px] text-bakery-600 mt-1">If empty or 0, regular price is shown without strikethrough.</p>
+            </div>
           </div>
 
           <div className="space-y-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-200/70">

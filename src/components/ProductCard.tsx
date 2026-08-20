@@ -20,6 +20,8 @@ export interface ProductCardProps {
     variants: string;
     isAvailable: boolean;
     orderCount: number;
+    discountPercentage?: number | null;
+    promoBadge?: string | null;
   };
   discountPercent?: number;
   priority?: boolean;
@@ -43,9 +45,17 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
   );
 
   const selectedVariant = getDefaultVariant(product);
-  const finalBasePrice = discountPercent > 0
-    ? Math.round(selectedVariant.price * (1 - discountPercent / 100))
+  const effectiveDiscount = (product.discountPercentage !== undefined && product.discountPercentage !== null)
+    ? Number(product.discountPercentage)
+    : (discountPercent || 0);
+
+  const finalBasePrice = effectiveDiscount > 0
+    ? Math.round(selectedVariant.price * (1 - effectiveDiscount / 100))
     : selectedVariant.price;
+
+  const badgeText = product.promoBadge && product.promoBadge.trim()
+    ? product.promoBadge.trim()
+    : (effectiveDiscount > 0 ? `${effectiveDiscount}% OFF` : null);
 
   // Track product click analytics silently
   const handleCardClick = () => {
@@ -82,10 +92,10 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
           {product.category}
         </span>
 
-        {/* Discount Badge */}
-        {discountPercent > 0 && (
+        {/* Promotional or Discount Badge */}
+        {badgeText && (
           <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-xs animate-pulse">
-            {discountPercent}% OFF
+            {badgeText}
           </span>
         )}
 
@@ -138,7 +148,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
               <span className="font-price text-sm sm:text-xl font-medium text-amber-800 tracking-tight">
                 {formatINR(finalBasePrice)}
               </span>
-              {discountPercent > 0 && (
+              {effectiveDiscount > 0 && (
                 <span className="font-price text-[9px] sm:text-xs text-bakery-400 font-medium line-through">
                   {formatINR(selectedVariant.price)}
                 </span>

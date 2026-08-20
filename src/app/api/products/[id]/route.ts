@@ -69,7 +69,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const resolvedParams = await params;
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder, displayPosition } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder, displayPosition, discountPercentage, promoBadge } = body;
 
     const prod = await db.select().from(products).where(eq(products.id, resolvedParams.id)).get();
     if (!prod) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -92,6 +92,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       fOrder = isFeatured ? Date.now() : 0;
     }
 
+    const parsedDiscount = discountPercentage !== undefined
+      ? (discountPercentage !== null && discountPercentage !== '' ? parseInt(discountPercentage, 10) : null)
+      : prod.discountPercentage;
+
+    const cleanPromoBadge = promoBadge !== undefined
+      ? (promoBadge && typeof promoBadge === 'string' && promoBadge.trim() ? promoBadge.trim() : null)
+      : prod.promoBadge;
+
     await db.update(products)
       .set({
         name: name ? name.trim() : prod.name,
@@ -107,6 +115,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         featuredOrder: fOrder,
         homeSectionOrder: posVal,
         displayPosition: posVal,
+        discountPercentage: parsedDiscount !== null && !isNaN(parsedDiscount as number) ? parsedDiscount : null,
+        promoBadge: cleanPromoBadge,
       })
       .where(eq(products.id, resolvedParams.id))
       .run();
@@ -151,6 +161,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updates.homeSectionOrder = posVal;
     }
     if (body.isAvailable !== undefined) updates.isAvailable = Boolean(body.isAvailable);
+
+    if (body.discountPercentage !== undefined) {
+      const pDisc = body.discountPercentage !== null && body.discountPercentage !== '' ? parseInt(body.discountPercentage, 10) : null;
+      updates.discountPercentage = pDisc !== null && !isNaN(pDisc) ? pDisc : null;
+    }
+    if (body.promoBadge !== undefined) {
+      updates.promoBadge = body.promoBadge && typeof body.promoBadge === 'string' && body.promoBadge.trim() ? body.promoBadge.trim() : null;
+    }
 
     await db.update(products)
       .set(updates)

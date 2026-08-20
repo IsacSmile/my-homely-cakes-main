@@ -597,6 +597,16 @@ function AdminProductCard({
               ⭐ Featured
             </span>
           )}
+          {product.promoBadge && (
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+              🏷️ {product.promoBadge}
+            </span>
+          )}
+          {product.discountPercentage > 0 && !product.promoBadge && (
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+              {product.discountPercentage}% OFF
+            </span>
+          )}
           <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs ${
             posVal > 0 ? 'bg-amber-700 text-white' : 'bg-black/60 text-white/90 backdrop-blur-xs font-semibold'
           }`}>

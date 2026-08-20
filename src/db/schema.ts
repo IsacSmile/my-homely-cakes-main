@@ -24,6 +24,8 @@ export const products = sqliteTable('products', {
   featuredOrder: integer('featured_order').notNull().default(0),
   homeSectionOrder: integer('home_section_order').notNull().default(0),
   displayPosition: integer('display_position').notNull().default(0),
+  discountPercentage: integer('discount_percentage'),
+  promoBadge: text('promo_badge'),
   orderCount: integer('order_count').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });

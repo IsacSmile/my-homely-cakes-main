@@ -9,7 +9,7 @@ import {
   ChevronDown, AlertCircle, Lock, Package, CreditCard, PhoneCall, ArrowRight,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { parseProductVariants, getDefaultVariant, getVariantPrice, formatINR, WeightVariant } from '@/lib/pricing';
+import { parseProductVariants, getDefaultVariant, getVariantPrice, getDiscountedPrice, formatINR, WeightVariant } from '@/lib/pricing';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn } from '@/lib/auth-toast';
@@ -251,8 +251,15 @@ export default function ProductDetailModal() {
   if (!selectedModalProduct) return null;
 
   const variantsList: WeightVariant[] = parseProductVariants(selectedModalProduct);
-  const unitPrice = getVariantPrice(selectedModalProduct, selectedWeight);
+  const discountPercentage = (selectedModalProduct?.discountPercentage !== undefined && selectedModalProduct?.discountPercentage !== null)
+    ? Number(selectedModalProduct.discountPercentage)
+    : 0;
+  const rawUnitPrice = getVariantPrice(selectedModalProduct, selectedWeight);
+  const unitPrice = discountPercentage > 0
+    ? getDiscountedPrice(rawUnitPrice, discountPercentage)
+    : rawUnitPrice;
   const totalPrice = unitPrice * qty;
+  const rawTotalPrice = rawUnitPrice * qty;
   
   // Points Redemption Calculation
   const maxRedeemablePoints = Math.floor(userPoints / 100) * 100;
@@ -682,6 +689,9 @@ export default function ProductDetailModal() {
                         {variantsList.map((v: WeightVariant) => {
                           const label = v.weightG >= 1000 ? `${v.weightG / 1000} kg` : `${v.weightG} g`;
                           const isSelected = selectedWeight === v.weightG;
+                          const origPrice = v.price;
+                          const discPrice = discountPercentage > 0 ? getDiscountedPrice(origPrice, discountPercentage) : origPrice;
+
                           return (
                             <button
                               key={v.weightG}
@@ -693,9 +703,16 @@ export default function ProductDetailModal() {
                               }`}
                             >
                               <span className="text-[11px] font-bold">{label}</span>
-                              <span className={`font-price text-[10px] font-medium ${isSelected ? 'text-amber-100' : 'text-amber-800'}`}>
-                                {formatINR(v.price)}
-                              </span>
+                              <div className="flex items-center gap-1 font-price text-[10px]">
+                                <span className={`font-medium ${isSelected ? 'text-amber-100' : 'text-amber-800'}`}>
+                                  {formatINR(discPrice)}
+                                </span>
+                                {discountPercentage > 0 && (
+                                  <span className={`line-through text-[9px] opacity-75 ${isSelected ? 'text-amber-200' : 'text-bakery-400'}`}>
+                                    {formatINR(origPrice)}
+                                  </span>
+                                )}
+                              </div>
                             </button>
                           );
                         })}
@@ -736,7 +753,14 @@ export default function ProductDetailModal() {
                           <span className="text-[10px] text-bakery-500 font-medium">
                             {qty > 1 ? `${qty} × ${formatINR(unitPrice)}` : `Price for ${selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}`}
                           </span>
-                          <span className="font-price text-base sm:text-lg font-medium text-amber-800">{formatINR(totalPrice)}</span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="font-price text-base sm:text-lg font-medium text-amber-800">{formatINR(totalPrice)}</span>
+                            {discountPercentage > 0 && (
+                              <span className="font-price text-xs text-bakery-400 font-medium line-through">
+                                {formatINR(rawTotalPrice)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

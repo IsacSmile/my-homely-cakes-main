@@ -159,6 +159,8 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
       await client.execute(`ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`ALTER TABLE products ADD COLUMN home_section_order INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`ALTER TABLE products ADD COLUMN display_position INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
+      await client.execute(`ALTER TABLE products ADD COLUMN discount_percentage INTEGER;`).catch(() => {});
+      await client.execute(`ALTER TABLE products ADD COLUMN promo_badge TEXT;`).catch(() => {});
       await client.execute(`
         CREATE TABLE IF NOT EXISTS points_transactions (
           id TEXT PRIMARY KEY,
@@ -311,6 +313,12 @@ const initDb = () => {
     }
     if (!productCols.some((col: any) => col.name === 'display_position')) {
       sqliteInstance.exec(`ALTER TABLE products ADD COLUMN display_position INTEGER NOT NULL DEFAULT 0`);
+    }
+    if (!productCols.some((col: any) => col.name === 'discount_percentage')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN discount_percentage INTEGER`);
+    }
+    if (!productCols.some((col: any) => col.name === 'promo_badge')) {
+      sqliteInstance.exec(`ALTER TABLE products ADD COLUMN promo_badge TEXT`);
     }
   } catch (e) {
     console.error('Migration notice (products new columns):', e);

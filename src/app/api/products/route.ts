@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder, displayPosition } = body;
+    const { name, description, imageUrl, images, category, baseWeightG, basePrice, variants, isAvailable, isFeatured, featuredOrder, homeSectionOrder, displayPosition, discountPercentage, promoBadge } = body;
 
     if (!name || !description || (!imageUrl && (!images || images.length === 0)) || !category || !basePrice) {
       return NextResponse.json({ error: 'Missing required product fields (Name, Description, Image, Category, Base Price)' }, { status: 400 });
@@ -114,6 +114,9 @@ export async function POST(request: Request) {
       }
     }
 
+    const parsedDiscount = discountPercentage !== undefined && discountPercentage !== null && discountPercentage !== '' ? parseInt(discountPercentage, 10) : null;
+    const cleanPromoBadge = promoBadge && typeof promoBadge === 'string' && promoBadge.trim() ? promoBadge.trim() : null;
+
     const newProduct = {
       id,
       name: name.trim(),
@@ -130,6 +133,8 @@ export async function POST(request: Request) {
       featuredOrder: isFeatured ? (Number(featuredOrder) || Date.now()) : 0,
       homeSectionOrder: posVal,
       displayPosition: posVal,
+      discountPercentage: parsedDiscount !== null && !isNaN(parsedDiscount) ? parsedDiscount : null,
+      promoBadge: cleanPromoBadge,
       orderCount: 0,
       createdAt: new Date().toISOString(),
     };
