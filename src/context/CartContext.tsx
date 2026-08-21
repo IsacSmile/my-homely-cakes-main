@@ -355,7 +355,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useCart() {
+const dummyCartContext: CartContextType = {
+  cart: [],
+  wishlist: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  removeCartItemByIndex: () => {},
+  updateQty: () => {},
+  updateCartItemByIndex: () => {},
+  clearCart: () => {},
+  toggleWishlist: () => {},
+  isInWishlist: () => false,
+  isCartOpen: false,
+  setIsCartOpen: () => {},
+  selectedModalProduct: null,
+  openProductModal: () => {},
+  closeProductModal: () => {},
+  cartSubtotal: 0,
+  cartTotalCount: 0,
+  toast: null,
+  showToast: () => {},
+  dismissToast: () => {},
+};
+
+export function useCart(): CartContextType {
   const context = useContext(CartContext);
-  return context;
+  return context || dummyCartContext;
 }

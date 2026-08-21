@@ -222,7 +222,7 @@ export default function ProductModalLazy({
       setPromoBadge('');
       setDiscountPercentage('');
     }
-  }, [isOpen, editingProduct, categoriesList]);
+  }, [isOpen, editingProduct, categoriesList, defaultNextAvailableHomeOrder]);
 
   if (!isOpen) return null;
 
