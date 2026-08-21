@@ -7,7 +7,7 @@ import { db } from '@/db';
 import { settings, outlets as outletsTable } from '@/db/schema';
 import { asc } from 'drizzle-orm';
 
-export const revalidate = 3600; // Cache statically with 1-hour ISR revalidation
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'About Us & Outlets',

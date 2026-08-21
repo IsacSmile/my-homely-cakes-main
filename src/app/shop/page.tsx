@@ -4,7 +4,7 @@ import { products, categories } from '@/db/schema';
 import { asc, desc } from 'drizzle-orm';
 import ShopClient from './ShopClient';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Cake Menu & Online Orders',

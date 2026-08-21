@@ -17,7 +17,7 @@ const OccasionOffersBanner = nextDynamic(() => import('@/components/OccasionOffe
 const MeetTheTeamSection = nextDynamic(() => import('@/components/MeetTheTeamSection'));
 const TestimonialsSection = nextDynamic(() => import('@/components/TestimonialsSection'));
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Home',
