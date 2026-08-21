@@ -17,6 +17,7 @@ export default function AdminOutletsPage() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [badge, setBadge] = useState('Trivandrum Store');
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [isUploadingOutletImage, setIsUploadingOutletImage] = useState(false);
   const [showOutletUrlInput, setShowOutletUrlInput] = useState(false);
@@ -79,6 +80,7 @@ export default function AdminOutletsPage() {
     setName('');
     setAddress('');
     setImageUrl('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80');
+    setBadge('TRIVANDRUM STORE');
     setSortOrder(outletsList.length + 1);
     setShowOutletUrlInput(false);
     setIsModalOpen(true);
@@ -89,6 +91,7 @@ export default function AdminOutletsPage() {
     setName(outlet.name);
     setAddress(outlet.address);
     setImageUrl(outlet.imageUrl);
+    setBadge(outlet.badge || 'TRIVANDRUM STORE');
     setSortOrder(outlet.sortOrder || 1);
     setShowOutletUrlInput(false);
     setIsModalOpen(true);
@@ -181,7 +184,7 @@ export default function AdminOutletsPage() {
     if (!name || !address || !imageUrl) return;
 
     setIsSavingOutlet(true);
-    const payload = { name, address, imageUrl, sortOrder: Number(sortOrder) || 1 };
+    const payload = { name, address, imageUrl, badge: badge ? badge.trim() : 'TRIVANDRUM STORE', sortOrder: Number(sortOrder) || 1 };
 
     try {
       const url = editingOutlet ? `/api/admin/outlets/${editingOutlet.id}` : '/api/admin/outlets';
@@ -329,6 +332,9 @@ export default function AdminOutletsPage() {
                         unoptimized
                         className="w-full h-full object-cover"
                       />
+                      <span className="absolute top-3 left-3 bg-amber-900/80 backdrop-blur-xs text-amber-100 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-amber-700/50">
+                        {outlet.badge || 'TRIVANDRUM STORE'}
+                      </span>
                       <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
                         Order #{outlet.sortOrder || idx + 1}
                       </span>
@@ -608,6 +614,17 @@ export default function AdminOutletsPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. MyHomelyCake — Kowdiar Flagship"
                   className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-bakery-chocolate block mb-1">Badge Name (e.g. TRIVANDRUM STORE)</label>
+                <input
+                  type="text"
+                  value={badge}
+                  onChange={(e) => setBadge(e.target.value)}
+                  placeholder="e.g. TRIVANDRUM STORE"
+                  className="w-full bg-bakery-50 border border-bakery-200 rounded-xl px-3.5 py-2.5 text-xs text-bakery-chocolate focus:outline-none focus:border-amber-600 uppercase"
                 />
               </div>
 

@@ -17,7 +17,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, address, imageUrl, sortOrder } = body;
+    const { name, address, imageUrl, badge, sortOrder } = body;
 
     const existing = await db.select().from(outlets).where(eq(outlets.id, id)).get();
     if (!existing) {
@@ -28,6 +28,7 @@ export async function PUT(
       name: name !== undefined ? name.trim() : existing.name,
       address: address !== undefined ? address.trim() : existing.address,
       imageUrl: imageUrl !== undefined ? imageUrl.trim() : existing.imageUrl,
+      badge: badge !== undefined ? badge.trim() : existing.badge,
       sortOrder: typeof sortOrder === 'number' ? sortOrder : existing.sortOrder,
     };
 

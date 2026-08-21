@@ -154,6 +154,7 @@ export const outlets = sqliteTable('outlets', {
   name: text('name').notNull(),
   address: text('address').notNull(),
   imageUrl: text('image_url').notNull(),
+  badge: text('badge').default('Trivandrum Store'),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });

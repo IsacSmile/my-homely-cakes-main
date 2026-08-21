@@ -9,6 +9,7 @@ export interface OutletItem {
   name: string;
   address: string;
   imageUrl: string;
+  badge?: string;
   sortOrder: number;
 }
 
@@ -145,7 +146,7 @@ export default function OutletsSection({ initialOutlets }: { initialOutlets?: Ou
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-85 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none" />
                   
                   <span className="absolute top-3.5 right-3.5 bg-amber-900/80 text-amber-100 font-bold text-[10px] tracking-wider uppercase px-3 py-1 rounded-full backdrop-blur-xs shadow-xs border border-amber-700/50 z-10">
-                    Trivandrum Store
+                    {outlet.badge || 'Trivandrum Store'}
                   </span>
                 </div>
 

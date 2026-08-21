@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, address, imageUrl, sortOrder } = body;
+    const { name, address, imageUrl, badge, sortOrder } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Outlet name is required' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       name: name.trim(),
       address: address.trim(),
       imageUrl: imageUrl.trim(),
+      badge: badge && badge.trim() ? badge.trim() : 'Trivandrum Store',
       sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
       createdAt: new Date().toISOString(),
     };
