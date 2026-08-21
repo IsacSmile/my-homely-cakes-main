@@ -161,6 +161,7 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
       await client.execute(`ALTER TABLE products ADD COLUMN display_position INTEGER NOT NULL DEFAULT 0;`).catch(() => {});
       await client.execute(`ALTER TABLE products ADD COLUMN discount_percentage INTEGER;`).catch(() => {});
       await client.execute(`ALTER TABLE products ADD COLUMN promo_badge TEXT;`).catch(() => {});
+      await client.execute(`ALTER TABLE outlets ADD COLUMN badge TEXT DEFAULT 'Trivandrum Store';`).catch(() => {});
       await client.execute(`
         CREATE TABLE IF NOT EXISTS points_transactions (
           id TEXT PRIMARY KEY,
@@ -178,6 +179,7 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
           name TEXT NOT NULL,
           address TEXT NOT NULL,
           image_url TEXT NOT NULL,
+          badge TEXT DEFAULT 'Trivandrum Store',
           sort_order INTEGER NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL
         );
@@ -441,10 +443,20 @@ const initDb = () => {
       name TEXT NOT NULL,
       address TEXT NOT NULL,
       image_url TEXT NOT NULL,
+      badge TEXT DEFAULT 'Trivandrum Store',
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
   `);
+
+  try {
+    const outletCols = sqliteInstance.pragma('table_info(outlets)') as any[];
+    if (!outletCols.some((col: any) => col.name === 'badge')) {
+      sqliteInstance.exec(`ALTER TABLE outlets ADD COLUMN badge TEXT DEFAULT 'Trivandrum Store'`);
+    }
+  } catch (e) {
+    console.error('Migration notice (outlets badge):', e);
+  }
 
   // Seed default city "Trivandrum" if cities table is empty
   try {
