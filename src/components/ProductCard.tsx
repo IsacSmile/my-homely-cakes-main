@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Zap, Award } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { formatINR, getDefaultVariant } from '@/lib/pricing';
+import { formatINR, formatWeight, getDefaultVariant } from '@/lib/pricing';
 
 export interface ProductCardProps {
   product: {
@@ -142,7 +142,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
         <div className="pt-1.5 border-t border-bakery-100 flex items-center justify-between gap-1">
           <div className="min-w-0">
             <span className="text-[8px] sm:text-[10px] text-bakery-600 block font-medium truncate">
-              Starts at ({selectedVariant.weightG >= 1000 ? `${selectedVariant.weightG / 1000}kg` : `${selectedVariant.weightG}g`})
+              Starts at ({formatWeight(selectedVariant.weightG)})
             </span>
             <div className="flex items-baseline gap-1">
               <span className="font-price text-sm sm:text-xl font-medium text-amber-800 tracking-tight">
@@ -157,7 +157,7 @@ export default function ProductCard({ product, discountPercent = 0, priority = f
           </div>
 
           <span className="text-[8px] sm:text-[9px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-price shrink-0">
-            {selectedVariant.weightG >= 1000 ? `${selectedVariant.weightG / 1000}kg` : `${selectedVariant.weightG}g`}
+            {formatWeight(selectedVariant.weightG)}
           </span>
         </div>
 

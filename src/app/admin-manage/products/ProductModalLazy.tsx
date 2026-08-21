@@ -418,11 +418,14 @@ export default function ProductModalLazy({
 
   // Variant Rows
   const handleAddVariantRow = () => {
-    const nextWeight = (weightVariants[weightVariants.length - 1]?.weightG || 500) + 500;
-    const nextPrice = (weightVariants[weightVariants.length - 1]?.price || 500) + 500;
+    const lastVar = weightVariants[weightVariants.length - 1];
+    const lastW = lastVar?.weightG || 500;
+    const lastP = lastVar?.price || 500;
+    const incrementW = lastW < 50 ? 1 : 500;
+    const incrementP = lastW < 50 ? Math.max(10, Math.round(lastP / (lastW || 1))) : 500;
     setWeightVariants(prev => [
       ...prev,
-      { weightG: nextWeight, price: nextPrice, isDefault: false }
+      { weightG: lastW + incrementW, price: lastP + incrementP, isDefault: false }
     ]);
   };
 
@@ -481,7 +484,7 @@ export default function ProductModalLazy({
     const weightSet = new Set<number>();
     for (const v of weightVariants) {
       if (!v.weightG || v.weightG <= 0) {
-        setValidationError('All weight values must be positive numbers in grams.');
+        setValidationError('All weight / quantity values must be positive numbers.');
         return;
       }
       if (!v.price || v.price <= 0) {
@@ -489,7 +492,7 @@ export default function ProductModalLazy({
         return;
       }
       if (weightSet.has(v.weightG)) {
-        setValidationError(`Duplicate weight option found (${v.weightG}g). Weights must be unique.`);
+        setValidationError(`Duplicate variant option found (${v.weightG}). Variant values must be unique.`);
         return;
       }
       weightSet.add(v.weightG);
@@ -710,10 +713,10 @@ export default function ProductModalLazy({
               <div>
                 <label className="text-xs font-bold text-bakery-chocolate flex items-center gap-1.5">
                   <Scale className="w-4 h-4 text-amber-700" />
-                  Weight &amp; Price Variants (Admin Custom Prices) *
+                  Weight / Quantity &amp; Price Variants (Admin Custom Prices) *
                 </label>
                 <p className="text-[10px] text-bakery-600">
-                  Specify weight (g) and price (₹) pairs. Radio button selects the default pre-selected option.
+                  Specify weight (g), portion, or quantity and price (₹) pairs. Radio button selects the default pre-selected option.
                 </p>
               </div>
 
@@ -723,7 +726,7 @@ export default function ProductModalLazy({
                 className="inline-flex items-center gap-1 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-xs transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Weight</span>
+                <span>Add Variant</span>
               </button>
             </div>
 
@@ -745,19 +748,21 @@ export default function ProductModalLazy({
                     </span>
                   </label>
 
-                  {/* Weight Input (g) */}
+                  {/* Weight / Portion Input */}
                   <div className="flex-1 flex items-center bg-bakery-50 rounded-lg border border-bakery-200 px-2 py-1">
                     <input
                       type="number"
                       required
-                      min={50}
-                      step={50}
+                      min={1}
+                      step={1}
                       value={v.weightG}
                       onChange={(e) => handleUpdateVariant(idx, 'weightG', parseInt(e.target.value, 10) || 0)}
-                      placeholder="e.g. 900"
+                      placeholder="e.g. 500 or 1"
                       className="w-full bg-transparent text-xs font-bold text-bakery-chocolate focus:outline-none"
                     />
-                    <span className="text-[10px] font-semibold text-bakery-500 ml-1">g</span>
+                    <span className="text-[10px] font-semibold text-bakery-500 ml-1">
+                      {v.weightG && v.weightG < 50 ? (v.weightG === 1 ? 'pc' : 'pcs') : 'g'}
+                    </span>
                   </div>
 
                   {/* Price Input (₹) */}

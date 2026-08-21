@@ -9,6 +9,18 @@ export function formatINR(amount: number): string {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+export function formatWeight(weightG: number): string {
+  if (weightG === undefined || weightG === null || isNaN(weightG)) return '0g';
+  if (weightG < 50) {
+    return `${weightG} ${weightG === 1 ? 'pc' : 'pcs'}`;
+  }
+  if (weightG >= 1000) {
+    const kg = weightG / 1000;
+    return `${Number.isInteger(kg) ? kg : kg.toFixed(1)}kg`;
+  }
+  return `${weightG}g`;
+}
+
 /**
  * Safely parse structured variants from a product object.
  * Returns array of { weightG, price, isDefault }.

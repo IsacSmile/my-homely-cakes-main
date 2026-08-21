@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Plus, Edit2, Trash2, Tag, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Search } from 'lucide-react';
-import { formatINR, parseProductVariants, WeightVariant } from '@/lib/pricing';
+import { formatINR, formatWeight, parseProductVariants, WeightVariant } from '@/lib/pricing';
 
 const ProductModalLazy = dynamic(() => import('./ProductModalLazy'), {
   ssr: false,
@@ -693,7 +693,7 @@ function AdminProductCard({
 
         <div className="space-y-2 pt-2 border-t border-bakery-100">
           <span className="text-[10px] font-bold text-bakery-600 uppercase tracking-wider block">
-            Weight Prices ({variantsList.length} Options)
+            Variant Options ({variantsList.length})
           </span>
 
           <div className="flex flex-wrap gap-1.5">
@@ -706,7 +706,7 @@ function AdminProductCard({
                     : 'bg-bakery-50 text-bakery-chocolate border-bakery-200/70'
                 }`}
               >
-                {v.weightG >= 1000 ? `${v.weightG / 1000}kg` : `${v.weightG}g`}: <strong className="font-serif tracking-tight font-extrabold">{formatINR(v.price)}</strong>
+                {formatWeight(v.weightG)}: <strong className="font-serif tracking-tight font-extrabold">{formatINR(v.price)}</strong>
               </span>
             ))}
           </div>
@@ -714,7 +714,7 @@ function AdminProductCard({
 
         <div className="pt-2 border-t border-bakery-100">
           <span className="text-[10px] text-bakery-600 font-medium block">
-            Default ({defaultVar.weightG >= 1000 ? `${defaultVar.weightG / 1000}kg` : `${defaultVar.weightG}g`})
+            Default ({formatWeight(defaultVar.weightG)})
           </span>
           <span className="font-serif text-lg font-extrabold text-amber-800 tracking-tight">
             {formatINR(defaultVar.price)}

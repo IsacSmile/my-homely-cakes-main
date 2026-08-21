@@ -9,7 +9,7 @@ import {
   ChevronDown, AlertCircle, Lock, Package, CreditCard, PhoneCall, ArrowRight,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { parseProductVariants, getDefaultVariant, getVariantPrice, getDiscountedPrice, formatINR, WeightVariant } from '@/lib/pricing';
+import { parseProductVariants, getDefaultVariant, getVariantPrice, getDiscountedPrice, formatINR, formatWeight, WeightVariant } from '@/lib/pricing';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSession } from 'next-auth/react';
 import { handleGoogleSignIn } from '@/lib/auth-toast';
@@ -417,7 +417,7 @@ export default function ProductDetailModal() {
               </div>
               <div className="text-xs space-y-2 text-bakery-800">
                 <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Cake</span><span className="font-semibold text-bakery-chocolate text-right truncate max-w-[60%]">{selectedModalProduct.name}</span></div>
-                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Weight</span><span className="font-semibold text-bakery-chocolate">{selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}</span></div>
+                <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Option</span><span className="font-semibold text-bakery-chocolate">{formatWeight(selectedWeight)}</span></div>
                 <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">Quantity</span><span className="font-semibold text-bakery-chocolate">{qty}</span></div>
                 <div className="flex justify-between items-center"><span className="text-bakery-500 font-medium">City</span><span className="font-semibold text-bakery-chocolate">{orderSuccess.deliveryCity || selectedCity}</span></div>
                 {orderSuccess.deliveryDate && (
@@ -699,11 +699,11 @@ export default function ProductDetailModal() {
                     {/* Weight selector */}
                     <div>
                       <label className="text-[11px] font-bold text-bakery-800 block mb-1.5">
-                        Weight <span className="text-rose-500">*</span>
+                        Weight / Option <span className="text-rose-500">*</span>
                       </label>
                       <div className="grid grid-cols-3 gap-1.5">
                         {variantsList.map((v: WeightVariant) => {
-                          const label = v.weightG >= 1000 ? `${v.weightG / 1000} kg` : `${v.weightG} g`;
+                          const label = formatWeight(v.weightG);
                           const isSelected = selectedWeight === v.weightG;
                           const origPrice = v.price;
                           const discPrice = discountPercentage > 0 ? getDiscountedPrice(origPrice, discountPercentage) : origPrice;
@@ -767,7 +767,7 @@ export default function ProductDetailModal() {
                         {/* Live price */}
                         <div className="flex-1 bg-amber-50 border border-amber-200/60 rounded-xl px-3.5 py-2 flex items-center justify-between min-h-[44px]">
                           <span className="text-[10px] text-bakery-500 font-medium">
-                            {qty > 1 ? `${qty} × ${formatINR(unitPrice)}` : `Price for ${selectedWeight >= 1000 ? `${selectedWeight / 1000}kg` : `${selectedWeight}g`}`}
+                            {qty > 1 ? `${qty} × ${formatINR(unitPrice)}` : `Price for ${formatWeight(selectedWeight)}`}
                           </span>
                           <div className="flex items-baseline gap-1.5">
                             <span className="font-price text-base sm:text-lg font-medium text-amber-800">{formatINR(totalPrice)}</span>
