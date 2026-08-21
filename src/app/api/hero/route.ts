@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { settings } from '@/db/schema';
+import { settings, products } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromCookies } from '@/lib/auth';
+import { getDefaultVariant, formatINR } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,32 +14,55 @@ export interface HeroSlide {
   cardTitle: string;
   cardPrice: string;
   linkUrl: string;
+  productId?: string;
+  product?: any;
 }
 
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
-    id: 'hs_1',
+    id: 'cake_2',
     imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'BESTSELLER',
-    cardTitle: 'Belgian Chocolate Truffle',
-    cardPrice: '₹750',
-    linkUrl: '/shop',
+    cardTag: 'BESTSELLER #1',
+    cardTitle: 'Belgian Chocolate Truffle Cake',
+    cardPrice: '₹700',
+    linkUrl: '/shop?product=cake_2',
+    productId: 'cake_2',
   },
   {
-    id: 'hs_2',
+    id: 'cake_3',
+    imageUrl: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'TOP FAVORITE',
+    cardTitle: 'Nutella Hazelnut Crunch',
+    cardPrice: '₹800',
+    linkUrl: '/shop?product=cake_3',
+    productId: 'cake_3',
+  },
+  {
+    id: 'cake_1',
     imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'TRIVANDRUM FAVORITE',
+    cardTag: 'POPULAR CHOICE',
     cardTitle: 'Tender Coconut Dream Cake',
     cardPrice: '₹650',
-    linkUrl: '/shop',
+    linkUrl: '/shop?product=cake_1',
+    productId: 'cake_1',
   },
   {
-    id: 'hs_3',
-    imageUrl: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'SEASONAL SPECIAL',
-    cardTitle: 'Fresh Alphonso Mango Cake',
-    cardPrice: '₹700',
-    linkUrl: '/shop',
+    id: 'cake_16',
+    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER #4',
+    cardTitle: 'Ferrero Rocher Hazelnut Drip Cake',
+    cardPrice: '₹890',
+    linkUrl: '/shop?product=cake_16',
+    productId: 'cake_16',
+  },
+  {
+    id: 'cake_8',
+    imageUrl: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER #5',
+    cardTitle: 'Black Forest Royale',
+    cardPrice: '₹600',
+    linkUrl: '/shop?product=cake_8',
+    productId: 'cake_8',
   },
 ];
 
@@ -55,33 +79,49 @@ const DEFAULT_HERO = {
 
 export async function GET() {
   try {
-    const allSettings = (await db.select().from(settings).all()) || [];
-    const map = allSettings.reduce((acc: Record<string, string>, item: any) => {
+    const [allSettings, allProducts] = await Promise.all([
+      db.select().from(settings).all().catch(() => []),
+      db.select().from(products).all().catch(() => []),
+    ]);
+
+    const map = (allSettings || []).reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;
       return acc;
     }, {} as Record<string, string>);
 
-    let slides: HeroSlide[] = DEFAULT_SLIDES;
+    // Fetch top 5 best-selling available products (orderCount rank)
+    const bestSelling = (allProducts || [])
+      .filter((p: any) => p.isAvailable !== false)
+      .sort((a: any, b: any) => (b.orderCount || 0) - (a.orderCount || 0) || (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+
+    const bestSellingSlides: HeroSlide[] = bestSelling.slice(0, 5).map((p: any, idx: number) => {
+      const defVar = getDefaultVariant(p);
+      const tagText = p.promoBadge && p.promoBadge.trim()
+        ? p.promoBadge.trim().toUpperCase()
+        : (idx === 0 ? 'BESTSELLER #1' : idx === 1 ? 'TOP FAVORITE' : idx === 2 ? 'POPULAR CHOICE' : `BESTSELLER #${idx + 1}`);
+
+      return {
+        id: p.id,
+        imageUrl: p.imageUrl,
+        cardTag: tagText,
+        cardTitle: p.name,
+        cardPrice: formatINR(defVar.price),
+        linkUrl: `/shop?product=${p.id}`,
+        productId: p.id,
+        product: p,
+      };
+    });
+
+    let slides: HeroSlide[] = bestSellingSlides.length >= 3 ? bestSellingSlides : DEFAULT_SLIDES;
+
     if (map.hero_slides) {
       try {
         const parsed = JSON.parse(map.hero_slides);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          slides = parsed;
-        }
-      } catch (e) {}
-    } else if (map.hero_images) {
-      // Backward compatibility fallback from old simple images array
-      try {
-        const oldImages = JSON.parse(map.hero_images);
-        if (Array.isArray(oldImages) && oldImages.length > 0) {
-          slides = oldImages.map((imgUrl: string, idx: number) => ({
-            id: 'hs_' + (idx + 1),
-            imageUrl: imgUrl,
-            cardTag: idx === 1 ? 'TRIVANDRUM FAVORITE' : idx === 0 ? 'BESTSELLER' : 'SEASONAL SPECIAL',
-            cardTitle: idx === 1 ? 'Tender Coconut Dream Cake' : idx === 0 ? 'Belgian Chocolate Truffle' : 'Fresh Alphonso Mango Cake',
-            cardPrice: idx === 1 ? '₹650' : idx === 0 ? '₹750' : '₹700',
-            linkUrl: '/shop',
-          }));
+          slides = parsed.map((s: any) => {
+            const matched = (allProducts || []).find((p: any) => p.id === s.productId || p.name.toLowerCase() === s.cardTitle?.toLowerCase());
+            return matched ? { ...s, product: matched } : s;
+          });
         }
       } catch (e) {}
     }

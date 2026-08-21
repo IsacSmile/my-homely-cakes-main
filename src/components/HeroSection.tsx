@@ -3,40 +3,64 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, ArrowRight, PhoneCall, Check, Award } from 'lucide-react';
+import { Sparkles, ArrowRight, PhoneCall, Check, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { HeroSlide } from '@/app/api/hero/route';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useCart } from '@/context/CartContext';
 
 const FALLBACK_SLIDES: HeroSlide[] = [
   {
-    id: 'hs_1',
+    id: 'cake_2',
     imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'BESTSELLER',
-    cardTitle: 'Belgian Chocolate Truffle',
-    cardPrice: '₹750',
-    linkUrl: '/shop',
+    cardTag: 'BESTSELLER #1',
+    cardTitle: 'Belgian Chocolate Truffle Cake',
+    cardPrice: '₹700',
+    linkUrl: '/shop?product=cake_2',
+    productId: 'cake_2',
   },
   {
-    id: 'hs_2',
+    id: 'cake_3',
+    imageUrl: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'TOP FAVORITE',
+    cardTitle: 'Nutella Hazelnut Crunch',
+    cardPrice: '₹800',
+    linkUrl: '/shop?product=cake_3',
+    productId: 'cake_3',
+  },
+  {
+    id: 'cake_1',
     imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'TRIVANDRUM FAVORITE',
+    cardTag: 'POPULAR CHOICE',
     cardTitle: 'Tender Coconut Dream Cake',
     cardPrice: '₹650',
-    linkUrl: '/shop',
+    linkUrl: '/shop?product=cake_1',
+    productId: 'cake_1',
   },
   {
-    id: 'hs_3',
-    imageUrl: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80',
-    cardTag: 'SEASONAL SPECIAL',
-    cardTitle: 'Fresh Alphonso Mango Cake',
-    cardPrice: '₹700',
-    linkUrl: '/shop',
+    id: 'cake_16',
+    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER #4',
+    cardTitle: 'Ferrero Rocher Hazelnut Drip Cake',
+    cardPrice: '₹890',
+    linkUrl: '/shop?product=cake_16',
+    productId: 'cake_16',
+  },
+  {
+    id: 'cake_8',
+    imageUrl: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&w=1000&q=80',
+    cardTag: 'BESTSELLER #5',
+    cardTitle: 'Black Forest Royale',
+    cardPrice: '₹600',
+    linkUrl: '/shop?product=cake_8',
+    productId: 'cake_8',
   },
 ];
 
 export default function HeroSection({ initialHeroData }: { initialHeroData?: any }) {
   const { data: session, status } = useSession();
+  const cart = useCart();
+  const openProductModal = cart?.openProductModal;
   const [heroData, setHeroData] = useState<any>(initialHeroData || {
     badge: "Trivandrum's Most Loved Home Bakery",
     heading: "Freshly Baked Homemade Cakes Delivered in Trivandrum.",
@@ -169,37 +193,80 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
               <Skeleton className="absolute inset-0 z-0 w-full h-full rounded-none" />
               
               {/* Cross-Fading Images Array */}
-              {slides.map((slide, idx) => {
+              {slides.map((slide: any, idx: number) => {
                 const isActive = activeImgIdx % slides.length === idx;
                 const srcUrl = imageErrors[slide.id]
                   ? (FALLBACK_SLIDES[idx % FALLBACK_SLIDES.length]?.imageUrl || FALLBACK_SLIDES[0].imageUrl)
                   : (slide.imageUrl || FALLBACK_SLIDES[0].imageUrl);
 
+                const handleSlideClick = (e: React.MouseEvent) => {
+                  if (openProductModal && slide.product) {
+                    e.preventDefault();
+                    openProductModal(slide.product);
+                  }
+                };
+
                 return (
-                  <Link
+                  <div
                     key={slide.id || idx}
-                    href={slide.linkUrl || '/shop'}
+                    onClick={handleSlideClick}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out cursor-pointer ${
                       isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                     }`}
                   >
                     <Image
                       src={srcUrl}
-                      alt={slide.cardTitle || `Hero cake slide ${idx + 1}`}
+                      alt={slide.cardTitle || `Best selling cake slide ${idx + 1}`}
                       fill
                       priority={idx === 0}
                       sizes="(max-width: 1024px) 100vw, 45vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                       onError={() => handleImageError(slide.id)}
                     />
-                  </Link>
+                  </div>
                 );
               })}
 
-              {/* Floating Highlight Cake Card Overlay (Acts as Live Redirect Link) */}
+              {/* Prev / Next Arrows on Hover */}
+              {slides.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setActiveImgIdx((prev) => (prev - 1 + slides.length) % slides.length);
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-25 bg-black/40 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                    aria-label="Previous best seller"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setActiveImgIdx((prev) => (prev + 1) % slides.length);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-25 bg-black/40 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                    aria-label="Next best seller"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Floating Highlight Cake Card Overlay */}
               {activeSlide && (
-                <Link
-                  href={activeSlide.linkUrl || '/shop'}
+                <div
+                  onClick={(e) => {
+                    if (openProductModal && activeSlide.product) {
+                      e.preventDefault();
+                      openProductModal(activeSlide.product);
+                    }
+                  }}
                   className="absolute bottom-5 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-20 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-bakery-200 shadow-xl flex items-center justify-between group/card hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
@@ -207,25 +274,25 @@ export default function HeroSection({ initialHeroData }: { initialHeroData?: any
                       <Award className="w-5 h-5 text-amber-700" />
                     </div>
                     <div>
-                      <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-bakery-600 font-bold block">
-                        {activeSlide.cardTag || 'TRIVANDRUM FAVORITE'}
+                      <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-amber-700 font-bold block">
+                        {activeSlide.cardTag || 'BESTSELLER'}
                       </span>
                       <h4 className="font-serif text-xs sm:text-sm font-bold text-bakery-chocolate group-hover/card:text-amber-800 transition-colors">
-                        {activeSlide.cardTitle || 'Tender Coconut Dream Cake'}
+                        {activeSlide.cardTitle}
                       </h4>
                     </div>
                   </div>
 
                   <span className="font-price text-sm sm:text-base font-medium text-amber-800 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200/60 shrink-0 ml-2">
-                    {activeSlide.cardPrice || '₹650'}
+                    {activeSlide.cardPrice}
                   </span>
-                </Link>
+                </div>
               )}
 
               {/* Indicator Dots at top right (Only visible if 2 or more slides exist) */}
               {slides.length > 1 && (
                 <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-3 py-1.5 rounded-full">
-                  {slides.map((slide, idx) => (
+                  {slides.map((slide: any, idx: number) => (
                     <button
                       key={slide.id || idx}
                       onClick={(e) => {

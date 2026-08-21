@@ -17,25 +17,42 @@ export default function MoreProductsSection({
   discountPercent = 0,
 }: MoreProductsSectionProps) {
   const [productList, setProductList] = useState<any[]>(initialProducts);
+  const [totalProducts, setTotalProducts] = useState<number>(
+    totalCount !== undefined ? totalCount : initialProducts.length
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreState, setHasMoreState] = useState(true);
 
-  const total = totalCount !== undefined ? totalCount : initialProducts.length;
-  const hasMore = productList.length < total;
+  const remainingCount = Math.max(0, totalProducts - productList.length);
+  const hasMore = hasMoreState && remainingCount > 0;
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
 
     try {
-      const res = await fetch(`/api/products?limit=12&offset=${productList.length}&excludeFeatured=true`);
+      const res = await fetch(`/api/products?limit=12&offset=${productList.length}`);
       const data = await res.json();
 
       if (data && Array.isArray(data.products) && data.products.length > 0) {
+        if (typeof data.totalCount === 'number') {
+          setTotalProducts(data.totalCount);
+        }
+
         setProductList((prev) => {
           const existingIds = new Set(prev.map((p) => p.id));
           const newItems = data.products.filter((p: any) => !existingIds.has(p.id));
+          if (newItems.length === 0) {
+            setHasMoreState(false);
+          }
           return [...prev, ...newItems];
         });
+
+        if (data.hasMore === false) {
+          setHasMoreState(false);
+        }
+      } else {
+        setHasMoreState(false);
       }
     } catch (error) {
       console.error('Error loading additional products:', error);
@@ -105,7 +122,7 @@ export default function MoreProductsSection({
               </>
             ) : (
               <>
-                <span>Load More Cakes ({total - productList.length} remaining)</span>
+                <span>Load More Cakes ({remainingCount} remaining)</span>
                 <ArrowRight className="w-4 h-4 text-amber-700" />
               </>
             )}

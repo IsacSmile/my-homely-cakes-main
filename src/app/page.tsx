@@ -133,17 +133,46 @@ export default async function HomePage() {
   const totalOrdersCount = ordersList.length;
   const displayMonthlyCount = Math.max(500, 500 + totalOrdersCount * 8);
 
-  // 6. Server-side fetch Hero Settings
+  // 6. Server-side fetch Hero Settings & Best Selling Slides
   const settingsMap = allSettings.reduce((acc: Record<string, string>, item: any) => {
     acc[item.key] = item.value;
     return acc;
   }, {} as Record<string, string>);
 
-  let slides = DEFAULT_SLIDES;
+  const bestSellingForHero = [...allProducts]
+    .filter((p: any) => isProductAvailable(p))
+    .sort((a: any, b: any) => (b.orderCount || 0) - (a.orderCount || 0) || (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
+    .slice(0, 5);
+
+  const dynamicHeroSlides = bestSellingForHero.map((p: any, idx: number) => {
+    const defVar = p.variants ? (typeof p.variants === 'string' ? JSON.parse(p.variants)[0] : p.variants[0]) : null;
+    const priceVal = typeof defVar === 'object' && defVar?.price ? defVar.price : (p.basePrice || 500);
+    const tagText = p.promoBadge && p.promoBadge.trim()
+      ? p.promoBadge.trim().toUpperCase()
+      : (idx === 0 ? 'BESTSELLER #1' : idx === 1 ? 'TOP FAVORITE' : idx === 2 ? 'POPULAR CHOICE' : `BESTSELLER #${idx + 1}`);
+
+    return {
+      id: p.id,
+      imageUrl: p.imageUrl,
+      cardTag: tagText,
+      cardTitle: p.name,
+      cardPrice: `₹${priceVal}`,
+      linkUrl: `/shop?product=${p.id}`,
+      productId: p.id,
+      product: p,
+    };
+  });
+
+  let slides = dynamicHeroSlides;
   if (settingsMap.hero_slides) {
     try {
       const parsed = JSON.parse(settingsMap.hero_slides);
-      if (Array.isArray(parsed) && parsed.length > 0) slides = parsed;
+      if (Array.isArray(parsed) && parsed.length >= 3) {
+        slides = parsed.map((s: any) => {
+          const matched = allProducts.find((p: any) => p.id === s.productId || p.name.toLowerCase() === s.cardTitle?.toLowerCase());
+          return matched ? { ...s, product: matched } : s;
+        });
+      }
     } catch {}
   }
 
