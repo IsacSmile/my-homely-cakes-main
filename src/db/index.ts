@@ -218,14 +218,16 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
   }).catch(err => console.error('Turso table init error:', err));
 
 } else {
-  const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
-  if (!process.env.VERCEL && !fs.existsSync(dbDir)) {
+  const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  const dbDir = isServerless ? '/tmp' : path.join(process.cwd(), 'data');
+  if (!isServerless && !fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
   const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
-  sqliteInstance = new Database(sqlitePath);
+  sqliteInstance = new Database(sqlitePath, { timeout: 15000 });
   sqliteInstance.pragma('journal_mode = WAL');
+  sqliteInstance.pragma('busy_timeout = 15000');
   dbInstance = drizzleSqlite(sqliteInstance, { schema });
 }
 
@@ -491,5 +493,8 @@ const initDb = () => {
   }
 };
 
-
-initDb();
+try {
+  initDb();
+} catch (e) {
+  console.warn('DB initialization deferred or skipped due to lock:', e);
+}
