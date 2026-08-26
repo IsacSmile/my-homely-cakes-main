@@ -420,7 +420,27 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
 export function useAdminOrders() {
   const context = useContext(AdminOrderContext);
   if (!context) {
-    throw new Error('useAdminOrders must be used within an AdminOrderProvider');
+    return {
+      orders: [],
+      newOrdersCount: 0,
+      statusCounts: {},
+      totalRevenue: 0,
+      isLoading: false,
+      isMuted: false,
+      toggleMute: () => {},
+      isAudioUnlocked: false,
+      showUnlockBanner: false,
+      unlockAudioContext: () => {},
+      dismissUnlockBanner: () => {},
+      activeToasts: [],
+      dismissToast: () => {},
+      highlightedOrderId: null,
+      fetchOrders: async () => {},
+      updateOrderStatus: async () => false,
+      updateConsumerStatus: async () => false,
+      deleteSingleOrder: async () => false,
+      deleteBulkOrders: async () => false,
+    };
   }
   return context;
 }
