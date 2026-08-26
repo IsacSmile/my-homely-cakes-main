@@ -245,6 +245,11 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
     to?: string,
     status?: string
   ) => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin-manage') {
+      if (showSkeleton) setIsLoading(false);
+      return;
+    }
+
     if (showSkeleton) setIsLoading(true);
 
     try {
@@ -255,6 +260,10 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
 
       const queryStr = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`/api/orders${queryStr}`);
+      if (res.status === 401) {
+        if (showSkeleton) setIsLoading(false);
+        return;
+      }
       if (!res.ok) return;
 
       const data = await res.json();
@@ -291,6 +300,11 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
 
   // Initial Fetch & 5s Polling Engine
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin-manage') {
+      setIsLoading(false);
+      return;
+    }
+
     fetchOrders(true);
 
     const interval = setInterval(() => {

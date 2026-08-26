@@ -35,31 +35,49 @@ export async function POST(request: Request) {
 
     // 1. If Vercel Blob token is configured, upload to Vercel Blob
     if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const blob = await put(filename, fileBuffer, {
-        access: 'public',
-        contentType: file.type,
-      });
-      return NextResponse.json({ success: true, url: blob.url });
+      try {
+        const blob = await put(filename, fileBuffer, {
+          access: 'public',
+          contentType: file.type,
+        });
+        return NextResponse.json({ success: true, url: blob.url });
+      } catch (blobError) {
+        console.warn('Vercel Blob upload failed, attempting fallback:', blobError);
+      }
     }
 
-    // 2. Production Vercel Fallback without Blob Token: Return Base64 Data URL
-    if (process.env.VERCEL) {
+    // 2. Production / Serverless Fallback (Netlify, Vercel without Blob Token, AWS Lambda, Docker Read-Only)
+    const isProductionOrServerless =
+      process.env.VERCEL ||
+      process.env.NETLIFY ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.NODE_ENV === 'production';
+
+    if (isProductionOrServerless) {
       const base64Data = fileBuffer.toString('base64');
       const dataUrl = `data:${file.type};base64,${base64Data}`;
       return NextResponse.json({ success: true, url: dataUrl });
     }
 
     // 3. Local Development Fallback: save to /public/uploads/ directory
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    try {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, fileBuffer);
+
+      const publicUrl = `/uploads/${filename}`;
+      return NextResponse.json({ success: true, url: publicUrl });
+    } catch (fsError: any) {
+      // If filesystem is read-only (EROFS) or fails to write in any environment, fallback to Base64
+      console.warn('Filesystem write failed, falling back to Data URL:', fsError?.message);
+      const base64Data = fileBuffer.toString('base64');
+      const dataUrl = `data:${file.type};base64,${base64Data}`;
+      return NextResponse.json({ success: true, url: dataUrl });
     }
-
-    const filePath = path.join(uploadsDir, filename);
-    fs.writeFileSync(filePath, fileBuffer);
-
-    const publicUrl = `/uploads/${filename}`;
-    return NextResponse.json({ success: true, url: publicUrl });
 
   } catch (error: any) {
     console.error('File upload error:', error);
@@ -79,17 +97,25 @@ export async function DELETE(request: Request) {
 
     // 1. Local file deletion (/uploads/...)
     if (url.startsWith('/uploads/')) {
-      const filename = path.basename(url);
-      const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        const filename = path.basename(url);
+        const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (e) {
+        // Silently ignore if file missing or read-only
       }
       return NextResponse.json({ success: true });
     }
 
     // 2. Vercel Blob deletion
     if (process.env.BLOB_READ_WRITE_TOKEN && url.includes('public.blob.vercel-storage.com')) {
-      await del(url);
+      try {
+        await del(url);
+      } catch (e) {
+        console.warn('Vercel Blob delete failed:', e);
+      }
       return NextResponse.json({ success: true });
     }
 

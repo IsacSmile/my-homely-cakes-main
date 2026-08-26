@@ -16,12 +16,12 @@ export async function POST(request: Request) {
     const admin = await db.select().from(adminUsers).where(eq(adminUsers.email, email.trim())).get();
 
     if (!admin) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 400 });
     }
 
     const isMatch = await bcrypt.compare(password, admin.passwordHash);
     if (!isMatch) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 400 });
     }
 
     const token = signAdminToken({ id: admin.id, email: admin.email });

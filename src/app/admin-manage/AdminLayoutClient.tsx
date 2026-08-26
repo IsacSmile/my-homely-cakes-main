@@ -213,6 +213,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (pathname === '/admin-manage') {
+    return <AdminLayoutContent>{children}</AdminLayoutContent>;
+  }
+
   return (
     <AdminOrderProvider>
       <AdminLayoutContent>{children}</AdminLayoutContent>

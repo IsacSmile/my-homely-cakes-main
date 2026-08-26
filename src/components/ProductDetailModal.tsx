@@ -503,7 +503,7 @@ export default function ProductDetailModal() {
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className={`object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-                onLoadingComplete={() => setIsImageLoading(false)}
+                onLoad={() => setIsImageLoading(false)}
                 priority
               />
 
@@ -588,7 +588,7 @@ export default function ProductDetailModal() {
                   fill
                   sizes="100vw"
                   className={`object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-                  onLoadingComplete={() => setIsImageLoading(false)}
+                  onLoad={() => setIsImageLoading(false)}
                   priority
                 />
 
