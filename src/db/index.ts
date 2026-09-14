@@ -218,17 +218,26 @@ if (tursoUrl && (tursoAuthToken || tursoUrl.startsWith('file:'))) {
   }).catch(err => console.error('Turso table init error:', err));
 
 } else {
-  const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
-  const dbDir = isServerless ? '/tmp' : path.join(process.cwd(), 'data');
-  if (!isServerless && !fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
+  try {
+    const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    let dbDir = isServerless ? '/tmp' : path.join(process.cwd(), 'data');
+    if (!isServerless && !fs.existsSync(dbDir)) {
+      try {
+        fs.mkdirSync(dbDir, { recursive: true });
+      } catch (err) {
+        console.warn('Unable to create data directory in cwd, falling back to /tmp:', err);
+        dbDir = '/tmp';
+      }
+    }
 
-  const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
-  sqliteInstance = new Database(sqlitePath, { timeout: 15000 });
-  sqliteInstance.pragma('journal_mode = WAL');
-  sqliteInstance.pragma('busy_timeout = 15000');
-  dbInstance = drizzleSqlite(sqliteInstance, { schema });
+    const sqlitePath = path.join(dbDir, 'myhomelycakes.db');
+    sqliteInstance = new Database(sqlitePath, { timeout: 15000 });
+    sqliteInstance.pragma('journal_mode = WAL');
+    sqliteInstance.pragma('busy_timeout = 15000');
+    dbInstance = drizzleSqlite(sqliteInstance, { schema });
+  } catch (err) {
+    console.error('SQLite initialization warning:', err);
+  }
 }
 
 export const db = dbInstance;
