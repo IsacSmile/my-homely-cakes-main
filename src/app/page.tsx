@@ -83,13 +83,15 @@ const isProductAvailable = (p: any): boolean => {
 };
 
 export default async function HomePage() {
-  // Execute all server-side database queries concurrently in parallel for maximum speed
-  const [allProducts, activeOffers, ordersList, allSettings] = await Promise.all([
-    db.select().from(products).then((res: any[]) => res || []).catch(() => []),
-    db.select().from(offers).where(eq(offers.isActive, true)).all().then((res: any[]) => res || []).catch(() => []),
-    db.select({ id: orders.id }).from(orders).then((res: any[]) => res || []).catch(() => []),
-    db.select().from(settings).all().then((res: any[]) => res || []).catch(() => []),
-  ]);
+  let allProducts: any[] = [];
+  let activeOffers: any[] = [];
+  let ordersList: any[] = [];
+  let allSettings: any[] = [];
+
+  try { allProducts = (await db.select().from(products)) || []; } catch {}
+  try { activeOffers = (await db.select().from(offers).where(eq(offers.isActive, true)).all()) || []; } catch {}
+  try { ordersList = (await db.select({ id: orders.id }).from(orders)) || []; } catch {}
+  try { allSettings = (await db.select().from(settings).all()) || []; } catch {}
 
   // 1. Featured Products (Curated by admin, ordered by featured click sequence)
   const featuredProducts = allProducts
@@ -225,9 +227,9 @@ export default async function HomePage() {
 
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
-            <span className="inline-block w-9 h-9 rounded-full bg-amber-200 border-2 border-white text-xs font-bold flex items-center justify-center text-amber-900">AK</span>
-            <span className="inline-block w-9 h-9 rounded-full bg-rose-200 border-2 border-white text-xs font-bold flex items-center justify-center text-rose-900">RP</span>
-            <span className="inline-block w-9 h-9 rounded-full bg-emerald-200 border-2 border-white text-xs font-bold flex items-center justify-center text-emerald-900">SV</span>
+            <span className="w-9 h-9 rounded-full bg-amber-200 border-2 border-white text-xs font-bold flex items-center justify-center text-amber-900">AK</span>
+            <span className="w-9 h-9 rounded-full bg-rose-200 border-2 border-white text-xs font-bold flex items-center justify-center text-rose-900">RP</span>
+            <span className="w-9 h-9 rounded-full bg-emerald-200 border-2 border-white text-xs font-bold flex items-center justify-center text-emerald-900">SV</span>
           </div>
           <span className="text-xs text-bakery-800 font-semibold">
             4.9★ Rated by 1,200+ Trivandrum Families

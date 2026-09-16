@@ -37,18 +37,11 @@ export const metadata = {
 };
 
 export default async function ShopPage() {
-  // Execute initial products and categories queries in parallel for fast loading
-  const [allProductsRaw, initialCategories] = await Promise.all([
-    db
-      .select()
-      .from(products)
-      .then((res: any[]) => res || []),
-    db
-      .select()
-      .from(categories)
-      .orderBy(asc(categories.displayOrder))
-      .then((res: any[]) => res || []),
-  ]);
+  let allProductsRaw: any[] = [];
+  let initialCategories: any[] = [];
+
+  try { allProductsRaw = (await db.select().from(products)) || []; } catch {}
+  try { initialCategories = (await db.select().from(categories).orderBy(asc(categories.displayOrder)).all()) || []; } catch {}
 
   const initialProducts = allProductsRaw
     .filter((p: any) => p.isAvailable !== false)

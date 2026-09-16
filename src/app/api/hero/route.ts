@@ -79,10 +79,10 @@ const DEFAULT_HERO = {
 
 export async function GET() {
   try {
-    const [allSettings, allProducts] = await Promise.all([
-      db.select().from(settings).all().catch(() => []),
-      db.select().from(products).all().catch(() => []),
-    ]);
+    let allSettings: any[] = [];
+    let allProducts: any[] = [];
+    try { allSettings = (await db.select().from(settings).all()) || []; } catch {}
+    try { allProducts = (await db.select().from(products).all()) || []; } catch {}
 
     const map = (allSettings || []).reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;
