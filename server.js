@@ -23,6 +23,18 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   const server = createServer((req, res) => {
     try {
+      // Preserve public Host header when running behind reverse proxies (Apache / GoDaddy cPanel / Nginx)
+      if (req.headers['x-forwarded-host']) {
+        req.headers.host = req.headers['x-forwarded-host'].split(',')[0].trim();
+      } else if (!dev && req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1'))) {
+        if (process.env.NEXTAUTH_URL) {
+          try {
+            const parsed = new URL(process.env.NEXTAUTH_URL);
+            req.headers.host = parsed.host;
+          } catch (_) {}
+        }
+      }
+
       const parsedUrl = parse(req.url, true);
       handle(req, res, parsedUrl);
     } catch (err) {

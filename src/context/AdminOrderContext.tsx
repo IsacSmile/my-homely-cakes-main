@@ -44,6 +44,7 @@ interface AdminOrderContextType {
   showUnlockBanner: boolean;
   unlockAudioContext: () => void;
   dismissUnlockBanner: () => void;
+  testAlarmSound: () => void;
   activeToasts: ToastAlert[];
   dismissToast: (id: string) => void;
   highlightedOrderId: string | null;
@@ -56,8 +57,59 @@ interface AdminOrderContextType {
 
 const AdminOrderContext = createContext<AdminOrderContextType | undefined>(undefined);
 
+// Web Audio API: Multi-tone harmonic chime (used as instant synthesized sound or fallback)
+function createWebAudioChime(ctx: AudioContext) {
+  try {
+    const now = ctx.currentTime;
+    // Harmonic bell sequence: C6 (1046.5Hz) -> E6 (1318.5Hz) -> G6 (1568Hz) -> C7 (2093Hz)
+    const notes = [
+      { freq: 1046.5, start: 0, duration: 0.25, gain: 0.5 },
+      { freq: 1318.5, start: 0.1, duration: 0.35, gain: 0.6 },
+      { freq: 1568.0, start: 0.22, duration: 0.5, gain: 0.7 },
+      { freq: 2093.0, start: 0.35, duration: 0.8, gain: 0.8 },
+    ];
+
+    notes.forEach(note => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.freq, now + note.start);
+
+      gain.gain.setValueAtTime(0.0001, now + note.start);
+      gain.gain.linearRampToValueAtTime(note.gain, now + note.start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + note.start);
+      osc.stop(now + note.start + note.duration);
+    });
+  } catch (err) {
+    console.warn('[Admin Sound] Web Audio chime generation warning:', err);
+  }
+}
+
+// Play decoded AudioBuffer through AudioContext
+function playAudioBuffer(ctx: AudioContext, buffer: AudioBuffer) {
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    source.start(0);
+  } catch (err) {
+    console.warn('[Admin Sound] Buffer playback fallback to synthesizer:', err);
+    createWebAudioChime(ctx);
+  }
+}
+
 export function AdminOrderProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [globalUnacknowledgedCount, setGlobalUnacknowledgedCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -66,33 +118,80 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
   const [activeToasts, setActiveToasts] = useState<ToastAlert[]>([]);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const htmlAudioRef = useRef<HTMLAudioElement | null>(null);
+  const loopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMutedRef = useRef<boolean>(false);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const initialFetchDoneRef = useRef<boolean>(false);
+  const activeFiltersRef = useRef<{ from?: string; to?: string; status?: string }>({});
 
-  // Initialize Mute Preference & Audio Object
+  // Lazily get or create persistent Web Audio AudioContext
+  const getAudioContext = useCallback((): AudioContext | null => {
+    if (typeof window === 'undefined') return null;
+    if (!audioContextRef.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        audioContextRef.current = new AudioCtx();
+      }
+    }
+    return audioContextRef.current;
+  }, []);
+
+  // Pre-load and decode /sounds/new-order-alert.wav into AudioBuffer
+  const loadAudioBuffer = useCallback(async () => {
+    if (audioBufferRef.current || typeof window === 'undefined') return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const res = await fetch('/sounds/new-order-alert.wav');
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const decoded = await ctx.decodeAudioData(arrayBuffer);
+        audioBufferRef.current = decoded;
+      }
+    } catch (e) {
+      console.warn('[Admin Sound] WAV file pre-decoding notice (will use synthesized chime fallback):', e);
+    }
+  }, [getAudioContext]);
+
+  // Initialize Sound System & Mute preference on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const savedMute = localStorage.getItem('admin_sound_muted');
     if (savedMute === 'true') {
       setIsMuted(true);
+      isMutedRef.current = true;
     }
 
-    // Initialize HTML5 Audio object once
-    const audio = new Audio('/sounds/new-order-alert.wav');
-    audio.preload = 'auto';
-    audio.loop = true;
-    audioRef.current = audio;
+    // Secondary HTML5 Audio fallback element
+    try {
+      const audio = new Audio('/sounds/new-order-alert.wav');
+      audio.preload = 'auto';
+      htmlAudioRef.current = audio;
+    } catch (_) {}
+
+    // Preload buffer
+    loadAudioBuffer();
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        audioRef.current = null;
+      if (loopTimerRef.current) {
+        clearInterval(loopTimerRef.current);
+        loopTimerRef.current = null;
+      }
+      if (htmlAudioRef.current) {
+        htmlAudioRef.current.pause();
+        htmlAudioRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        try {
+          audioContextRef.current.close();
+        } catch (_) {}
       }
     };
-  }, []);
+  }, [loadAudioBuffer]);
 
   // Compute status counts dynamically from orders state
   const statusCounts = React.useMemo(() => {
@@ -113,96 +212,183 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
     return counts;
   }, [orders]);
 
-  const newOrdersCount = statusCounts.new || 0;
+  // Unacknowledged count takes the maximum of local order state and global DB count
+  const newOrdersCount = Math.max(statusCounts.new || 0, globalUnacknowledgedCount);
 
-  // Manage Continuous Audio Loop State
+  // Play a single instance of the alarm chime/sound
+  const playAlarmOnce = useCallback(() => {
+    if (isMutedRef.current) return;
+
+    const ctx = getAudioContext();
+    if (ctx) {
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(() => {
+          setIsAudioUnlocked(true);
+          setShowUnlockBanner(false);
+          if (audioBufferRef.current) {
+            playAudioBuffer(ctx, audioBufferRef.current);
+          } else {
+            createWebAudioChime(ctx);
+          }
+        }).catch(err => {
+          console.warn('[Admin Sound] AudioContext autoplay blocked:', err);
+          setShowUnlockBanner(true);
+        });
+        return;
+      }
+
+      if (ctx.state === 'running') {
+        setIsAudioUnlocked(true);
+        setShowUnlockBanner(false);
+        if (audioBufferRef.current) {
+          playAudioBuffer(ctx, audioBufferRef.current);
+        } else {
+          createWebAudioChime(ctx);
+        }
+        return;
+      }
+    }
+
+    // Fallback: HTML5 Audio
+    if (htmlAudioRef.current) {
+      htmlAudioRef.current.currentTime = 0;
+      htmlAudioRef.current.play().then(() => {
+        setIsAudioUnlocked(true);
+        setShowUnlockBanner(false);
+      }).catch(err => {
+        console.warn('[Admin Sound] HTML5 Audio autoplay restricted:', err);
+        setShowUnlockBanner(true);
+      });
+    }
+  }, [getAudioContext]);
+
+  // Continuous alarm loop when unacknowledged new orders are active
   useEffect(() => {
-    if (!audioRef.current) return;
-
-    const audio = audioRef.current;
-
-    // Stop audio immediately if muted or if there are NO new unacknowledged orders
     if (isMuted || newOrdersCount === 0) {
-      if (!audio.paused) {
-        audio.pause();
-        audio.currentTime = 0;
+      if (loopTimerRef.current) {
+        clearInterval(loopTimerRef.current);
+        loopTimerRef.current = null;
       }
       return;
     }
 
-    // Play continuously if there are new unacknowledged orders and sound is enabled
-    if (newOrdersCount > 0 && !isMuted) {
-      audio.loop = true;
-      if (audio.paused) {
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsAudioUnlocked(true);
-              setShowUnlockBanner(false);
-            })
-            .catch(err => {
-              console.warn('[Admin Audio] Autoplay blocked until user interaction', err);
-              setShowUnlockBanner(true);
-            });
-        }
+    // Play immediately on detecting new orders
+    playAlarmOnce();
+
+    // Repeat alarm chime every 3.8 seconds until acknowledged or muted
+    if (!loopTimerRef.current) {
+      loopTimerRef.current = setInterval(() => {
+        playAlarmOnce();
+      }, 3800);
+    }
+
+    return () => {
+      if (loopTimerRef.current) {
+        clearInterval(loopTimerRef.current);
+        loopTimerRef.current = null;
       }
-    }
-  }, [newOrdersCount, isMuted]);
+    };
+  }, [newOrdersCount, isMuted, playAlarmOnce]);
 
-  // Unlock Audio Context on first user interaction
+  // Unlock audio context on user interaction
   const unlockAudioContext = useCallback(() => {
-    if (!audioRef.current) return;
-    const audio = audioRef.current;
-
-    audio.volume = 1.0;
-    audio.loop = true;
-
-    // If new orders exist, play immediately; otherwise play a tiny silent snippet to unlock
-    const promise = audio.play();
-    if (promise !== undefined) {
-      promise
-        .then(() => {
-          setIsAudioUnlocked(true);
-          setShowUnlockBanner(false);
-          if (newOrdersCount === 0 || isMuted) {
-            audio.pause();
-            audio.currentTime = 0;
-          }
-        })
-        .catch(() => {
-          setShowUnlockBanner(true);
-        });
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        setIsAudioUnlocked(true);
+        setShowUnlockBanner(false);
+      }).catch(() => {});
+    } else {
+      setIsAudioUnlocked(true);
+      setShowUnlockBanner(false);
     }
-  }, [newOrdersCount, isMuted]);
 
+    loadAudioBuffer();
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [getAudioContext, loadAudioBuffer]);
+
+  // Test alarm sound trigger (for verifying speakers & volume)
+  const testAlarmSound = useCallback(() => {
+    if (isMutedRef.current) {
+      setIsMuted(false);
+      isMutedRef.current = false;
+      localStorage.setItem('admin_sound_muted', 'false');
+    }
+
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        setIsAudioUnlocked(true);
+        setShowUnlockBanner(false);
+        if (audioBufferRef.current) {
+          playAudioBuffer(ctx, audioBufferRef.current);
+        } else {
+          createWebAudioChime(ctx);
+        }
+      }).catch(() => {
+        setShowUnlockBanner(true);
+      });
+    } else if (ctx && ctx.state === 'running') {
+      setIsAudioUnlocked(true);
+      setShowUnlockBanner(false);
+      if (audioBufferRef.current) {
+        playAudioBuffer(ctx, audioBufferRef.current);
+      } else {
+        createWebAudioChime(ctx);
+      }
+    } else if (htmlAudioRef.current) {
+      htmlAudioRef.current.currentTime = 0;
+      htmlAudioRef.current.play().catch(() => {});
+    }
+  }, [getAudioContext]);
+
+  // Global user interaction listener to proactively resume AudioContext & request notifications
   useEffect(() => {
-    if (isAudioUnlocked) return;
+    if (typeof window === 'undefined') return;
 
     const handleUserInteraction = () => {
-      unlockAudioContext();
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().then(() => {
+          setIsAudioUnlocked(true);
+          setShowUnlockBanner(false);
+        }).catch(() => {});
+      } else if (ctx && ctx.state === 'running') {
+        setIsAudioUnlocked(true);
+        setShowUnlockBanner(false);
+      }
+
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
     };
 
-    window.addEventListener('click', handleUserInteraction, { capture: true, once: true });
-    window.addEventListener('keydown', handleUserInteraction, { capture: true, once: true });
-    window.addEventListener('touchstart', handleUserInteraction, { capture: true, once: true });
+    window.addEventListener('click', handleUserInteraction, { capture: true });
+    window.addEventListener('keydown', handleUserInteraction, { capture: true });
+    window.addEventListener('touchstart', handleUserInteraction, { capture: true });
+    window.addEventListener('pointerdown', handleUserInteraction, { capture: true });
 
     return () => {
       window.removeEventListener('click', handleUserInteraction, { capture: true });
       window.removeEventListener('keydown', handleUserInteraction, { capture: true });
       window.removeEventListener('touchstart', handleUserInteraction, { capture: true });
+      window.removeEventListener('pointerdown', handleUserInteraction, { capture: true });
     };
-  }, [isAudioUnlocked, unlockAudioContext]);
+  }, [getAudioContext]);
 
   // Toggle Mute State
   const toggleMute = useCallback(() => {
     setIsMuted(prev => {
       const nextState = !prev;
+      isMutedRef.current = nextState;
       localStorage.setItem('admin_sound_muted', nextState ? 'true' : 'false');
 
-      if (nextState && audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      if (nextState && loopTimerRef.current) {
+        clearInterval(loopTimerRef.current);
+        loopTimerRef.current = null;
       }
       return nextState;
     });
@@ -216,8 +402,12 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
     setActiveToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // Trigger notification toast & event for newly detected order
+  // Trigger notification toast, system push, & instant sound for newly arrived order
   const triggerNewOrderNotification = useCallback((order: OrderItem) => {
+    // 1. Immediately sound alarm
+    playAlarmOnce();
+
+    // 2. Add floating visual toast
     const toast: ToastAlert = {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -230,13 +420,28 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
 
     setTimeout(() => {
       setActiveToasts(prev => prev.filter(t => t.id !== order.id));
-    }, 8000);
+    }, 10000);
 
     setHighlightedOrderId(order.id);
-    setTimeout(() => setHighlightedOrderId(null), 6000);
+    setTimeout(() => setHighlightedOrderId(null), 8000);
+
+    // 3. Desktop Notification for background tabs
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        const notif = new Notification(`🎂 New Order Received! ${order.orderNumber}`, {
+          body: `${order.customerName} placed an order for ₹${order.totalAmount}. Click to view.`,
+          icon: '/logo.png',
+          tag: order.id,
+        });
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+        };
+      } catch (_) {}
+    }
 
     window.dispatchEvent(new CustomEvent('new-order-received', { detail: order }));
-  }, []);
+  }, [playAlarmOnce]);
 
   // Central Order Fetcher & Poller
   const fetchOrders = useCallback(async (
@@ -252,11 +457,19 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
 
     if (showSkeleton) setIsLoading(true);
 
+    if (from !== undefined || to !== undefined || status !== undefined) {
+      activeFiltersRef.current = { from, to, status };
+    }
+
+    const curFrom = from !== undefined ? from : activeFiltersRef.current.from;
+    const curTo = to !== undefined ? to : activeFiltersRef.current.to;
+    const curStatus = status !== undefined ? status : activeFiltersRef.current.status;
+
     try {
       const params = new URLSearchParams();
-      if (from) params.set('from', from);
-      if (to) params.set('to', to);
-      if (status && status !== 'All' && status !== 'all') params.set('status', status);
+      if (curFrom) params.set('from', curFrom);
+      if (curTo) params.set('to', curTo);
+      if (curStatus && curStatus !== 'All' && curStatus !== 'all') params.set('status', curStatus);
 
       const queryStr = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`/api/orders${queryStr}`);
@@ -270,12 +483,16 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
       if (data && Array.isArray(data.orders)) {
         const fetchedOrders: OrderItem[] = data.orders;
 
-        // INITIAL LOAD: Populate known IDs without triggering alerts
+        if (typeof data.unacknowledgedNewCount === 'number') {
+          setGlobalUnacknowledgedCount(data.unacknowledgedNewCount);
+        }
+
+        // INITIAL LOAD: Populate known IDs
         if (!initialFetchDoneRef.current) {
           fetchedOrders.forEach(o => knownOrderIdsRef.current.add(o.id));
           initialFetchDoneRef.current = true;
         } else {
-          // SUBSEQUENT POLLS: Check for brand new orders
+          // SUBSEQUENT POLLS: Detect brand new orders
           const newlyArrivedOrders = fetchedOrders.filter(
             o => !knownOrderIdsRef.current.has(o.id)
           );
@@ -292,7 +509,7 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
         setTotalRevenue(data.totalRevenue || 0);
       }
     } catch (e) {
-      // Silently ignore polling errors
+      // Silently handle polling errors
     } finally {
       if (showSkeleton) setIsLoading(false);
     }
@@ -314,6 +531,24 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
+  // Page visibility change: immediately poll when user returns to tab
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        fetchOrders(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [getAudioContext, fetchOrders]);
+
   // Update Internal Order Status (PATCH)
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: string): Promise<boolean> => {
     try {
@@ -324,10 +559,10 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
       });
 
       if (res.ok) {
-        setOrders(prev => {
-          const updated = prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
-          return updated;
-        });
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+        if (newStatus !== 'new') {
+          setGlobalUnacknowledgedCount(prev => Math.max(0, prev - 1));
+        }
         return true;
       }
       return false;
@@ -402,6 +637,7 @@ export function AdminOrderProvider({ children }: { children: React.ReactNode }) 
         showUnlockBanner,
         unlockAudioContext,
         dismissUnlockBanner,
+        testAlarmSound,
         activeToasts,
         dismissToast,
         highlightedOrderId,
@@ -432,6 +668,7 @@ export function useAdminOrders() {
       showUnlockBanner: false,
       unlockAudioContext: () => {},
       dismissUnlockBanner: () => {},
+      testAlarmSound: () => {},
       activeToasts: [],
       dismissToast: () => {},
       highlightedOrderId: null,

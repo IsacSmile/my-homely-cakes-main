@@ -49,10 +49,15 @@ export async function GET(request: Request) {
     const allOrders = (await query.orderBy(desc(orders.createdAt)).all()) || [];
     const totalRevenue = allOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0);
 
+    // Global count of unacknowledged 'new' orders regardless of active query filters
+    const allNewOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.status, 'new'));
+    const unacknowledgedNewCount = allNewOrders ? allNewOrders.length : 0;
+
     return NextResponse.json({
       orders: allOrders,
       totalCount: allOrders.length,
       totalRevenue,
+      unacknowledgedNewCount,
     });
   } catch (error) {
     console.error('Error fetching orders:', error);

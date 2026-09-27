@@ -33,3 +33,4 @@ Thumbs.db
 # pdf and scratch scripts
 *.pdf
 generate_handover_pdf.js
+/scratch/

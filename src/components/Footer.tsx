@@ -227,6 +227,7 @@ export default function Footer() {
               href="/admin-manage"
               target="_blank"
               rel="noopener noreferrer"
+              prefetch={false}
               className="text-bakery-400/50 hover:text-amber-400 transition-colors flex items-center gap-1"
               title="Admin Portal"
             >

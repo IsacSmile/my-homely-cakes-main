@@ -244,7 +244,7 @@ export async function sendAdminOrderEmail(params: SendEmailParams) {
   }
 
   // 2. Secondary Engine: Resend API Fallback
-  const resendApiKey = process.env.RESEND_API_KEY || 're_VXH1kjKU_HzsFXcw7qXkUUMDUnwpjQwP1';
+  const resendApiKey = process.env.RESEND_API_KEY;
   const resendFrom = process.env.RESEND_FROM_EMAIL || 'MyHomelyCake Orders <onboarding@resend.dev>';
 
   if (resendApiKey) {
